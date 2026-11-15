@@ -3,7 +3,7 @@ const fs = require('fs')
 const os = require('os')
 
 // Test the search logic by simulating what main.js does
-function buildSessionsFromDir(dirPath) {
+function buildSessionsFromDir (dirPath) {
   const supportedExts = ['.md', '.txt', '.json']
   const sessions = []
   const entries = fs.readdirSync(dirPath, { withFileTypes: true })
@@ -19,7 +19,7 @@ function buildSessionsFromDir(dirPath) {
   return sessions
 }
 
-function searchSessions(sessions, query) {
+function searchSessions (sessions, query) {
   const queryLower = query.toLowerCase()
   const results = []
   for (const s of sessions) {
@@ -60,7 +60,7 @@ fs.writeFileSync(path.join(harnessDir, 'api-session.md'), '# API Design\n\nREST 
 let passed = 0
 let failed = 0
 
-function assert(condition, message) {
+function assert (condition, message) {
   if (condition) {
     passed++
     console.log(`  PASS: ${message}`)

@@ -17,7 +17,7 @@ const HARNESS_DIRS = [
   { dir: 'K:\\Users\\luizy\\.codex', harness: 'Codex' },
   { dir: 'K:\\Users\\luizy\\.cursor', harness: 'Cursor' },
   { dir: 'K:\\Users\\luizy\\.pi', harness: 'Pi' },
-  { dir: 'K:\\Users\\luizy\\.t3', harness: 'T3 Code' },
+  { dir: 'K:\\Users\\luizy\\.t3', harness: 'T3 Code' }
 ]
 
 const TEST_DB = 'K:\\Repos\\locate\\test\\real-world-index.db'
@@ -25,7 +25,7 @@ const TEST_DB = 'K:\\Repos\\locate\\test\\real-world-index.db'
 let passed = 0
 let failed = 0
 
-function assert(condition, message) {
+function assert (condition, message) {
   if (condition) {
     console.log(`  PASS: ${message}`)
     passed++
@@ -35,7 +35,7 @@ function assert(condition, message) {
   }
 }
 
-async function main() {
+async function main () {
   // Clean test database
   if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB)
   if (fs.existsSync(TEST_DB + '-wal')) fs.unlinkSync(TEST_DB + '-wal')
@@ -129,7 +129,7 @@ async function main() {
   // Hash all original archive files before and after
   const archiveFiles = []
   for (const dir of HARNESS_DIRS.map(d => d.dir)) {
-    function collect(dirPath) {
+    function collect (dirPath) {
       for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
         const full = path.join(dirPath, entry.name)
         if (entry.isDirectory()) collect(full)

@@ -17,7 +17,7 @@ const { CodexAdapter } = require('./codex')
 const { ClaudeCodeAdapter } = require('./claude-code')
 
 // Harness detection from directory path
-function detectHarness(dirPath) {
+function detectHarness (dirPath) {
   const lower = dirPath.toLowerCase()
   const base = path.basename(lower)
   if (base.includes('cline') || lower.includes('cline')) return 'Cline'
@@ -43,7 +43,7 @@ function detectHarness(dirPath) {
 // Each validator returns true only if the given file path is a real session
 // file for that harness. Files that don't match are skipped during discovery.
 
-function makeCursorValidator() {
+function makeCursorValidator () {
   return (filePath) => {
     const ext = path.extname(filePath).toLowerCase()
     if (ext !== '.jsonl') return false
@@ -55,7 +55,7 @@ function makeCursorValidator() {
   }
 }
 
-function makeClineValidator() {
+function makeClineValidator () {
   return (filePath) => {
     const ext = path.extname(filePath).toLowerCase()
     const base = path.basename(filePath)
@@ -77,7 +77,7 @@ function makeClineValidator() {
   }
 }
 
-function makeCodexValidator() {
+function makeCodexValidator () {
   return (filePath) => {
     const ext = path.extname(filePath).toLowerCase()
     const base = path.basename(filePath)
@@ -100,9 +100,8 @@ function makeCodexValidator() {
   }
 }
 
-function makeCopilotValidator() {
+function makeCopilotValidator () {
   return (filePath) => {
-    const ext = path.extname(filePath).toLowerCase()
     const base = path.basename(filePath)
     const parts = filePath.split(/[\\/]/)
     // Copilot sessions:
@@ -116,7 +115,7 @@ function makeCopilotValidator() {
   }
 }
 
-function makePiValidator() {
+function makePiValidator () {
   return (filePath) => {
     const ext = path.extname(filePath).toLowerCase()
     if (ext !== '.jsonl' && ext !== '.ndjson') return false
@@ -126,7 +125,7 @@ function makePiValidator() {
   }
 }
 
-function makeT3CodeValidator() {
+function makeT3CodeValidator () {
   return (filePath) => {
     const ext = path.extname(filePath).toLowerCase()
     const base = path.basename(filePath)
@@ -146,7 +145,7 @@ function makeT3CodeValidator() {
   }
 }
 
-function makeClaudeCodeValidator() {
+function makeClaudeCodeValidator () {
   return (filePath) => {
     const ext = path.extname(filePath).toLowerCase()
     if (ext !== '.jsonl') return false
@@ -156,11 +155,9 @@ function makeClaudeCodeValidator() {
   }
 }
 
-function makeOpencodeValidator() {
+function makeOpencodeValidator () {
   return (filePath) => {
     const ext = path.extname(filePath).toLowerCase()
-    const base = path.basename(filePath)
-    const lower = base.toLowerCase()
     const parts = filePath.split(/[\\/]/)
     const inOpencode = parts.some(p => p === '.opencode' || p === '.crush' || p === 'opencode' || p === 'crush')
     if (!inOpencode) return false
@@ -179,7 +176,7 @@ function makeOpencodeValidator() {
   }
 }
 
-function makeWindsurfValidator() {
+function makeWindsurfValidator () {
   return (filePath) => {
     const ext = path.extname(filePath).toLowerCase()
     if (ext !== '.json' && ext !== '.jsonl') return false
@@ -188,7 +185,7 @@ function makeWindsurfValidator() {
   }
 }
 
-function makeContinueValidator() {
+function makeContinueValidator () {
   return (filePath) => {
     const ext = path.extname(filePath).toLowerCase()
     if (ext !== '.json' && ext !== '.jsonl') return false
@@ -197,7 +194,7 @@ function makeContinueValidator() {
   }
 }
 
-function makeZedValidator() {
+function makeZedValidator () {
   return (filePath) => {
     const ext = path.extname(filePath).toLowerCase()
     if (ext !== '.json') return false
@@ -206,7 +203,7 @@ function makeZedValidator() {
   }
 }
 
-function makeRooValidator() {
+function makeRooValidator () {
   return (filePath) => {
     const ext = path.extname(filePath).toLowerCase()
     if (ext !== '.json' && ext !== '.jsonl') return false
@@ -215,7 +212,7 @@ function makeRooValidator() {
   }
 }
 
-function makeAiderValidator() {
+function makeAiderValidator () {
   return (filePath) => {
     const ext = path.extname(filePath).toLowerCase()
     if (ext !== '.json' && ext !== '.md') return false
@@ -224,7 +221,7 @@ function makeAiderValidator() {
   }
 }
 
-function makeGeminiValidator() {
+function makeGeminiValidator () {
   return (filePath) => {
     const ext = path.extname(filePath).toLowerCase()
     if (ext !== '.json' && ext !== '.jsonl') return false
@@ -239,7 +236,7 @@ const NON_SESSION_DB_NAMES = new Set([
   'platform-cache', 'repo-metadata-cache', 'session-search'
 ])
 
-function getSessionValidator(harness) {
+function getSessionValidator (harness) {
   const validators = {
     Cursor: makeCursorValidator(),
     Cline: makeClineValidator(),
@@ -263,12 +260,12 @@ function getSessionValidator(harness) {
 }
 
 class AdapterRegistry {
-  constructor() {
+  constructor () {
     this.adapters = []
     this._registerBuiltins()
   }
 
-  _registerBuiltins() {
+  _registerBuiltins () {
     // OpenCode adapter - handles opencode.db (better-sqlite3, large files).
     // Registered BEFORE SQLiteAdapter so opencode.db matches this adapter first.
     this.adapters.push(new OpencodeAdapter({ harness: 'OpenCode' }))
@@ -300,7 +297,7 @@ class AdapterRegistry {
    * Find the best adapter for a given file path.
    * Returns the adapter instance or null if none matches.
    */
-  findAdapterForFile(filePath) {
+  findAdapterForFile (filePath) {
     for (const adapter of this.adapters) {
       if (adapter.canHandle(filePath)) return adapter
     }
@@ -315,7 +312,7 @@ class AdapterRegistry {
    *   it is detected from the directory path.
    * @returns {Array<{filePath, ext, adapter, harness}>}
    */
-  discover(dirPath, harness = null) {
+  discover (dirPath, harness = null) {
     if (!harness) harness = detectHarness(dirPath)
     const isSessionFile = getSessionValidator(harness)
 
@@ -351,7 +348,7 @@ class AdapterRegistry {
    * Parse a session file using the appropriate adapter.
    * Returns parsed session data or null.
    */
-  parseSession(filePath) {
+  parseSession (filePath) {
     const adapter = this.findAdapterForFile(filePath)
     if (!adapter) return null
     return adapter.parseSession(filePath)
@@ -360,7 +357,7 @@ class AdapterRegistry {
   /**
    * Extract text content from a file using the appropriate adapter.
    */
-  extractText(filePath) {
+  extractText (filePath) {
     const adapter = this.findAdapterForFile(filePath)
     if (!adapter) return ''
     return adapter.extractText(filePath)
@@ -369,11 +366,11 @@ class AdapterRegistry {
   /**
    * Get the detected harness name for a directory.
    */
-  detectHarness(dirPath) {
+  detectHarness (dirPath) {
     return detectHarness(dirPath)
   }
 
-  listAdapters() {
+  listAdapters () {
     return this.adapters.map(a => ({ name: a.name, harness: a.harness, extensions: a.extensions }))
   }
 }

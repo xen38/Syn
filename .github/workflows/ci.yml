@@ -23,7 +23,7 @@ jobs:
         run: npm ci
 
       - name: Run lint
-        run: npx eslint . --ext .js --max-warnings 0 || true
+        run: npx eslint . --ext .js --max-warnings 0
 
       - name: Run tests
         run: npm test

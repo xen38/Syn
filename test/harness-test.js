@@ -9,7 +9,7 @@ const sqlPromise = initSqlJs({
 }).then(sql => { SQL = sql })
 
 // Reuse the extraction functions from main.js
-function extractTextFromJsonl(content) {
+function extractTextFromJsonl (content) {
   const lines = content.split('\n').filter(l => l.trim())
   const texts = []
   for (const line of lines) {
@@ -24,7 +24,7 @@ function extractTextFromJsonl(content) {
   return texts.join('\n')
 }
 
-function extractTextFromJsonValue(obj) {
+function extractTextFromJsonValue (obj) {
   if (typeof obj === 'string') return obj
   if (obj === null || obj === undefined) return ''
 
@@ -53,7 +53,7 @@ function extractTextFromJsonValue(obj) {
   return parts.join('\n')
 }
 
-async function extractTextFromSqlite(dbPath) {
+async function extractTextFromSqlite (dbPath) {
   try {
     await sqlPromise
     const buffer = fs.readFileSync(dbPath)
@@ -61,7 +61,7 @@ async function extractTextFromSqlite(dbPath) {
     const texts = []
 
     const tables = db
-      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+      .prepare('SELECT name FROM sqlite_master WHERE type=\'table\'')
       .all()
       .map(r => r.name)
 
@@ -103,54 +103,27 @@ async function extractTextFromSqlite(dbPath) {
   }
 }
 
-function readSessionFileContent(filePath) {
+function readSessionFileContent (filePath) {
   const ext = path.extname(filePath).toLowerCase()
   try {
     switch (ext) {
-      case '.jsonl':
+    case '.jsonl':
+      return extractTextFromJsonl(fs.readFileSync(filePath, 'utf8'))
+    case '.json':
+      try {
+        const obj = JSON.parse(fs.readFileSync(filePath, 'utf8'))
+        return extractTextFromJsonValue(obj)
+      } catch (e) {
         return extractTextFromJsonl(fs.readFileSync(filePath, 'utf8'))
-      case '.json':
-        try {
-          const obj = JSON.parse(fs.readFileSync(filePath, 'utf8'))
-          return extractTextFromJsonValue(obj)
-        } catch (e) {
-          return extractTextFromJsonl(fs.readFileSync(filePath, 'utf8'))
-        }
-      case '.db':
-      case '.sqlite':
-        return extractTextFromSqlite(filePath)
-      case '.md':
-      case '.txt':
-        return fs.readFileSync(filePath, 'utf8')
-      default:
-        return fs.readFileSync(filePath, 'utf8')
-    }
-  } catch (e) {
-    return `[Error reading ${filePath}: ${e.message}]`
-  }
-}
-
-function readSessionFileContent(filePath) {
-  const ext = path.extname(filePath).toLowerCase()
-  try {
-    switch (ext) {
-      case '.jsonl':
-        return extractTextFromJsonl(fs.readFileSync(filePath, 'utf8'))
-      case '.json':
-        try {
-          const obj = JSON.parse(fs.readFileSync(filePath, 'utf8'))
-          return extractTextFromJsonValue(obj)
-        } catch (e) {
-          return extractTextFromJsonl(fs.readFileSync(filePath, 'utf8'))
-        }
-      case '.db':
-      case '.sqlite':
-        return extractTextFromSqlite(filePath)
-      case '.md':
-      case '.txt':
-        return fs.readFileSync(filePath, 'utf8')
-      default:
-        return fs.readFileSync(filePath, 'utf8')
+      }
+    case '.db':
+    case '.sqlite':
+      return extractTextFromSqlite(filePath)
+    case '.md':
+    case '.txt':
+      return fs.readFileSync(filePath, 'utf8')
+    default:
+      return fs.readFileSync(filePath, 'utf8')
     }
   } catch (e) {
     return `[Error reading ${filePath}: ${e.message}]`
@@ -163,7 +136,7 @@ const tests = [
   { name: 'Cursor agent markdown', file: 'C:\\Users\\luizy\\.cursor\\agents\\meteor-client-expert.md' },
   { name: 'Copilot SQLite', file: 'C:\\Users\\luizy\\.copilot\\data.db' },
   { name: 'Codex SQLite', file: 'C:\\Users\\luizy\\.codex\\goals_1.sqlite' },
-  { name: 'T3 SQLite', file: 'C:\\Users\\luizy\\.t3\\userdata\\statev2.sqlite' },
+  { name: 'T3 SQLite', file: 'C:\\Users\\luizy\\.t3\\userdata\\statev2.sqlite' }
 ]
 
 let passed = 0

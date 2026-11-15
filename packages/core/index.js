@@ -16,7 +16,7 @@ const fs = require('fs')
 const crypto = require('crypto')
 const initSqlJs = require('sql.js')
 const { wrapDb } = require('./db-compat')
-const { AdapterRegistry, getSessionValidator } = require('../adapters/registry')
+const { AdapterRegistry } = require('../adapters/registry')
 
 // Supported session file extensions
 const SUPPORTED_EXTS = new Set(['.md', '.txt', '.json', '.jsonl', '.db', '.sqlite'])
@@ -38,10 +38,10 @@ const DEFAULT_SECRET_PATTERNS = [
   // Passwords in config-style assignments
   { name: 'Password assignment', pattern: /(password|passwd|pwd|secret|api_key|apikey)\s*[:=]\s*['"]?[^\s'"]{8,}['"]?/gi, replacement: '$1: [REDACTED]' },
   // Private keys (PEM blocks)
-  { name: 'Private key PEM', pattern: /-----BEGIN [A-Z ]+PRIVATE KEY-----[\s\S]*?-----END [A-Z ]+PRIVATE KEY-----/g, replacement: '-----BEGIN REDACTED PRIVATE KEY-----\n[REDACTED]\n-----END REDACTED PRIVATE KEY-----' },
+  { name: 'Private key PEM', pattern: /-----BEGIN [A-Z ]+PRIVATE KEY-----[\s\S]*?-----END [A-Z ]+PRIVATE KEY-----/g, replacement: '-----BEGIN REDACTED PRIVATE KEY-----\n[REDACTED]\n-----END REDACTED PRIVATE KEY-----' }
 ]
 
-function redactSecrets(content, patterns) {
+function redactSecrets (content, patterns) {
   if (!content || typeof content !== 'string') return content
   let redacted = content
   for (const p of patterns) {
@@ -90,7 +90,7 @@ const NON_SESSION_NAMES = new Set([
   'websql'
 ])
 
-function isNonSessionFile(filePath) {
+function isNonSessionFile (filePath) {
   const base = path.basename(filePath)
   const lower = base.toLowerCase()
   const nameWithoutExt = path.basename(filePath, path.extname(filePath))
@@ -110,8 +110,63 @@ function isNonSessionFile(filePath) {
   return false
 }
 
+/**
+ * Locate Core Indexing Engine
+ *
+ * SQLite-based full-text search index for archived coding sessions.
+ * Uses LIKE-based search (sql.js does not include FTS5).
+ * Reads original session files read-only; never copies or modifies them.
+ *
+ * Schema:
+ *   sources   - registered harness directories
+ *   sessions  - session records (metadata + content)
+ *   messages  - individual messages (role, timestamp, content, tool calls)
+ *
+ * @typedef {Object} SessionResult
+ * @property {string} id - session id
+ * @property {string} session_id - session id
+ * @property {string} title - session title
+ * @property {string} harness - harness name
+ * @property {string} source_path - source directory path
+ * @property {string} file_path - session file path
+ * @property {string} created_at - creation timestamp
+ * @property {number} rank - BM25-style relevance score
+ * @property {number} score - alias for rank
+ * @property {string} snippet - plain-text excerpt centered on match
+ * @property {string} excerpt - alias for snippet
+ *
+ * @typedef {Object} IndexOptions
+ * @property {number} [limit=50] - max results
+ * @property {string} [harness] - filter by harness name
+ * @property {string} [project] - filter by project path substring
+ * @property {string} [dateFrom] - created_at >= date (YYYY-MM-DD)
+ * @property {string} [dateTo] - created_at <= date (YYYY-MM-DD)
+ * @property {boolean} [brain] - filter to brain/vault sources
+ * @property {string[]} [enabledHarnesses] - restrict to these harnesses
+ * @property {number} [excerptLength=200] - snippet length in chars
+ *
+ * @typedef {Object} Message
+ * @property {string} session_id
+ * @property {number} message_index
+ * @property {string} role
+ * @property {string} timestamp
+ * @property {string} content
+ * @property {any|null} tool_calls
+ */
+
+/**
+ * SQLite-based full-text search index for archived coding sessions.
+ * Uses sql.js backend with BM25-style ranking implemented in JS.
+ */
 class IndexingEngine {
-  constructor(dbPath, options = {}) {
+  /**
+   * @param {string} dbPath - Path to the SQLite database file
+   * @param {Object} [options] - Engine options
+   * @property {boolean} [options.redactSecrets=true] - redact secrets at index time
+   * @property {Array<{name:string,pattern:RegExp,replacement:string}>} [options.secretPatterns] - redaction patterns
+   * @property {string[]} [options.excludedPaths] - path substrings excluded from indexing
+   */
+  constructor (dbPath, options = {}) {
     this.dbPath = dbPath
     this.db = null
     this.initialized = false
@@ -124,7 +179,11 @@ class IndexingEngine {
 
   // ── Initialization ────────────────────────────────────────────────────
 
-  async open() {
+  /**
+   * Open the database, create schema, persist empty DB if new.
+   * @returns {Promise<IndexingEngine>} this instance
+   */
+  async open () {
     await sqlPromise
     const dir = path.dirname(this.dbPath)
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
@@ -145,7 +204,7 @@ class IndexingEngine {
     return this
   }
 
-  _createSchema() {
+  _createSchema () {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS sources (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -196,7 +255,10 @@ class IndexingEngine {
     `)
   }
 
-  close() {
+  /**
+   * Export and persist the database to disk, then close it.
+   */
+  close () {
     if (this.db) {
       const data = this.db.export()
       fs.writeFileSync(this.dbPath, data)
@@ -208,7 +270,7 @@ class IndexingEngine {
 
   // ── Fingerprinting ────────────────────────────────────────────────────
 
-  _fingerprint(filePath) {
+  _fingerprint (filePath) {
     try {
       const stat = fs.statSync(filePath)
       const hash = crypto.createHash('sha256')
@@ -225,7 +287,7 @@ class IndexingEngine {
   }
 
   // Phase 8: Check if a file path matches any exclusion pattern
-  _isExcluded(filePath) {
+  _isExcluded (filePath) {
     if (!this.excludedPaths || this.excludedPaths.length === 0) return false
     const normalized = path.resolve(filePath)
     return this.excludedPaths.some(excl => {
@@ -239,11 +301,22 @@ class IndexingEngine {
 
   // ── Text extraction (read-only) ──────────────────────────────────────
 
-  static readTextFile(filePath) {
+  /**
+   * Read a text file read-only, stripping BOM.
+   * @param {string} filePath - Absolute path to the file
+   * @returns {string} File content as UTF-8 text
+   * @throws {Error} If the file cannot be read
+   */
+  static readTextFile (filePath) {
     return fs.readFileSync(filePath, 'utf8').replace(/^\uFEFF/, '')
   }
 
-  static extractTextFromJsonl(content) {
+  /**
+   * Extract plain text from JSONL content (one JSON object per line).
+   * @param {string} content - JSONL file content
+   * @returns {string} Joined text extracted from each line
+   */
+  static extractTextFromJsonl (content) {
     const lines = content.split('\n').filter(l => l.trim())
     const texts = []
     for (const line of lines) {
@@ -258,7 +331,12 @@ class IndexingEngine {
     return texts.join('\n')
   }
 
-  static extractTextFromJsonValue(obj) {
+  /**
+   * Extract plain text from a parsed JSON value, recursing into objects/arrays.
+   * @param {any} obj - Parsed JSON value
+   * @returns {string} Extracted text
+   */
+  static extractTextFromJsonValue (obj) {
     if (typeof obj === 'string') return obj
     if (obj === null || obj === undefined) return ''
     if (typeof obj.content === 'string') return obj.content
@@ -284,7 +362,12 @@ class IndexingEngine {
     return parts.join('\n')
   }
 
-  static extractTextFromJsonFile(filePath) {
+  /**
+   * Extract text from a JSON file (tries single-object parse, falls back to JSONL).
+   * @param {string} filePath - Absolute path to the JSON file
+   * @returns {string} Extracted text, or '' on error
+   */
+  static extractTextFromJsonFile (filePath) {
     try {
       const content = IndexingEngine.readTextFile(filePath)
       try {
@@ -298,14 +381,19 @@ class IndexingEngine {
     }
   }
 
-  static async extractTextFromSqlite(dbPath) {
+  /**
+   * Extract text from a SQLite database file (scans text-like columns).
+   * @param {string} dbPath - Absolute path to the .db/.sqlite file
+   * @returns {Promise<string>} Joined text from text columns
+   */
+  static async extractTextFromSqlite (dbPath) {
     try {
       await sqlPromise
       const buffer = fs.readFileSync(dbPath)
       const db = new SQL.Database(buffer)
       const texts = []
       const tables = db
-        .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+        .prepare('SELECT name FROM sqlite_master WHERE type=\'table\'')
         .all()
         .map(r => r.name)
       for (const table of tables) {
@@ -339,22 +427,27 @@ class IndexingEngine {
     }
   }
 
-  static async readSessionFileContent(filePath) {
+  /**
+   * Read session file content based on extension (jsonl/json/db/sqlite/md/txt).
+   * @param {string} filePath - Absolute path to the session file
+   * @returns {Promise<string>} Extracted text content, or error placeholder string
+   */
+  static async readSessionFileContent (filePath) {
     const ext = path.extname(filePath).toLowerCase()
     try {
       switch (ext) {
-        case '.jsonl':
-          return IndexingEngine.extractTextFromJsonl(IndexingEngine.readTextFile(filePath))
-        case '.json':
-          return IndexingEngine.extractTextFromJsonFile(filePath)
-        case '.db':
-        case '.sqlite':
-          return await IndexingEngine.extractTextFromSqlite(filePath)
-        case '.md':
-        case '.txt':
-          return IndexingEngine.readTextFile(filePath)
-        default:
-          return IndexingEngine.readTextFile(filePath)
+      case '.jsonl':
+        return IndexingEngine.extractTextFromJsonl(IndexingEngine.readTextFile(filePath))
+      case '.json':
+        return IndexingEngine.extractTextFromJsonFile(filePath)
+      case '.db':
+      case '.sqlite':
+        return await IndexingEngine.extractTextFromSqlite(filePath)
+      case '.md':
+      case '.txt':
+        return IndexingEngine.readTextFile(filePath)
+      default:
+        return IndexingEngine.readTextFile(filePath)
       }
     } catch (e) {
       return `[Error reading ${filePath}: ${e.message}]`
@@ -363,7 +456,13 @@ class IndexingEngine {
 
   // ── Session parsing into messages ────────────────────────────────────
 
-  static async parseMessages(filePath, sessionId) {
+  /**
+   * Parse a session file into an array of message objects.
+   * @param {string} filePath - Absolute path to the session file
+   * @param {string} sessionId - ID to assign to parsed messages
+   * @returns {Promise<Message[]>} Array of message objects
+   */
+  static async parseMessages (filePath, sessionId) {
     const ext = path.extname(filePath).toLowerCase()
     const messages = []
 
@@ -426,7 +525,7 @@ class IndexingEngine {
             message_index: 0,
             role: 'unknown',
             timestamp: '',
-            content: content,
+            content,
             tool_calls: null
           })
         }
@@ -449,7 +548,7 @@ class IndexingEngine {
         const buffer = fs.readFileSync(filePath)
         const db = new SQL.Database(buffer)
         const tables = db
-          .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+          .prepare('SELECT name FROM sqlite_master WHERE type=\'table\'')
           .all()
           .map(r => r.name)
         let index = 0
@@ -459,7 +558,6 @@ class IndexingEngine {
               .prepare(`PRAGMA table_info(${table})`)
               .all()
               .map(c => c.name)
-            const hasRole = columns.some(c => /role/i.test(c))
             const hasContent = columns.some(c => /content|message|text|body|prompt|response/i.test(c))
             if (!hasContent) continue
             const contentCol = columns.find(c => /content|message|text|body|prompt|response/i.test(c))
@@ -467,7 +565,7 @@ class IndexingEngine {
             const tsCol = columns.find(c => /timestamp|created_at|date/i.test(c))
             const rows = db.prepare(`SELECT * FROM ${table}`).all()
             rows.forEach(row => {
-              let rawContent = row[contentCol] || ''
+              const rawContent = row[contentCol] || ''
               // If content looks like JSON, extract meaningful text instead of raw JSON
               let content = rawContent
               const trimmed = rawContent.trim()
@@ -506,7 +604,13 @@ class IndexingEngine {
     return messages
   }
 
-  static collectSessionFiles(dirPath, harness = null) {
+  /**
+   * Discover session files in a directory via the adapter registry.
+   * @param {string} dirPath - Absolute path to the harness directory
+   * @param {string} [harness=null] - Optional harness name for detection
+   * @returns {string[]} Array of session file paths
+   */
+  static collectSessionFiles (dirPath, harness = null) {
     const registry = new AdapterRegistry()
     if (!harness) harness = registry.detectHarness(dirPath)
     try {
@@ -523,7 +627,14 @@ class IndexingEngine {
 
   // ── Source management ─────────────────────────────────────────────────
 
-  addSource(dirPath, harness = null) {
+  /**
+   * Register a directory as an indexing source.
+   * @param {string} dirPath - Absolute path to the harness directory
+   * @param {string} [harness=null] - Optional override harness name
+   * @returns {number} The source id (existing or newly inserted)
+   * @throws {Error} If dirPath does not exist or is not a directory
+   */
+  addSource (dirPath, harness = null) {
     const normalized = path.resolve(dirPath)
     if (!fs.existsSync(normalized)) {
       throw new Error(`Directory does not exist: ${normalized}`)
@@ -556,11 +667,19 @@ class IndexingEngine {
       .get(normalized).id
   }
 
-  listSources() {
+  /**
+   * List all registered sources ordered by name.
+   * @returns {Array<{id:number,path:string,name:string,format:string,harness:string,session_count:number,indexed_count:number,last_scan:string|null,status:string,error:string|null}>} Source rows
+   */
+  listSources () {
     return this.db.prepare('SELECT * FROM sources ORDER BY name').all()
   }
 
-  removeSource(dirPath) {
+  /**
+   * Remove a source and all its sessions/messages from the index.
+   * @param {string} dirPath - Absolute path of the source to remove
+   */
+  removeSource (dirPath) {
     const normalized = path.resolve(dirPath)
     // Delete sessions and their messages from this source
     const sessions = this.db
@@ -574,17 +693,21 @@ class IndexingEngine {
   }
 
   // Remove a single session from the index (undoable via re-index/refresh)
-  removeSession(sessionId) {
-    const safeId = String(sessionId).replace(/'/g, "''")
+  /**
+   * Remove a single session from the index (undoable via re-index/refresh).
+   * @param {string} sessionId - ID of the session to remove
+   */
+  removeSession (sessionId) {
+    const safeId = String(sessionId).replace(/'/g, '\'\'')
     this.db.exec(`DELETE FROM messages WHERE session_id = '${safeId}'`)
     this.db.exec(`DELETE FROM sessions WHERE session_id = '${safeId}'`)
   }
 
-  _detectHarness(dirPath) {
+  _detectHarness (dirPath) {
     return this.registry.detectHarness(dirPath)
   }
 
-  _analyzeDirectory(dirPath) {
+  _analyzeDirectory (dirPath) {
     const files = IndexingEngine.collectSessionFiles(dirPath)
     const exts = new Set()
     for (const f of files) exts.add(path.extname(f).toLowerCase())
@@ -601,7 +724,14 @@ class IndexingEngine {
 
   // ── Indexing ──────────────────────────────────────────────────────────
 
-  async indexSource(sourceId, options = {}) {
+  /**
+   * Index all sessions from a registered source.
+   * @param {number} sourceId - ID of the source to index
+   * @param {Object} [options] - Indexing options
+   * @property {number} [options.batchSize=10] - files per batch
+   * @returns {{sourceId:number,sourcePath:string,indexed:number,skipped:number,total:number,sessionCount:number,durationMs:number}} Indexing result
+   */
+  async indexSource (sourceId, options = {}) {
     const source = this.db
       .prepare('SELECT * FROM sources WHERE id = ?')
       .get(sourceId)
@@ -610,7 +740,7 @@ class IndexingEngine {
     const batchSize = options.batchSize || 10
     const startTime = Date.now()
     let indexed = 0
-    let skipped = 0
+    const skipped = 0
 
     const discovered = this.registry.discover(source.path, source.harness)
     const files = discovered.map(d => d.filePath)
@@ -784,7 +914,7 @@ class IndexingEngine {
       .get(source.path).c
 
     this.db
-      .prepare(`UPDATE sources SET session_count = ?, indexed_count = ?, last_scan = ?, status = 'indexed' WHERE id = ?`)
+      .prepare('UPDATE sources SET session_count = ?, indexed_count = ?, last_scan = ?, status = \'indexed\' WHERE id = ?')
       .run(sessionCount, indexed + skipped, now, sourceId)
 
     return {
@@ -798,7 +928,12 @@ class IndexingEngine {
     }
   }
 
-  async indexAllSources(options = {}) {
+  /**
+   * Index all registered sources.
+   * @param {Object} [options] - Indexing options (passed to indexSource)
+   * @returns {Array<{sourceId:number,sourcePath:string,indexed:number,skipped:number,total:number,sessionCount:number,durationMs:number}|{sourceId:number,sourcePath:string,error:string}>} Per-source results
+   */
+  async indexAllSources (options = {}) {
     const sources = this.listSources()
     const results = []
     for (const source of sources) {
@@ -817,7 +952,12 @@ class IndexingEngine {
 
   // ── Incremental indexing ─────────────────────────────────────────────
 
-  async incrementalIndex(options = {}) {
+  /**
+   * Incrementally index all sources (skip unchanged, delete removed files).
+   * @param {Object} [options] - Indexing options
+   * @returns {Array<{sourceId:number,sourcePath:string,indexed:number,skipped:number,deleted:number,total:number,sessionCount:number,durationMs:number}|{sourceId:number,sourcePath:string,error:string}>} Per-source results
+   */
+  async incrementalIndex (options = {}) {
     const sources = this.listSources()
     const results = []
     for (const source of sources) {
@@ -831,7 +971,7 @@ class IndexingEngine {
     return results
   }
 
-  async _incrementalIndexSource(sourceId, options = {}) {
+  async _incrementalIndexSource (sourceId, options = {}) {
     const source = this.db
       .prepare('SELECT * FROM sources WHERE id = ?')
       .get(sourceId)
@@ -969,7 +1109,7 @@ class IndexingEngine {
       .get(source.path).c
 
     this.db
-      .prepare(`UPDATE sources SET session_count = ?, indexed_count = ?, last_scan = ?, status = 'indexed' WHERE id = ?`)
+      .prepare('UPDATE sources SET session_count = ?, indexed_count = ?, last_scan = ?, status = \'indexed\' WHERE id = ?')
       .run(sessionCount, indexed, now, sourceId)
 
     return {
@@ -991,7 +1131,7 @@ class IndexingEngine {
    * Returns an array of { sessionId, title, createdAt, messages, content, filePath }.
    * Falls back to static parsing if no adapter matches.
    */
-  async _getFileSessions(filePath) {
+  async _getFileSessions (filePath) {
     const ext = path.extname(filePath).toLowerCase()
     const adapter = this.registry.findAdapterForFile(filePath)
 
@@ -1034,7 +1174,7 @@ class IndexingEngine {
 
     // Fallback: static parsing
     const content = await IndexingEngine.readSessionFileContent(filePath)
-    const sessionId = path.basename(filePath, ext)
+    let sessionId = path.basename(filePath, ext)
     let title = sessionId
     let createdAt = ''
 
@@ -1082,7 +1222,14 @@ class IndexingEngine {
   // ranking is implemented in JavaScript over LIKE candidate rows. This delivers
   // the same quality goals (title-favoring weights, relevant snippets, filters)
   // without a native dependency or a DB backend switch.
-  search(query, options = {}) {
+  /**
+   * Search sessions with BM25-style ranking, snippets, and filters.
+   * sql.js has no native FTS5, so ranking runs in JS over LIKE candidate rows.
+   * @param {string} query - Space-separated search terms
+   * @param {IndexOptions} [options] - Search options (limit, filters, excerpt length)
+   * @returns {SessionResult[]} Ranked results (title-biased), empty array if no terms
+   */
+  search (query, options = {}) {
     const limit = options.limit || 50
     const harness = options.harness || null
     const project = options.project || null
@@ -1113,24 +1260,24 @@ class IndexingEngine {
     `
 
     if (harness) {
-      sql += ` AND s.harness = ?`
+      sql += ' AND s.harness = ?'
       params.push(harness)
     }
     if (project) {
       const like = '%' + project + '%'
-      sql += ` AND (s.source_path LIKE ? OR s.file_path LIKE ?)`
+      sql += ' AND (s.source_path LIKE ? OR s.file_path LIKE ?)'
       params.push(like, like)
     }
     if (brain) {
-      sql += ` AND (s.source_path LIKE ? OR s.file_path LIKE ? OR s.source_path LIKE ? OR s.file_path LIKE ?)`
+      sql += ' AND (s.source_path LIKE ? OR s.file_path LIKE ? OR s.source_path LIKE ? OR s.file_path LIKE ?)'
       params.push('%brain%', '%vault%', '%Brain%', '%Vault%')
     }
     if (dateFrom) {
-      sql += ` AND s.created_at >= ?`
+      sql += ' AND s.created_at >= ?'
       params.push(dateFrom)
     }
     if (dateTo) {
-      sql += ` AND s.created_at <= ?`
+      sql += ' AND s.created_at <= ?'
       params.push(dateTo)
     }
     if (enabledHarnesses) {
@@ -1140,7 +1287,7 @@ class IndexingEngine {
     }
 
     // Order deterministically before scoring; final ranking is done in JS.
-    sql += ` ORDER BY s.created_at DESC`
+    sql += ' ORDER BY s.created_at DESC'
 
     const rows = this.db.prepare(sql).all(params)
 
@@ -1172,7 +1319,16 @@ class IndexingEngine {
     return results
   }
 
-  searchMessages(query, options = {}) {
+  /**
+   * Search individual messages matching a query term.
+   * @param {string} query - Search term matched against message content
+   * @param {Object} [options] - Search options
+   * @property {number} [options.limit=50] - max results
+   * @property {string} [options.harness] - filter by harness
+   * @property {string} [options.role] - filter by message role
+   * @returns {Array<{id:number,session_id:string,message_index:number,role:string,timestamp:string,content:string,title:string,harness:string,file_path:string,rank:number}>} Message results
+   */
+  searchMessages (query, options = {}) {
     const limit = options.limit || 50
     const harness = options.harness || null
     const role = options.role || null
@@ -1193,17 +1349,17 @@ class IndexingEngine {
     const params = [like, like]
 
     if (harness) {
-      sql += ` AND s.harness = ?`
+      sql += ' AND s.harness = ?'
       params.push(harness)
     }
     if (role) {
-      sql += ` AND m.role = ?`
+      sql += ' AND m.role = ?'
       params.push(role)
     }
 
-    sql += ` ORDER BY rank, m.message_index`
+    sql += ' ORDER BY rank, m.message_index'
     if (limit) {
-      sql += ` LIMIT ?`
+      sql += ' LIMIT ?'
       params.push(limit)
     }
 
@@ -1226,7 +1382,12 @@ class IndexingEngine {
 
   // ── Session retrieval ─────────────────────────────────────────────────
 
-  getSession(sessionId) {
+  /**
+   * Get a full session by ID including its messages.
+   * @param {string} sessionId - ID of the session to retrieve
+   * @returns {Object|undefined} Session row with messages array, or undefined if not found
+   */
+  getSession (sessionId) {
     const session = this.db
       .prepare('SELECT * FROM sessions WHERE session_id = ?')
       .get(sessionId)
@@ -1242,7 +1403,15 @@ class IndexingEngine {
     }
   }
 
-  getContext(sessionId, messageIndex, before = 5, after = 5) {
+  /**
+   * Get messages around a given message index within a session.
+   * @param {string} sessionId - ID of the session
+   * @param {number} messageIndex - Center message index
+   * @param {number} [before=5] - messages before center
+   * @param {number} [after=5] - messages after center
+   * @returns {Array<{message_index:number,role:string,timestamp:string,content:string}>} Context messages
+   */
+  getContext (sessionId, messageIndex, before = 5, after = 5) {
     const session = this.db
       .prepare('SELECT * FROM sessions WHERE session_id = ?')
       .get(sessionId)
@@ -1267,7 +1436,16 @@ class IndexingEngine {
     }
   }
 
-  listSessions(options = {}) {
+  /**
+   * List indexed sessions, optionally filtered by harness/project/date.
+   * @param {Object} [options] - List options
+   * @property {string} [options.harness] - filter by harness
+   * @property {string} [options.project] - filter by project path substring
+   * @property {string} [options.dateFrom] - created_at >= date
+   * @property {string} [options.dateTo] - created_at <= date
+   * @returns {Array<{session_id:string,title:string,harness:string,source_path:string,file_path:string,created_at:string}>} Session rows
+   */
+  listSessions (options = {}) {
     const harness = options.harness || null
     const enabledHarnesses = options.enabledHarnesses || null
     const limit = options.limit || 10000
@@ -1291,18 +1469,22 @@ class IndexingEngine {
     return this.db.prepare(sql).all(params)
   }
 
-  getAllHarnesses() {
+  /**
+   * List all distinct harness names present in the index.
+   * @returns {string[]} Harness names
+   */
+  getAllHarnesses () {
     const rows = this.db.prepare('SELECT DISTINCT harness FROM sessions').all()
     return rows.map(r => r.harness).filter(h => h != null && h !== '')
   }
 
-  countSessions() {
+  countSessions () {
     return this.db.prepare('SELECT COUNT(*) as c FROM sessions').get().c
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────
 
-  _getSessionContent(sessionId) {
+  _getSessionContent (sessionId) {
     const messages = this.db
       .prepare('SELECT content FROM messages WHERE session_id = ? ORDER BY message_index')
       .all(sessionId)
@@ -1314,7 +1496,7 @@ class IndexingEngine {
   // Score a session for the given query terms. Title matches are weighted more
   // heavily than content matches, and a term present in the title earns a bonus,
   // so sessions whose title names the topic rank first (BM25 "title bias").
-  _bm25Score(terms, title, content) {
+  _bm25Score (terms, title, content) {
     let score = 0
     const titleLower = (title || '').toLowerCase()
     const contentLower = (content || '').toLowerCase()
@@ -1333,7 +1515,7 @@ class IndexingEngine {
     return score
   }
 
-  _countOccurrences(haystack, needle) {
+  _countOccurrences (haystack, needle) {
     let count = 0
     let pos = 0
     while ((pos = haystack.indexOf(needle, pos)) !== -1) {
@@ -1345,7 +1527,7 @@ class IndexingEngine {
 
   // Build a highlighted excerpt centered on the best term match. Matched terms
   // are wrapped in <mark> so the UI can render highlighted snippets.
-  _snippet(text, terms, maxLength) {
+  _snippet (text, terms, maxLength) {
     if (!text) return ''
     const lower = text.toLowerCase()
     let bestIdx = -1
@@ -1367,7 +1549,7 @@ class IndexingEngine {
     return snippet
   }
 
-  _excerpt(content, query, maxLength) {
+  _excerpt (content, query, maxLength) {
     const queryLower = query.toLowerCase()
     const contentLower = content.toLowerCase()
     const idx = contentLower.indexOf(queryLower)

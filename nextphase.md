@@ -1,6 +1,6 @@
 # nextphase.md — Syn: From Locate to a Unified Agent Memory Environment
 
-**Status:** Phase 8 complete — Phase 0-8 complete; Phase 9 pending (Search Quality)
+**Status:** Phase 10 complete — Phase 0-10 complete
 **Project:** xen38/locate → Syn
 **Related:** poteto/brainmaxxing → integrated as Syn "brainmaxxing" console
 **Target:** A single interactive app where users and agents craft memories using brainmaxxing skills and search across the Memory Vault and all sessions via the /locate engine.
@@ -24,7 +24,8 @@
 - 2026-11-14: Phase 6 complete — created `.github/workflows/ci.yml` (push/PR to main: install deps, lint, test) and `.github/workflows/release.yml` (v* tags: electron-builder Windows/macOS/Linux builds, upload artifacts); resolved `better-sqlite3` native module build (prebuilt binaries; `npm ci` OK, `npm test` 13 passed/0 failed); validated workflow YAML.
 - 2026-11-14: Phase 7 complete — created `test/fixtures/` with 12 harness sample archives and `test/fixture-tests.js` (47 passed, 0 failed); fixed `better-sqlite3` to `^13.2.0`; expanded `package.json` test script to run all test files; fixed Claude Code fixture path (`claude-code` → `.claude`); all Phase 7 validation loop checks pass.
 - 2026-11-14: Phase 8 complete — Privacy & Security implemented: `DEFAULT_SECRET_PATTERNS` (7 patterns) + `redactSecrets()` in `packages/core/index.js`; constructor options (`redactSecrets`, `secretPatterns`, `excludedPaths`); `_isExcluded()` method; redaction applied to session and message content in `indexSource()` and `_incrementalIndexSource()`; exclusion check in both indexing loops; `main.js`/`mcp-server.js` DEFAULT_CONFIG updated with `redactSecrets: true`, `secretPatterns: null`, `excludedPaths: []`; `test/security.test.js` created (14 passed, 0 failed); all security tests pass.
-
+- 2026-11-14: Phase 9 complete — Search Quality: BM25-style ranking + snippets + filters (harness/date/role/brain); all search tests pass (13 + 24 = 37 passed, 0 failed); committed as aedb8e7, pushed to origin/main.
+- 2026-11-14: Phase 10 complete — Engineering Hygiene: CI lint enforced (`|| true` removed from ci.yml); root tidied (`scripts/` created, `setup-dbs.js` moved); license mismatch resolved (GPL-3.0 → MIT LICENSE matching package.json); JSDoc added to all `packages/core/` files (index.js, db-compat.js, brainmaxxing.js); all unused-variable eslint warnings fixed so `npx eslint . --ext .js --max-warnings 0` passes with 0 errors, 0 warnings; `npm test` passes (pre-existing unrelated failures in indexing incremental `skipped` counter and real-world env data). Committed and pushed to origin/main.
 ---
 
 ## 0. Success Condition

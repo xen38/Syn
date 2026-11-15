@@ -30,7 +30,7 @@ const OPENARCHIVE_DB_PATHS = [
   path.join(process.env.HOME || '', '.local', 'share', 'opencode', 'opencode.db')
 ]
 
-function findOpencodeDb() {
+function findOpencodeDb () {
   for (const p of OPENARCHIVE_DB_PATHS) {
     if (p && fs.existsSync(p)) return p
   }
@@ -38,7 +38,7 @@ function findOpencodeDb() {
 }
 
 class OpencodeAdapter extends BaseAdapter {
-  constructor(options = {}) {
+  constructor (options = {}) {
     super({
       name: options.name || 'OpenCode',
       harness: options.harness || 'OpenCode',
@@ -47,7 +47,7 @@ class OpencodeAdapter extends BaseAdapter {
     })
   }
 
-  canHandle(filePath) {
+  canHandle (filePath) {
     const ext = path.extname(filePath).toLowerCase()
     const base = path.basename(filePath).toLowerCase()
     return ext === '.db' && base === 'opencode.db'
@@ -56,7 +56,7 @@ class OpencodeAdapter extends BaseAdapter {
   /**
    * Discover the OpenCode database file.
    */
-  discover(dirPath) {
+  discover (dirPath) {
     const results = []
     const dbPath = findOpencodeDb()
     if (dbPath && this.canHandle(dbPath)) {
@@ -65,7 +65,7 @@ class OpencodeAdapter extends BaseAdapter {
     return results
   }
 
-  parseSession(filePath) {
+  parseSession (filePath) {
     // Multi-session database; use parseAllSessions instead
     return null
   }
@@ -73,7 +73,7 @@ class OpencodeAdapter extends BaseAdapter {
   /**
    * Parse all sessions from the OpenCode database.
    */
-  parseAllSessions(filePath) {
+  parseAllSessions (filePath) {
     const sessions = []
     let db
     try {
@@ -168,9 +168,9 @@ class OpencodeAdapter extends BaseAdapter {
 
           messages.push({
             message_index: messages.length,
-            role: role,
-            timestamp: timestamp,
-            content: content,
+            role,
+            timestamp,
+            content,
             tool_calls: null
           })
         }
@@ -178,11 +178,11 @@ class OpencodeAdapter extends BaseAdapter {
         if (messages.length === 0) continue
 
         sessions.push({
-          sessionId: sessionId,
-          title: title,
-          createdAt: createdAt,
-          messages: messages,
-          filePath: filePath,
+          sessionId,
+          title,
+          createdAt,
+          messages,
+          filePath,
           harness: this.harness
         })
       }
@@ -194,7 +194,7 @@ class OpencodeAdapter extends BaseAdapter {
     return sessions
   }
 
-  extractText(filePath) {
+  extractText (filePath) {
     const sessions = this.parseAllSessions(filePath)
     return sessions
       .map(s => s.messages.map(m => m.content).join('\n'))

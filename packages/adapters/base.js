@@ -12,7 +12,7 @@ const fs = require('fs')
 const crypto = require('crypto')
 
 class BaseAdapter {
-  constructor(options = {}) {
+  constructor (options = {}) {
     this.name = options.name || 'Unknown'
     this.harness = options.harness || 'Unknown'
     this.extensions = options.extensions || []
@@ -24,7 +24,7 @@ class BaseAdapter {
    * Check if this adapter can handle a given file path.
    * Returns true if the file extension matches.
    */
-  canHandle(filePath) {
+  canHandle (filePath) {
     const ext = path.extname(filePath).toLowerCase()
     return this.extensions.includes(ext)
   }
@@ -33,7 +33,7 @@ class BaseAdapter {
    * Discover session files in a directory.
    * Returns an array of { filePath, ext } objects.
    */
-  discover(dirPath) {
+  discover (dirPath) {
     const results = []
     try {
       const entries = fs.readdirSync(dirPath, { withFileTypes: true })
@@ -57,24 +57,24 @@ class BaseAdapter {
    * Parse a session file into structured data.
    * Returns { sessionId, title, createdAt, messages: [] } or null.
    */
-  parseSession(filePath) {
+  parseSession (filePath) {
     throw new Error('parseSession not implemented')
   }
 
   /**
    * Extract full text content from a file for indexing.
    */
-  extractText(filePath) {
+  extractText (filePath) {
     throw new Error('extractText not implemented')
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────
 
-  _readFile(filePath) {
+  _readFile (filePath) {
     return fs.readFileSync(filePath, 'utf8').replace(/^\uFEFF/, '')
   }
 
-  _fingerprint(filePath) {
+  _fingerprint (filePath) {
     try {
       const stat = fs.statSync(filePath)
       const hash = crypto.createHash('sha256')

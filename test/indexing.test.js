@@ -15,7 +15,7 @@ const TEST_DIR = 'K:\\Users\\luizy\\.copilot'
 let passed = 0
 let failed = 0
 
-function assert(condition, message) {
+function assert (condition, message) {
   if (condition) {
     passed++
     console.log(`  PASS: ${message}`)
@@ -26,9 +26,9 @@ function assert(condition, message) {
 }
 
 // Record original file hashes before indexing
-function recordHashes(dir) {
+function recordHashes (dir) {
   const hashes = {}
-  function walk(d) {
+  function walk (d) {
     const entries = fs.readdirSync(d, { withFileTypes: true })
     for (const e of entries) {
       const full = path.join(d, e.name)
@@ -44,9 +44,9 @@ function recordHashes(dir) {
   return hashes
 }
 
-function verifyHashes(hashes, dir) {
+function verifyHashes (hashes, dir) {
   let ok = true
-  function walk(d) {
+  function walk (d) {
     const entries = fs.readdirSync(d, { withFileTypes: true })
     for (const e of entries) {
       const full = path.join(d, e.name)
@@ -70,7 +70,7 @@ function verifyHashes(hashes, dir) {
 // Clean up test DB
 try { fs.unlinkSync(DB_PATH) } catch (e) {}
 
-async function runTests() {
+async function runTests () {
   console.log('=== Locate Indexing Engine Tests ===\n')
 
   // Test 1: Open engine and create schema

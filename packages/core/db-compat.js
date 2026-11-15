@@ -6,9 +6,25 @@
  *   - .all() returns array of row objects
  *   - .get() returns a single row object or undefined
  *   - .run() returns { changes, lastInsertRowid }
+ *
+ * @typedef {Object} PreparedStatement
+ * @property {(...args: any[]) => any[]} all - Execute query, return all rows
+ * @property {(...args: any[]) => Object|undefined} get - Execute query, return first row
+ * @property {(...args: any[]) => {changes:number,lastInsertRowid:number}} run - Execute statement, return info
+ *
+ * @typedef {Object} SqlJsDatabase
+ * @property {(sql:string) => PreparedStatement} prepare - Prepare a SQL statement
+ * @property {(sql:string) => void} exec - Execute one or more SQL statements
+ * @property {(fn:Function) => Function} transaction - Wrap fn in BEGIN/COMMIT
+ * @property {() => Buffer} export - Export database to buffer
  */
 
-function wrapDb(db) {
+/**
+ * Wraps a sql.js Database object to provide a better-sqlite3-compatible API.
+ * @param {SqlJsDatabase} db - sql.js Database instance to wrap
+ * @returns {SqlJsDatabase} The wrapped database (mutated in place)
+ */
+function wrapDb (db) {
   const origPrepare = db.prepare.bind(db)
   db.prepare = function (sql) {
     const stmt = origPrepare(sql)
@@ -23,7 +39,7 @@ function wrapDb(db) {
       }
     }
     return {
-      all(...args) {
+      all (...args) {
         const rows = []
         bindParams(args)
         while (stmt.step()) {
@@ -37,9 +53,9 @@ function wrapDb(db) {
         stmt.reset()
         return rows
       },
-      get(...args) {
+      get (...args) {
         bindParams(args)
-        let row = undefined
+        let row
         if (stmt.step()) {
           const rowArr = stmt.get()
           row = {}
@@ -50,7 +66,7 @@ function wrapDb(db) {
         stmt.reset()
         return row
       },
-      run(...args) {
+      run (...args) {
         bindParams(args)
         stmt.step()
         const info = {

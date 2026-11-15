@@ -18,7 +18,7 @@ const { wrapDb } = require('../core/db-compat')
 const { BaseAdapter } = require('./base')
 
 // Extract readable text from a JSON value (inline to avoid circular dep with IndexingEngine)
-function extractTextFromJsonValue(obj) {
+function extractTextFromJsonValue (obj) {
   if (typeof obj === 'string') return obj
   if (obj === null || obj === undefined) return ''
   if (typeof obj.content === 'string') return obj.content
@@ -49,11 +49,8 @@ const sqlPromise = initSqlJs({
   locateFile: file => path.join(__dirname, '..', '..', 'node_modules', 'sql.js', 'dist', file)
 }).then(sql => { SQL = sql })
 
-// Yield to the event loop periodically during long row processing
-const sleep = (ms = 0) => new Promise(resolve => setTimeout(resolve, ms))
-
 class SQLiteAdapter extends BaseAdapter {
-  constructor(options = {}) {
+  constructor (options = {}) {
     super({
       name: options.name || 'SQLite',
       harness: options.harness || 'Unknown',
@@ -69,7 +66,7 @@ class SQLiteAdapter extends BaseAdapter {
     this.timestampCol = options.timestampCol || null
   }
 
-  canHandle(filePath) {
+  canHandle (filePath) {
     const ext = path.extname(filePath).toLowerCase()
     return ext === '.db' || ext === '.sqlite'
   }
@@ -77,7 +74,7 @@ class SQLiteAdapter extends BaseAdapter {
   /**
    * Discover session files (SQLite databases) in a directory.
    */
-  discover(dirPath) {
+  discover (dirPath) {
     const results = []
     try {
       const entries = fs.readdirSync(dirPath, { withFileTypes: true })
@@ -99,7 +96,7 @@ class SQLiteAdapter extends BaseAdapter {
    * Parse a SQLite database file into sessions.
    * Each row in the sessions table becomes one session.
    */
-  parseSession(filePath) {
+  parseSession (filePath) {
     // SQLite databases contain multiple sessions; return null here
     // and use parseAllSessions instead for multi-session files.
     return null
@@ -109,7 +106,7 @@ class SQLiteAdapter extends BaseAdapter {
    * Parse all sessions from a SQLite database file.
    * Returns an array of { sessionId, title, createdAt, messages, filePath }.
    */
-  async parseAllSessions(filePath) {
+  async parseAllSessions (filePath) {
     const sessions = []
     let db
     try {
@@ -132,7 +129,7 @@ class SQLiteAdapter extends BaseAdapter {
 
       // ── Phase 1: tables literally named "sessions" ──────────────────────
       const sessionTables = db
-        .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+        .prepare('SELECT name FROM sqlite_master WHERE type=\'table\'')
         .all()
         .map(r => r.name)
         .filter(t => t.toLowerCase() === 'sessions')
@@ -149,7 +146,7 @@ class SQLiteAdapter extends BaseAdapter {
       // ── Phase 2: fallback — message-store tables grouped by thread_id ───
       if (sessions.length === 0) {
         const allTables = db
-          .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+          .prepare('SELECT name FROM sqlite_master WHERE type=\'table\'')
           .all()
           .map(r => r.name)
 
@@ -175,12 +172,12 @@ class SQLiteAdapter extends BaseAdapter {
    * Each session becomes one conversation with alternating user/assistant messages.
    * Title is derived from cwd/repository/branch/summary.
    */
-  _parseCopilotStore(db, filePath) {
+  _parseCopilotStore (db, filePath) {
     const sessions = []
 
     // Verify tables exist with expected columns
     const tables = db
-      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+      .prepare('SELECT name FROM sqlite_master WHERE type=\'table\'')
       .all()
       .map(r => r.name)
     if (!tables.includes('sessions') || !tables.includes('turns')) return sessions
@@ -293,8 +290,8 @@ class SQLiteAdapter extends BaseAdapter {
         sessionId: sid,
         title: title || sid,
         createdAt: s.createdAt,
-        messages: messages,
-        filePath: filePath,
+        messages,
+        filePath,
         harness: this.harness
       })
     }
@@ -306,7 +303,7 @@ class SQLiteAdapter extends BaseAdapter {
    * Parse a single "sessions" table into session objects.
    * Each row = one session.
    */
-  _parseSessionTable(db, table) {
+  _parseSessionTable (db, table) {
     const sessions = []
     const columns = db
       .prepare(`PRAGMA table_info(${table})`)
@@ -399,7 +396,7 @@ class SQLiteAdapter extends BaseAdapter {
    * A message-store table has: thread_id column + role column + content column.
    * Each thread becomes one session with all its messages.
    */
-  _parseMessageStoreTable(db, table, filePath) {
+  _parseMessageStoreTable (db, table, filePath) {
     const sessions = []
     const columns = db
       .prepare(`PRAGMA table_info(${table})`)
@@ -448,7 +445,6 @@ class SQLiteAdapter extends BaseAdapter {
       threads.get(threadId).push(row)
     }
 
-    let index = 0
     for (const [threadId, rows] of threads) {
       // Build messages in order
       const messages = rows.map((row, i) => {
@@ -489,12 +485,11 @@ class SQLiteAdapter extends BaseAdapter {
         messages,
         harness: this.harness
       })
-      index++
     }
     return sessions
   }
 
-  extractText(filePath) {
+  extractText (filePath) {
     const sessions = this.parseAllSessions(filePath)
     return sessions.map(s => s.messages.map(m => m.content).join('\n')).join('\n')
   }

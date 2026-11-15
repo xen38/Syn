@@ -9,11 +9,10 @@
  */
 
 const path = require('path')
-const fs = require('fs')
 const { BaseAdapter } = require('./base')
 
 class TextAdapter extends BaseAdapter {
-  constructor(options = {}) {
+  constructor (options = {}) {
     super({
       name: options.name || 'Text',
       harness: options.harness || 'Unknown',
@@ -22,12 +21,12 @@ class TextAdapter extends BaseAdapter {
     })
   }
 
-  canHandle(filePath) {
+  canHandle (filePath) {
     const ext = path.extname(filePath).toLowerCase()
     return ext === '.md' || ext === '.txt'
   }
 
-  parseSession(filePath) {
+  parseSession (filePath) {
     const content = this._readFile(filePath)
     const sessionId = path.basename(filePath, path.extname(filePath))
     const firstLine = content.split('\n')[0]
@@ -55,7 +54,7 @@ class TextAdapter extends BaseAdapter {
     }
   }
 
-  extractText(filePath) {
+  extractText (filePath) {
     return this._readFile(filePath)
   }
 }

@@ -9,11 +9,10 @@
  */
 
 const path = require('path')
-const fs = require('fs')
 const { BaseAdapter } = require('./base')
 
 class JsonlAdapter extends BaseAdapter {
-  constructor(options = {}) {
+  constructor (options = {}) {
     super({
       name: options.name || 'JSONL',
       harness: options.harness || 'Unknown',
@@ -22,11 +21,11 @@ class JsonlAdapter extends BaseAdapter {
     })
   }
 
-  canHandle(filePath) {
+  canHandle (filePath) {
     return path.extname(filePath).toLowerCase() === '.jsonl'
   }
 
-  parseSession(filePath) {
+  parseSession (filePath) {
     const content = this._readFile(filePath).trim()
     const messages = []
     let sessionId = path.basename(filePath, '.jsonl')
@@ -116,7 +115,7 @@ class JsonlAdapter extends BaseAdapter {
         const obj = JSON.parse(line)
         if (obj.session_id && !sessionId) sessionId = obj.session_id
         if (obj.title && !title) title = obj.title
-        if (obj.timestamp && !createdAt) createdAt = item.timestamp
+        if (obj.timestamp && !createdAt) createdAt = obj.timestamp
         messages.push({
           session_id: sessionId,
           message_index: index++,
@@ -134,7 +133,7 @@ class JsonlAdapter extends BaseAdapter {
     return { sessionId, title, createdAt, messages, filePath, harness: this.harness }
   }
 
-  extractText(filePath) {
+  extractText (filePath) {
     const parsed = this.parseSession(filePath)
     return parsed.messages.map(m => m.content).join('\n')
   }
@@ -142,7 +141,7 @@ class JsonlAdapter extends BaseAdapter {
 
 // Split concatenated JSON objects (e.g. }\\n{) by tracking brace depth,
 // accounting for strings and escape sequences.
-function splitConcatJson(content) {
+function splitConcatJson (content) {
   const chunks = []
   let depth = 0
   let inString = false
@@ -157,8 +156,7 @@ function splitConcatJson(content) {
       continue
     }
     if (ch === '"') { inString = true; continue }
-    if (ch === '{') { if (depth === 0) start = i; depth++ }
-    else if (ch === '}') { depth--; if (depth === 0) chunks.push(content.slice(start, i + 1)) }
+    if (ch === '{') { if (depth === 0) start = i; depth++ } else if (ch === '}') { depth--; if (depth === 0) chunks.push(content.slice(start, i + 1)) }
   }
   return chunks.filter(c => c.trim())
 }

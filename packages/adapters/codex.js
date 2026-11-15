@@ -40,7 +40,7 @@ const CODEX_DB_PATHS = [
     : null
 ].filter(Boolean)
 
-function findCodexDbs() {
+function findCodexDbs () {
   const dbs = []
   for (const p of CODEX_DB_PATHS) {
     if (p && fs.existsSync(p) && !dbs.includes(p)) dbs.push(p)
@@ -49,7 +49,7 @@ function findCodexDbs() {
 }
 
 class CodexAdapter extends BaseAdapter {
-  constructor(options = {}) {
+  constructor (options = {}) {
     super({
       name: options.name || 'Codex',
       harness: options.harness || 'Codex',
@@ -58,7 +58,7 @@ class CodexAdapter extends BaseAdapter {
     })
   }
 
-  canHandle(filePath) {
+  canHandle (filePath) {
     const ext = path.extname(filePath).toLowerCase()
     const base = path.basename(filePath).toLowerCase()
     const parts = filePath.split(/[\\/]/)
@@ -78,7 +78,7 @@ class CodexAdapter extends BaseAdapter {
   }
 
   /** Discover all Codex database files and archived session JSONL files. */
-  discover(dirPath) {
+  discover (dirPath) {
     const results = []
     for (const dbPath of findCodexDbs()) {
       if (this.canHandle(dbPath)) {
@@ -119,7 +119,7 @@ class CodexAdapter extends BaseAdapter {
     return results
   }
 
-  parseSession(filePath) {
+  parseSession (filePath) {
     const ext = path.extname(filePath).toLowerCase()
     if (ext === '.jsonl') {
       return this.parseArchivedSession(filePath)
@@ -133,7 +133,7 @@ class CodexAdapter extends BaseAdapter {
    * Each row in local_thread_catalog becomes one session.
    * For .jsonl archived sessions, returns a single session array.
    */
-  async parseAllSessions(filePath) {
+  async parseAllSessions (filePath) {
     const ext = path.extname(filePath).toLowerCase()
     if (ext === '.jsonl') {
       const parsed = this.parseArchivedSession(filePath)
@@ -149,7 +149,7 @@ class CodexAdapter extends BaseAdapter {
 
       // Verify local_thread_catalog table exists
       const tables = db
-        .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+        .prepare('SELECT name FROM sqlite_master WHERE type=\'table\'')
         .all()
         .map(r => r.name)
       if (!tables.includes('local_thread_catalog')) return sessions
@@ -163,8 +163,6 @@ class CodexAdapter extends BaseAdapter {
       // Need at least thread_id and display_title
       if (!colSet.has('thread_id') || !colSet.has('display_title')) return sessions
 
-      const threadIdCol = 'thread_id'
-      const titleCol = 'display_title'
       const createdAtCol = colSet.has('source_created_at') ? 'source_created_at' : null
       const updatedAtCol = colSet.has('source_updated_at') ? 'source_updated_at' : null
       const cwdCol = colSet.has('cwd') ? 'cwd' : null
@@ -172,10 +170,10 @@ class CodexAdapter extends BaseAdapter {
 
       const query = `
         SELECT thread_id, display_title,
-               ${createdAtCol || "''"} AS source_created_at,
-               ${updatedAtCol || "''"} AS source_updated_at,
-               ${cwdCol || "''"} AS cwd,
-               ${sourceKindCol || "''"} AS source_kind
+               ${createdAtCol || '\'\''} AS source_created_at,
+               ${updatedAtCol || '\'\''} AS source_updated_at,
+               ${cwdCol || '\'\''} AS cwd,
+               ${sourceKindCol || '\'\''} AS source_kind
         FROM local_thread_catalog
         WHERE display_title IS NOT NULL AND display_title <> ''
       `
@@ -222,7 +220,7 @@ class CodexAdapter extends BaseAdapter {
    *
    * Only response_item lines with role 'user' or 'assistant' become messages.
    */
-  parseArchivedSession(filePath) {
+  parseArchivedSession (filePath) {
     const content = this._readFile(filePath).trim()
     if (!content) return null
 
@@ -294,7 +292,7 @@ class CodexAdapter extends BaseAdapter {
     }
   }
 
-  extractText(filePath) {
+  extractText (filePath) {
     const ext = path.extname(filePath).toLowerCase()
     if (ext === '.jsonl') {
       const parsed = this.parseArchivedSession(filePath)

@@ -6,15 +6,15 @@ const fs = require('fs')
 const os = require('os')
 const { IndexingEngine } = require('../packages/core/index')
 
-function makeTempDb() {
+function makeTempDb () {
   return path.join(os.tmpdir(), 'syn-security-test-' + Date.now() + '.db')
 }
-function cleanupDb(dbPath) {
+function cleanupDb (dbPath) {
   try { fs.unlinkSync(dbPath) } catch (e) {}
   try { fs.unlinkSync(dbPath + '-wal') } catch (e) {}
   try { fs.unlinkSync(dbPath + '-shm') } catch (e) {}
 }
-function cleanupDir(dirPath) {
+function cleanupDir (dirPath) {
   try {
     if (fs.existsSync(dirPath)) {
       fs.readdirSync(dirPath).forEach(f => {
@@ -30,12 +30,11 @@ function cleanupDir(dirPath) {
 let passed = 0
 let failed = 0
 
-function assert(condition, name) {
-  if (condition) { passed++; console.log(`  PASS: ${name}`) }
-  else { failed++; console.log(`  FAIL: ${name}`) }
+function assert (condition, name) {
+  if (condition) { passed++; console.log(`  PASS: ${name}`) } else { failed++; console.log(`  FAIL: ${name}`) }
 }
 
-async function main() {
+async function main () {
   console.log('=== Phase 8.1: Secret redaction ===')
 
   // Cline-style directory: .cline/sessions/<file>.jsonl
@@ -133,7 +132,7 @@ async function main() {
   }) + '\n')
 
   const sourceId3 = engine3.addSource(baseDir3, 'Cline')
-  const result3 = await engine3.indexSource(sourceId3)
+  await engine3.indexSource(sourceId3)
   const sessions3 = engine3.listSessions()
   assert(sessions3.length >= 2, 'Both sessions indexed without exclusions (got ' + sessions3.length + ')')
 
@@ -147,7 +146,7 @@ async function main() {
   await engine3b.open()
 
   const sourceId3b = engine3b.addSource(baseDir3, 'Cline')
-  const result3b = await engine3b.indexSource(sourceId3b)
+  await engine3b.indexSource(sourceId3b)
   const sessions3b = engine3b.listSessions()
   assert(sessions3b.length === 1, 'Only included session indexed with exclusion (got ' + sessions3b.length + ')')
   const exclSession = sessions3b.find(s => s.session_id === 'excl-001')

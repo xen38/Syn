@@ -26,11 +26,11 @@ const fs = require('fs')
 // Brain vault lives at the repo root: <repo>/brain
 const BRAIN_DIR = path.join(__dirname, '..', '..', 'brain')
 
-function ensureDir(dir) {
+function ensureDir (dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
 }
 
-function slugify(text) {
+function slugify (text) {
   return String(text)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
@@ -41,7 +41,12 @@ function slugify(text) {
 
 // ── Brain Vault helpers ──────────────────────────────────────────────────
 
-function brainRead(relativePath) {
+/**
+ * Read a brain/memory file from the vault.
+ * @param {string} relativePath - Path relative to BRAIN_DIR
+ * @returns {{ok:boolean, path?:string, content?:string, error?:string}} Read result
+ */
+function brainRead (relativePath) {
   const filePath = path.join(BRAIN_DIR, relativePath)
   if (!fs.existsSync(filePath)) {
     return { ok: false, error: `Brain file not found: ${relativePath}` }
@@ -50,7 +55,13 @@ function brainRead(relativePath) {
   return { ok: true, path: relativePath, content }
 }
 
-function brainWrite(relativePath, content) {
+/**
+ * Write a brain/memory file to the vault.
+ * @param {string} relativePath - Path relative to BRAIN_DIR
+ * @param {string} content - File content
+ * @returns {{ok:boolean, path:string}} Write result
+ */
+function brainWrite (relativePath, content) {
   ensureDir(BRAIN_DIR)
   const filePath = path.join(BRAIN_DIR, relativePath)
   fs.mkdirSync(path.dirname(filePath), { recursive: true })
@@ -58,10 +69,14 @@ function brainWrite(relativePath, content) {
   return { ok: true, path: relativePath }
 }
 
-function brainList() {
+/**
+ * List all .md files in the brain vault.
+ * @returns {string[]} Sorted array of paths relative to BRAIN_DIR
+ */
+function brainList () {
   ensureDir(BRAIN_DIR)
   const files = []
-  function walk(dir, prefix) {
+  function walk (dir, prefix) {
     const entries = fs.readdirSync(dir, { withFileTypes: true })
     for (const entry of entries) {
       const full = path.join(dir, entry.name)
@@ -77,7 +92,11 @@ function brainList() {
   return files.sort()
 }
 
-function rebuildIndex() {
+/**
+ * Rebuild brain/index.md from all vault files.
+ * @returns {{ok:boolean, files:number}} Rebuild result with file count
+ */
+function rebuildIndex () {
   ensureDir(BRAIN_DIR)
   const files = brainList()
   const lines = ['# Brain Index', '', 'Root entry point for the Syn Memory Vault. Every brain file is reachable from here.', '', '## Sections', '']
@@ -117,7 +136,7 @@ function rebuildIndex() {
   return { ok: true, files: files.length }
 }
 
-function readIndexMd() {
+function readIndexMd () {
   const r = brainRead('index.md')
   return r.ok ? r.content : ''
 }
@@ -131,7 +150,7 @@ const LEARNING_KEYWORDS = [
   'learned', 'note', 'remember', 'important', 'key', 'insight'
 ]
 
-function extractLearnings(content) {
+function extractLearnings (content) {
   const lines = content.split('\n')
   const learnings = []
   for (const line of lines) {
@@ -147,8 +166,13 @@ function extractLearnings(content) {
   return [...new Set(learnings)].slice(0, 20)
 }
 
-async function reflect(sessionId, engine) {
-  const indexMd = readIndexMd()
+/**
+ * /reflect: Scan a session for learnings and write a memory to brain/memories/.
+ * @param {string} sessionId - ID of the session to reflect on
+ * @param {Object} engine - IndexingEngine instance with getSession()
+ * @returns {{ok:boolean, error?:string, path?:string, title?:string, learningsCount?:number, learnings?:string[]}} Reflect result
+ */
+async function reflect (sessionId, engine) {
   if (!engine || !engine.getSession) {
     return { ok: false, error: 'IndexingEngine not provided' }
   }
@@ -194,8 +218,12 @@ async function reflect(sessionId, engine) {
 // ── /meditate ────────────────────────────────────────────────────────────
 // Audit brain vault, prune stale notes, extract principles
 
-async function meditate(engine) {
-  const indexMd = readIndexMd()
+/**
+ * /meditate: Audit brain vault, prune stale notes, extract principles.
+ * @param {Object} engine - IndexingEngine instance (unused, kept for signature consistency)
+ * @returns {{ok:boolean, filesAudited:number, principlesExtracted:number, staleNotes:string[], report:string, path?:string}} Meditate report
+ */
+async function meditate (engine) {
   const files = brainList()
   const report = {
     ok: true,
@@ -260,8 +288,12 @@ async function meditate(engine) {
 // ── /ruminate ────────────────────────────────────────────────────────────
 // Mine archived sessions for uncaptured patterns
 
-async function ruminate(engine) {
-  const indexMd = readIndexMd()
+/**
+ * /ruminate: Mine archived sessions for uncaptured patterns.
+ * @param {Object} engine - IndexingEngine instance with listSessions()/getSession()
+ * @returns {{ok:boolean, error?:string, path?:string, sessionsScanned:number, patternsFound:number, patterns:Array}} Ruminate result
+ */
+async function ruminate (engine) {
   if (!engine || !engine.listSessions || !engine.getSession) {
     return { ok: false, error: 'IndexingEngine not provided' }
   }
@@ -283,7 +315,7 @@ async function ruminate(engine) {
   const date = new Date().toISOString().slice(0, 10)
   const fileName = `sessions/ruminate-${date}.md`
   const lines = [
-    `# Ruminate: Archived Session Patterns`,
+    '# Ruminate: Archived Session Patterns',
     '',
     `Minied on: ${new Date().toISOString()}`,
     `Sessions scanned: ${sessions.length}`,
@@ -308,8 +340,13 @@ async function ruminate(engine) {
 // ── /plan ────────────────────────────────────────────────────────────────
 // Break a task into phased plans, write to brain/plans/
 
-async function plan(task, engine) {
-  const indexMd = readIndexMd()
+/**
+ * /plan: Break a task into phased plans, write to brain/plans/.
+ * @param {string} task - Task description
+ * @param {Object} engine - IndexingEngine instance (unused, kept for signature consistency)
+ * @returns {{ok:boolean, path:string, task:string}} Plan result
+ */
+async function plan (task, engine) {
   const date = new Date().toISOString().slice(0, 10)
   const slug = slugify(task)
   const fileName = `plans/plan-${date}-${slug}.md`
@@ -342,8 +379,13 @@ async function plan(task, engine) {
 // ── /review ──────────────────────────────────────────────────────────────
 // Review code/plans against principles
 
-async function review(content, engine) {
-  const indexMd = readIndexMd()
+/**
+ * /review: Review code/plans against principles.
+ * @param {string} content - Content to review
+ * @param {Object} engine - IndexingEngine instance (unused, kept for signature consistency)
+ * @returns {{ok:boolean, path:string, issues:Array<{severity:string,message:string}>}} Review result
+ */
+async function review (content, engine) {
   const issues = []
   const lower = content.toLowerCase()
   if (lower.includes('copy ') || lower.includes('duplicate')) {
@@ -359,7 +401,7 @@ async function review(content, engine) {
   const slug = slugify(content.slice(0, 40))
   const fileName = `plans/review-${date}-${slug}.md`
   const lines = [
-    `# Review`,
+    '# Review',
     '',
     `Reviewed: ${new Date().toISOString()}`,
     `Issues found: ${issues.length}`,

@@ -5,10 +5,7 @@
  *   - No false negatives (real session files included)
  */
 
-const path = require('path')
-const { detectHarness, getSessionValidator } = require('../packages/adapters/registry')
-
-const registry = new (require('../packages/adapters/registry').AdapterRegistry)()
+const { getSessionValidator } = require('../packages/adapters/registry')
 
 const cases = [
   // [harness, filePath, expectedIsSession, description]
@@ -91,7 +88,7 @@ const cases = [
   ['Gemini CLI', 'C:/Users/u/.gemini/history.json', true, 'gemini history json'],
   ['Gemini CLI', 'C:/Users/u/other/session.jsonl', false, 'not under .gemini'],
   // ── Unknown ──
-  ['Unknown', 'C:/Users/u/random/file.txt', false, 'unknown harness discovers nothing'],
+  ['Unknown', 'C:/Users/u/random/file.txt', false, 'unknown harness discovers nothing']
 ]
 
 let passed = 0
@@ -101,8 +98,7 @@ for (const [harness, filePath, expected, desc] of cases) {
   const validator = getSessionValidator(harness)
   const result = validator(filePath)
   const ok = result === expected
-  if (ok) { passed++; console.log(`  PASS: ${desc}`) }
-  else { failed++; console.log(`  FAIL: ${desc} — harness=${harness} path=${filePath} expected=${expected} got=${result}`) }
+  if (ok) { passed++; console.log(`  PASS: ${desc}`) } else { failed++; console.log(`  FAIL: ${desc} — harness=${harness} path=${filePath} expected=${expected} got=${result}`) }
 }
 
 console.log(`\n=== ${passed} passed, ${failed} failed ===`)

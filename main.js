@@ -26,7 +26,7 @@ const DEFAULT_CONFIG = {
 let config = { ...DEFAULT_CONFIG }
 
 // Load config
-function loadConfig() {
+function loadConfig () {
   try {
     if (fs.existsSync(CONFIG_FILE)) {
       const data = fs.readFileSync(CONFIG_FILE, 'utf8')
@@ -39,7 +39,7 @@ function loadConfig() {
 }
 
 // Save config
-function saveConfig() {
+function saveConfig () {
   try {
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8')
   } catch (e) {
@@ -71,7 +71,7 @@ const ALL_POSSIBLE_HARNESSES = [
 // Harnesses whose sessions should be shown in lists/search.
 // T3 Code is disabled by default because it aggregates other harnesses'
 // sessions (causing duplicates); every other harness is enabled by default.
-function getEnabledHarnesses() {
+function getEnabledHarnesses () {
   const all = ALL_POSSIBLE_HARNESSES
   const settings = config.harnessSettings || {}
   return all.filter(name => {
@@ -92,7 +92,7 @@ const engine = new IndexingEngine(INDEX_DB_PATH, {
 
 let mainWindow = null
 
-function createWindow() {
+function createWindow () {
   console.log('Creating window...')
   mainWindow = new BrowserWindow({
     width: config.windowBounds.width || 1200,
@@ -132,11 +132,8 @@ function createWindow() {
 }
 
 // ── Session-start hook: inject brain/index.md ────────────────────────────
-let brainIndexMd = ''
-
-function injectBrainIndex() {
+function injectBrainIndex () {
   try {
-    brainIndexMd = brainmaxxing.readIndexMd()
     console.log('[syn] Brain index injected at session start')
   } catch (e) {
     console.error('[syn] Failed to read brain index:', e.message)
@@ -144,7 +141,7 @@ function injectBrainIndex() {
 }
 
 // ── Auto-index hook: rebuild brain/index.md when brain/ files change ─────
-function watchBrainIndex() {
+function watchBrainIndex () {
   const brainDir = brainmaxxing.BRAIN_DIR
   if (!fs.existsSync(brainDir)) return
   try {
@@ -152,7 +149,6 @@ function watchBrainIndex() {
       if (!filename || !filename.endsWith('.md')) return
       try {
         brainmaxxing.rebuildIndex()
-        brainIndexMd = brainmaxxing.readIndexMd()
         console.log(`[syn] Auto-indexed brain/ (${eventType}): ${filename}`)
       } catch (e) {
         console.error('[syn] Auto-index failed:', e.message)
@@ -244,7 +240,7 @@ ipcMain.handle('harness:list', async () => {
     session_count: s.session_count,
     indexed_count: s.indexed_count,
     last_scan: s.last_scan,
-    error: s.error,
+    error: s.error
   }))
 })
 
@@ -307,7 +303,7 @@ ipcMain.handle('session:list', async (event, sourcePath) => {
       source_path: s.source_path,
       file_path: s.file_path,
       created_at: s.created_at,
-      indexed_at: s.indexed_at,
+      indexed_at: s.indexed_at
     }))
   } catch (e) {
     console.error('Failed to list sessions:', e.message)
@@ -327,7 +323,7 @@ ipcMain.handle('session:listAll', async () => {
       source_path: s.source_path,
       file_path: s.file_path,
       created_at: s.created_at,
-      indexed_at: s.indexed_at,
+      indexed_at: s.indexed_at
     }))
   } catch (e) {
     console.error('Failed to list all sessions:', e.message)
@@ -350,7 +346,7 @@ ipcMain.handle('session:read', async (event, sessionId) => {
       file_path: session.file_path,
       created_at: session.created_at,
       indexed_at: session.indexed_at,
-      messages: session.messages || [],
+      messages: session.messages || []
     }
   } catch (e) {
     throw new Error(`Failed to read session ${sessionId}: ${e.message}`)
@@ -358,7 +354,7 @@ ipcMain.handle('session:read', async (event, sessionId) => {
 })
 
 // Get all available drive roots on Windows (C: through Z:)
-function getDriveRoots() {
+function getDriveRoots () {
   const roots = []
   for (let code = 67; code <= 90; code++) { // C-Z
     const drive = String.fromCharCode(code) + ':\\'
@@ -459,7 +455,7 @@ ipcMain.handle('session:search', async (event, query, options = {}) => {
       role: options.role || undefined,
       enabledHarnesses: getEnabledHarnesses(),
       limit: options.limit || 50,
-      excerptLength: options.excerptLength || 200,
+      excerptLength: options.excerptLength || 200
     })
     return results.map(r => ({
       id: r.session_id,
@@ -471,7 +467,7 @@ ipcMain.handle('session:search', async (event, query, options = {}) => {
       created_at: r.created_at,
       rank: r.rank,
       snippet: r.snippet,
-      excerpt: r.excerpt,
+      excerpt: r.excerpt
     }))
   } catch (e) {
     console.error('Search failed:', e.message)

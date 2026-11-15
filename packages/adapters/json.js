@@ -8,11 +8,10 @@
  */
 
 const path = require('path')
-const fs = require('fs')
 const { BaseAdapter } = require('./base')
 
 class JsonAdapter extends BaseAdapter {
-  constructor(options = {}) {
+  constructor (options = {}) {
     super({
       name: options.name || 'JSON',
       harness: options.harness || 'Unknown',
@@ -21,11 +20,11 @@ class JsonAdapter extends BaseAdapter {
     })
   }
 
-  canHandle(filePath) {
+  canHandle (filePath) {
     return path.extname(filePath).toLowerCase() === '.json'
   }
 
-  parseSession(filePath) {
+  parseSession (filePath) {
     const content = this._readFile(filePath)
     let obj
     try {
@@ -76,7 +75,7 @@ class JsonAdapter extends BaseAdapter {
     }
   }
 
-  extractText(filePath) {
+  extractText (filePath) {
     const parsed = this.parseSession(filePath)
     return parsed.messages.map(m => m.content).join('\n')
   }

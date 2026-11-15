@@ -34,14 +34,14 @@ const CLAUDE_DESKTOP_DIRS = [
       : path.join(process.env.HOME || '', '.claude-data'))
 ]
 
-function findClaudeProjectsDir() {
+function findClaudeProjectsDir () {
   for (const p of CLAUDE_PROJECTS_DIRS) {
     if (p && fs.existsSync(p)) return p
   }
   return null
 }
 
-function findClaudeDesktopDir() {
+function findClaudeDesktopDir () {
   for (const p of CLAUDE_DESKTOP_DIRS) {
     if (p && fs.existsSync(p)) return p
   }
@@ -55,7 +55,7 @@ const NON_SESSION_CLAUDE_FILES = new Set([
 ])
 
 class ClaudeCodeAdapter extends BaseAdapter {
-  constructor(options = {}) {
+  constructor (options = {}) {
     super({
       name: options.name || 'Claude Code',
       harness: options.harness || 'Claude Code',
@@ -64,7 +64,7 @@ class ClaudeCodeAdapter extends BaseAdapter {
     })
   }
 
-  canHandle(filePath) {
+  canHandle (filePath) {
     const ext = path.extname(filePath).toLowerCase()
     const base = path.basename(filePath).toLowerCase()
     if (ext !== '.jsonl') return false
@@ -87,7 +87,7 @@ class ClaudeCodeAdapter extends BaseAdapter {
   }
 
   /** Discover Claude Code session JSONL files. */
-  discover(dirPath) {
+  discover (dirPath) {
     const results = []
 
     // Check CLI projects directory
@@ -122,7 +122,7 @@ class ClaudeCodeAdapter extends BaseAdapter {
     return results
   }
 
-  _walkJsonl(dir) {
+  _walkJsonl (dir) {
     const results = []
     try {
       const entries = fs.readdirSync(dir, { withFileTypes: true })
@@ -138,7 +138,7 @@ class ClaudeCodeAdapter extends BaseAdapter {
     return results
   }
 
-  parseSession(filePath) {
+  parseSession (filePath) {
     const content = this._readFile(filePath).trim()
     if (!content) return null
 
@@ -201,7 +201,7 @@ class ClaudeCodeAdapter extends BaseAdapter {
     }
   }
 
-  extractText(filePath) {
+  extractText (filePath) {
     const parsed = this.parseSession(filePath)
     if (!parsed) return ''
     return parsed.messages.map(m => m.content).join('\n')

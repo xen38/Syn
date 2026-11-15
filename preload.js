@@ -38,7 +38,7 @@ const synAPI = {
   brainMeditate: (sessionId) => ipcRenderer.invoke('brain:meditate', sessionId),
   brainRuminate: (sessionId) => ipcRenderer.invoke('brain:ruminate', sessionId),
   brainPlan: (sessionId) => ipcRenderer.invoke('brain:plan', sessionId),
-  brainReview: (sessionId) => ipcRenderer.invoke('brain:review', sessionId),
+  brainReview: (sessionId) => ipcRenderer.invoke('brain:review', sessionId)
 }
 
 // Expose as synAPI, with locateAPI alias for backward compatibility.

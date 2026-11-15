@@ -22,7 +22,7 @@ const DB_PATH = path.join(os.tmpdir(), 'syn-fixture-test-index.db')
 let passed = 0
 let failed = 0
 
-function assert(condition, message) {
+function assert (condition, message) {
   if (condition) {
     passed++
     console.log(`  PASS: ${message}`)
@@ -33,9 +33,9 @@ function assert(condition, message) {
 }
 
 // ── Helper: build a temp copy of fixtures so we can write a corrupted file ──
-function copyFixturesToTmp() {
+function copyFixturesToTmp () {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'syn-fixtures-'))
-  function walk(src, dest) {
+  function walk (src, dest) {
     const entries = fs.readdirSync(src, { withFileTypes: true })
     for (const e of entries) {
       const s = path.join(src, e.name)
@@ -57,17 +57,17 @@ console.log('\n=== Phase 7.1: Fixture-based adapter discovery ===')
 const registry = new AdapterRegistry()
 
 const expected = [
-  { dir: 'cline/sessions', harness: 'Cline', count: 2 },        // .json + .jsonl
+  { dir: 'cline/sessions', harness: 'Cline', count: 2 }, // .json + .jsonl
   { dir: 'cursor/agent-transcripts/abc123', harness: 'Cursor', count: 1 }, // .jsonl under agent-transcripts
-  { dir: 'pi/agent/sessions/ws1', harness: 'Pi', count: 1 },   // .jsonl under agent/sessions
+  { dir: 'pi/agent/sessions/ws1', harness: 'Pi', count: 1 }, // .jsonl under agent/sessions
   { dir: '.claude/projects/ws1', harness: 'Claude Code', count: 1 }, // .jsonl under .claude/projects
   { dir: 'opencode/sessions', harness: 'OpenCode', count: 1 }, // .jsonl under sessions
-  { dir: 'windsurf', harness: 'Windsurf', count: 1 },          // .json under .windsurf
-  { dir: 'continue', harness: 'Continue', count: 1 },          // .jsonl under .continue
-  { dir: 'zed', harness: 'Zed', count: 1 },                    // .json under .zed
-  { dir: 'roo', harness: 'Roo', count: 1 },                    // .jsonl under .roo
-  { dir: 'aider', harness: 'Aider', count: 2 },                // .json + .md under .aider
-  { dir: 'gemini', harness: 'Gemini CLI', count: 1 }           // .jsonl under .gemini
+  { dir: 'windsurf', harness: 'Windsurf', count: 1 }, // .json under .windsurf
+  { dir: 'continue', harness: 'Continue', count: 1 }, // .jsonl under .continue
+  { dir: 'zed', harness: 'Zed', count: 1 }, // .json under .zed
+  { dir: 'roo', harness: 'Roo', count: 1 }, // .jsonl under .roo
+  { dir: 'aider', harness: 'Aider', count: 2 }, // .json + .md under .aider
+  { dir: 'gemini', harness: 'Gemini CLI', count: 1 } // .jsonl under .gemini
 ]
 
 for (const exp of expected) {
@@ -84,7 +84,7 @@ assert(unknown.length === 0, 'Unknown harness discovers nothing')
 // ── 2. Adapter parsing per harness ──
 console.log('\n=== Phase 7.2: Adapter parsing per harness ===')
 
-function parseFixture(relDir, fileName, harness) {
+function parseFixture (relDir, fileName, harness) {
   const filePath = path.join(FIXTURES_DIR, relDir, fileName)
   return registry.parseSession(filePath)
 }
@@ -157,7 +157,7 @@ assert(gemini !== null, 'Gemini JSONL parses')
 assert(gemini.messages.length === 2, 'Gemini JSONL has 2 messages')
 
 // ── Run all tests inside an async main (top-level await + require conflict) ──
-async function main() {
+async function main () {
   // ── 3. Graceful failure: corrupted files are skipped ──
   console.log('\n=== Phase 7.3: Graceful failure on corrupted files ===')
   const tmpFixtures = copyFixturesToTmp()
@@ -189,22 +189,22 @@ async function main() {
   await engine2.open()
   const srcId2 = engine2.addSource(incDir)
 
-    // First index (full)
+  // First index (full)
   const r1 = await engine2.indexSource(srcId2)
   assert(r1.indexed >= 2, `First index: indexed ${r1.indexed} session(s)`)
 
-    // Second index — incremental, unchanged files should be skipped
-    const incResults2 = await engine2.incrementalIndex()
-    const r2 = incResults2[0]
-    assert(r2.skipped > 0, `Second index (incremental): skipped ${r2.skipped} unchanged file(s)`)
-    assert(r2.indexed === 0, 'Second index (incremental): no new files indexed (all unchanged)')
+  // Second index — incremental, unchanged files should be skipped
+  const incResults2 = await engine2.incrementalIndex()
+  const r2 = incResults2[0]
+  assert(r2.skipped > 0, `Second index (incremental): skipped ${r2.skipped} unchanged file(s)`)
+  assert(r2.indexed === 0, 'Second index (incremental): no new files indexed (all unchanged)')
 
-    // Touch a file (change mtime) → should be re-indexed incrementally
+  // Touch a file (change mtime) → should be re-indexed incrementally
   const clineJsonPath = path.join(incDir, 'test-session.json')
   fs.utimesSync(clineJsonPath, new Date(Date.now() + 60000), new Date(Date.now() + 60000))
-    const incResults3 = await engine2.incrementalIndex()
-    const r3 = incResults3[0]
-    assert(r3.indexed === 1, `Third index (incremental): re-indexed 1 changed file (got ${r3.indexed})`)
+  const incResults3 = await engine2.incrementalIndex()
+  const r3 = incResults3[0]
+  assert(r3.indexed === 1, `Third index (incremental): re-indexed 1 changed file (got ${r3.indexed})`)
 
   engine2.close()
   try { fs.unlinkSync(db2) } catch (e) {}
@@ -216,7 +216,7 @@ async function main() {
 
   // Record original hashes
   const originalHashes = {}
-  function recordHashes(dir) {
+  function recordHashes (dir) {
     const entries = fs.readdirSync(dir, { withFileTypes: true })
     for (const e of entries) {
       const full = path.join(dir, e.name)

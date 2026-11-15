@@ -14,7 +14,7 @@ const DB_PATH = path.join(os.tmpdir(), `locate-search-quality-${Date.now()}.db`)
 let passed = 0
 let failed = 0
 
-function assert(condition, message) {
+function assert (condition, message) {
   if (condition) {
     passed++
     console.log(`  PASS: ${message}`)
@@ -24,7 +24,7 @@ function assert(condition, message) {
   }
 }
 
-async function main() {
+async function main () {
   const engine = new IndexingEngine(DB_PATH)
   await engine.open()
 
