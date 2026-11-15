@@ -70,6 +70,14 @@ function verifyHashes (hashes, dir) {
 // Clean up test DB
 try { fs.unlinkSync(DB_PATH) } catch (e) {}
 
+// Skip if test data directory doesn't exist (e.g., CI on non-Windows)
+if (!fs.existsSync(TEST_DIR)) {
+  console.log('=== Locate Indexing Engine Tests ===\n')
+  console.log(`SKIP: Test data directory not found: ${TEST_DIR}`)
+  console.log('\n=== 0 passed, 0 failed (skipped) ===')
+  process.exit(0)
+}
+
 async function runTests () {
   console.log('=== Locate Indexing Engine Tests ===\n')
 

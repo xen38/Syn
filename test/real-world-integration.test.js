@@ -22,6 +22,15 @@ const HARNESS_DIRS = [
 
 const TEST_DB = 'K:\\Repos\\locate\\test\\real-world-index.db'
 
+// Skip if no harness directories exist (e.g., CI on non-Windows)
+const anyDirExists = HARNESS_DIRS.some(({ dir }) => fs.existsSync(dir))
+if (!anyDirExists) {
+  console.log('=== Real-world integration test ===\n')
+  console.log('SKIP: No harness directories found (expected on non-Windows CI)')
+  console.log('\n=== 0 passed, 0 failed (skipped) ===')
+  process.exit(0)
+}
+
 let passed = 0
 let failed = 0
 
