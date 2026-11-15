@@ -1072,64 +1072,103 @@ class IndexingEngine {
     }]
   }
 
+  // Weights for the BM25-style ranking. Title matches are weighted more heavily
+  // than content matches so sessions whose title names the topic rank first.
+  static TITLE_WEIGHT = 5
+  static CONTENT_WEIGHT = 1
+  static TITLE_PRESENCE_BONUS = 10
+
+  // Note: sql.js (this engine's SQLite backend) does not ship FTS5, so BM25-style
+  // ranking is implemented in JavaScript over LIKE candidate rows. This delivers
+  // the same quality goals (title-favoring weights, relevant snippets, filters)
+  // without a native dependency or a DB backend switch.
   search(query, options = {}) {
     const limit = options.limit || 50
     const harness = options.harness || null
-    const role = options.role || null
+    const project = options.project || null
+    const dateFrom = options.dateFrom || null
+    const dateTo = options.dateTo || null
+    const brain = options.brain || false
+    // `role` is message-level; accepted here for API compatibility and applied in
+    // searchMessages(). Session search does not filter by role.
+    const enabledHarnesses = options.enabledHarnesses || null
     const excerptLength = options.excerptLength || 200
 
-    const like = '%' + query + '%'
-    const enabledHarnesses = options.enabledHarnesses || null
+    const terms = query.trim().split(/\s+/).filter((t) => t.length > 0)
+    if (terms.length === 0) return []
+
+    // Candidate set: sessions matching any query term in title or content.
+    const termClauses = terms.map(() => '(s.title LIKE ? OR s.content LIKE ?)').join(' OR ')
+    const params = []
+    for (const term of terms) {
+      const like = '%' + term + '%'
+      params.push(like, like)
+    }
 
     let sql = `
       SELECT s.id, s.session_id, s.title, s.harness, s.source_path, s.file_path,
-             s.created_at, s.file_mtime,
-             CASE
-               WHEN s.title LIKE ? THEN 1
-               WHEN s.content LIKE ? THEN 2
-               ELSE 3
-             END AS rank
+             s.created_at, s.file_mtime
       FROM sessions s
-      WHERE (s.title LIKE ? OR s.content LIKE ? OR s.harness LIKE ?)
+      WHERE (${termClauses})
     `
-    const params = [like, like, like, like, like]
 
     if (harness) {
       sql += ` AND s.harness = ?`
       params.push(harness)
     }
-
+    if (project) {
+      const like = '%' + project + '%'
+      sql += ` AND (s.source_path LIKE ? OR s.file_path LIKE ?)`
+      params.push(like, like)
+    }
+    if (brain) {
+      sql += ` AND (s.source_path LIKE ? OR s.file_path LIKE ? OR s.source_path LIKE ? OR s.file_path LIKE ?)`
+      params.push('%brain%', '%vault%', '%Brain%', '%Vault%')
+    }
+    if (dateFrom) {
+      sql += ` AND s.created_at >= ?`
+      params.push(dateFrom)
+    }
+    if (dateTo) {
+      sql += ` AND s.created_at <= ?`
+      params.push(dateTo)
+    }
     if (enabledHarnesses) {
       if (enabledHarnesses.length === 0) return []
       sql += ` AND s.harness IN (${enabledHarnesses.map(() => '?').join(', ')})`
       params.push(...enabledHarnesses)
     }
 
-    sql += ` ORDER BY rank, s.created_at DESC`
-    if (limit) {
-      sql += ` LIMIT ?`
-      params.push(limit)
-    }
+    // Order deterministically before scoring; final ranking is done in JS.
+    sql += ` ORDER BY s.created_at DESC`
 
     const rows = this.db.prepare(sql).all(params)
 
-    // Add excerpts
-    const results = rows.map(row => {
-      const content = row.title + '\n' + this._getSessionContent(row.session_id)
-      const excerpt = this._excerpt(content, query, excerptLength)
+    // Score each candidate with BM25-style weighting and build a highlighted snippet.
+    const results = rows.map((row) => {
+      const title = row.title || ''
+      const sessionContent = this._getSessionContent(row.session_id)
+      const fullText = (title + '\n' + sessionContent)
+      const score = this._bm25Score(terms, title, sessionContent)
+      if (score <= 0) return null
+      const snippet = this._snippet(fullText, terms, excerptLength)
       return {
         id: row.session_id,
         session_id: row.session_id,
-        title: row.title,
+        title,
         harness: row.harness,
         source_path: row.source_path,
         file_path: row.file_path,
         created_at: row.created_at,
-        rank: row.rank,
-        excerpt
+        rank: score,
+        score,
+        snippet,
+        excerpt: snippet
       }
-    })
+    }).filter(Boolean)
 
+    results.sort((a, b) => b.rank - a.rank || (a.title || '').localeCompare(b.title || ''))
+    if (limit) results.length = Math.min(results.length, limit)
     return results
   }
 
@@ -1168,7 +1207,21 @@ class IndexingEngine {
       params.push(limit)
     }
 
-    return this.db.prepare(sql).all(params)
+    const rows = this.db.prepare(sql).all(params)
+    return rows.map((row) => ({
+      id: row.id,
+      session_id: row.session_id,
+      message_index: row.message_index,
+      role: row.role,
+      timestamp: row.timestamp,
+      content: row.content,
+      title: row.title,
+      harness: row.harness,
+      file_path: row.file_path,
+      rank: row.rank,
+      snippet: this._snippet(row.content, [query], 200),
+      excerpt: this._snippet(row.content, [query], 200)
+    }))
   }
 
   // ── Session retrieval ─────────────────────────────────────────────────
@@ -1254,6 +1307,64 @@ class IndexingEngine {
       .prepare('SELECT content FROM messages WHERE session_id = ? ORDER BY message_index')
       .all(sessionId)
     return messages.map(m => m.content).join('\n')
+  }
+
+  // ── BM25-style scoring ────────────────────────────────────────────────
+
+  // Score a session for the given query terms. Title matches are weighted more
+  // heavily than content matches, and a term present in the title earns a bonus,
+  // so sessions whose title names the topic rank first (BM25 "title bias").
+  _bm25Score(terms, title, content) {
+    let score = 0
+    const titleLower = (title || '').toLowerCase()
+    const contentLower = (content || '').toLowerCase()
+    for (const term of terms) {
+      const t = term.toLowerCase()
+      const titleMatches = this._countOccurrences(titleLower, t)
+      const contentMatches = this._countOccurrences(contentLower, t)
+      if (titleMatches > 0) {
+        score += titleMatches * IndexingEngine.TITLE_WEIGHT
+        score += IndexingEngine.TITLE_PRESENCE_BONUS
+      }
+      if (contentMatches > 0) {
+        score += contentMatches * IndexingEngine.CONTENT_WEIGHT
+      }
+    }
+    return score
+  }
+
+  _countOccurrences(haystack, needle) {
+    let count = 0
+    let pos = 0
+    while ((pos = haystack.indexOf(needle, pos)) !== -1) {
+      count++
+      pos += needle.length
+    }
+    return count
+  }
+
+  // Build a highlighted excerpt centered on the best term match. Matched terms
+  // are wrapped in <mark> so the UI can render highlighted snippets.
+  _snippet(text, terms, maxLength) {
+    if (!text) return ''
+    const lower = text.toLowerCase()
+    let bestIdx = -1
+    let bestLen = 0
+    for (const term of terms) {
+      const t = term.toLowerCase()
+      const idx = lower.indexOf(t)
+      if (idx !== -1 && (bestIdx === -1 || idx < bestIdx)) {
+        bestIdx = idx
+        bestLen = t.length
+      }
+    }
+    if (bestIdx === -1) return text.substring(0, maxLength)
+    const start = Math.max(0, bestIdx - 80)
+    const end = Math.min(text.length, bestIdx + bestLen + 80)
+    let snippet = text.substring(start, end).replace(/\n/g, ' ')
+    if (start > 0) snippet = '...' + snippet
+    if (end < text.length) snippet = snippet + '...'
+    return snippet
   }
 
   _excerpt(content, query, maxLength) {

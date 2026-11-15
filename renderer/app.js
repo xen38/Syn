@@ -470,17 +470,65 @@ const setup = () => {
     }
   })
 
+  // Parse filter tokens (harness:, project:, date:, role:, brain:) out of the
+  // free-text query. Returns { query, options } where query is the remaining
+  // free-text and options holds the parsed filters for the search engine.
+  function parseSearchFilters(raw) {
+    const options = {}
+    let query = raw
+
+    // brain: (no value) toggles brain/vault filtering
+    const brainMatch = query.match(/\bbrain:\s*/i)
+    if (brainMatch) {
+      options.brain = true
+      query = query.replace(brainMatch[0], ' ')
+    }
+
+    // date:YYYY-MM-DD or date:YYYY-MM-DD..YYYY-MM-DD (range)
+    const dateMatch = query.match(/\bdate:(\S+)/i)
+    if (dateMatch) {
+      const range = dateMatch[1].split('..')
+      options.dateFrom = range[0]
+      if (range[1]) options.dateTo = range[1]
+      query = query.replace(dateMatch[0], ' ')
+    }
+
+    // harness:NAME
+    const harnessMatch = query.match(/\bharness:(\S+)/i)
+    if (harnessMatch) {
+      options.harness = harnessMatch[1]
+      query = query.replace(harnessMatch[0], ' ')
+    }
+
+    // project:PATH
+    const projectMatch = query.match(/\bproject:(\S+)/i)
+    if (projectMatch) {
+      options.project = projectMatch[1]
+      query = query.replace(projectMatch[0], ' ')
+    }
+
+    // role:ROLE (message-level; accepted for API compatibility)
+    const roleMatch = query.match(/\brole:(\S+)/i)
+    if (roleMatch) {
+      options.role = roleMatch[1]
+      query = query.replace(roleMatch[0], ' ')
+    }
+
+    return { query: query.trim().replace(/\s+/g, ' '), options }
+  }
+
   async function performSearch() {
-    const q = searchInput.value.trim()
-    if (!q) {
+    const raw = searchInput.value.trim()
+    if (!raw) {
       renderSessionList(allSessions)
       searchQuery = ''
       return
     }
-    searchQuery = q
+    const { query, options } = parseSearchFilters(raw)
+    searchQuery = raw
     try {
-      const results = await synAPI.searchSessions(q, { batchSize })
-      renderSearchResultsList(results, q)
+      const results = await synAPI.searchSessions(query, { batchSize, ...options })
+      renderSearchResultsList(results, raw)
     } catch (err) {
       console.error('Search failed:', err)
       sessionList.innerHTML = `<div style="padding:12px;color:#ff6666;font-size:13px">Search failed: ${escapeHtml(err.message)}</div>`
@@ -516,10 +564,16 @@ const setup = () => {
     const fragment = document.createDocumentFragment()
     results.forEach((r) => {
       const item = document.createElement('div')
+      const label = highlightText(escapeHtml(r.title || ''), searchQuery)
+      const snippet = r.snippet ? highlightText(escapeHtml(r.snippet), searchQuery) : ''
+      const snippetHtml = snippet
+        ? `<div class="snippet">${snippet}</div>`
+        : ''
       item.className = 'session-item'
       item.innerHTML = `
-        <div class="label">${highlightText(escapeHtml(r.title || ''), query)}</div>
+        <div class="label">${label}</div>
         <div class="harness">${escapeHtml(r.harness || '')}</div>
+        ${snippetHtml}
       `
       item.addEventListener('click', () => {
         selectedSessionId = r.id
@@ -535,9 +589,15 @@ const setup = () => {
 
   function highlightText(html, query) {
     if (!query) return html
-    const escaped = escapeHtml(query)
-    const re = new RegExp(`(${escaped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
-    return html.replace(re, '<span class="highlight">$1</span>')
+    // Highlight each query term individually (multi-term queries).
+    const terms = query.trim().split(/\s+/).filter((t) => t.length > 0)
+    let out = html
+    for (const term of terms) {
+      const escaped = escapeHtml(term)
+      const re = new RegExp(`(${escaped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+      out = out.replace(re, '<span class="highlight">$1</span>')
+    }
+    return out
   }
 
   // Close session

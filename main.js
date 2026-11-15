@@ -470,6 +470,7 @@ ipcMain.handle('session:search', async (event, query, options = {}) => {
       file_path: r.file_path,
       created_at: r.created_at,
       rank: r.rank,
+      snippet: r.snippet,
       excerpt: r.excerpt,
     }))
   } catch (e) {

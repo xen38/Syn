@@ -89,10 +89,36 @@ Locate separates search from retrieval for token efficiency:
 | Retrieve | Complete selected messages |
 | Session | Entire session, only when explicitly requested |
 
+### Ranking (Phase 9)
+
+Because the engine (sql.js) ships without native FTS5, ranking is implemented in JavaScript as a BM25-style scorer over LIKE candidate rows:
+
+- **Title bias**: a term in the session title scores `TITLE_WEIGHT × 5` plus a `TITLE_PRESENCE_BONUS × 10`, so sessions whose title names the topic rank first.
+- **Content matches**: each occurrence scores `CONTENT_WEIGHT × 1`.
+- Final results sort by score descending, then title alphabetically.
+
+Example: searching `Authentication` returns the session titled "Authentication session" before one that merely mentions authentication in its body.
+
+### Snippets
+
+Each search result includes a `snippet` — plain text centered on the first matched term, with `...` ellipsis when truncated. The UI wraps matched terms in a highlight span.
+
+### Filters
+
+Search accepts optional filter tokens typed directly into the top search bar:
+
+| Token | Meaning | Example |
+|-------|---------|---------|
+| `harness:NAME` | Filter by harness | `harness:copilot error` |
+| `project:PATH` | Filter by source/file path | `project:/src/ auth` |
+| `date:YYYY-MM-DD` / `date:FROM..TO` | Date range | `date:2024-01-01..2024-01-31 bug` |
+| `role:ROLE` | Message-level role (API compatibility) | `role:user login` |
+| `brain:` | Brain/vault paths only | `brain: architecture` |
+
 ## Testing
 
 ```bash
-node test/indexing.test.js
+npm test
 ```
 
 ## Documentation

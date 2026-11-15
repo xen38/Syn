@@ -482,6 +482,19 @@ a { color: #ffffff; }
   color: #ffffff;
   font-weight: 500;
   margin-bottom: 2px;
+}
+
+.session-item .snippet {
+  font-size: 12px;
+  color: #aaaaaa;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.session-item .snippet .highlight {
+  background: #ffff00;
+  color: #000000;
+  padding: 0 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

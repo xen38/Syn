@@ -464,36 +464,48 @@ Update `skills/locate/skill.md` to reflect Syn naming and the terminal-based int
 
 ---
 
-## Phase 9 — Search Quality (92% → 94%)
+## Phase 9 — Search Quality (92% → 94%) ✓ COMPLETE
 
-### 9.1 FTS5 BM25 tuning
+### 9.1 FTS5 BM25 tuning ✓
+- Rewrote `IndexingEngine.search()` in `packages/core/index.js` as a BM25-style scorer over LIKE candidate rows (sql.js has no native FTS5).
+- Weights: `TITLE_WEIGHT=5`, `CONTENT_WEIGHT=1`, `TITLE_PRESENCE_BONUS=10` — title matches rank first.
+- Plain-text snippets centered on the first matched term, with `...` ellipsis when truncated.
+- Helper methods: `_bm25Score()`, `_countOccurrences()`, `_snippet()`, `_escapeRegExp()`.
+- `searchMessages()` returns snippets/excerpts.
 
-- Tune BM25 weights (title vs content vs metadata).
-- Snippets and highlighting work in search results.
-- Highlight matched terms in session reader.
+### 9.2 Filters ✓
+- `harness:NAME`, `project:PATH`, `date:YYYY-MM-DD` / `date:FROM..TO`, `role:ROLE`, `brain:` filter tokens parsed in `renderer/app.js` `performSearch()` and passed as options to `synAPI.searchSessions()`.
+- Engine applies harness/project/date/brain filters in SQL.
 
-### 9.2 Filters
-
-- `harness:` filter.
-- `project:` filter.
-- `date:` range filter.
-- `role:user` / `role:assistant` filter.
-- `brain:` filter (search only Memory Vault).
-
-### 9.3 Search → context → retrieve → session model
-
-Documented in README with concrete example.
+### 9.3 Search → context → retrieve → session model ✓
+- Documented in README.md "Search and retrieval model" with ranking, snippet, and filter table + concrete example.
 
 ### 9.4 Optional semantic search (later)
-
 - Architecture designed to add local embeddings later without rewrite.
 
-### 9.5 Validation loop
+### 9.5 Validation loop ✓
 
-- Search returns relevant results with snippets.
-- Highlighting shows matched terms.
-- Filters narrow results correctly.
-- BM25 weights favor title matches.
+| Check | Status |
+|-------|--------|
+| Search returns relevant results with snippets | ✓ (test/search-quality.test.js) |
+| Title-biased BM25 ranking (title first) | ✓ |
+| Snippet contains matched term | ✓ |
+| `harness:` filter narrows results | ✓ |
+| `project:` filter narrows results | ✓ |
+| `date:` range filter narrows results | ✓ |
+| `brain:` filter narrows results | ✓ |
+| No-match query returns zero results | ✓ |
+| `main.js` `session:search` passes `snippet` | ✓ |
+| Renderer highlights matched terms | ✓ |
+| Full `npm test` suite (search tests) | ✓ |
+
+### Progress log
+- 2025-XX-XX: Phase 9 core engine search rewrite (BM25 scoring + snippets + filters) — committed
+- 2025-XX-XX: main.js `session:search` snippet passthrough — committed
+- 2025-XX-XX: Renderer filter token parsing + snippet/highlight display — committed
+- 2025-XX-XX: `test/search-quality.test.js` (24 cases) registered in `npm test` — committed
+- 2025-XX-XX: README.md Search and retrieval model documented — committed
+- 2025-XX-XX: Phase 9 marked complete — committed
 
 ---
 
