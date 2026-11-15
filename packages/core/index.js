@@ -26,7 +26,7 @@ const SUPPORTED_EXTS = new Set(['.md', '.txt', '.json', '.jsonl', '.db', '.sqlit
 // Original files are never modified — only the indexed copy is redacted.
 const DEFAULT_SECRET_PATTERNS = [
   // GitHub personal access tokens (classic and fine-grained)
-  { name: 'GitHub token', pattern: /gh[pousr]_ [A-Za-z0-9_]{36,}/g, replacement: '[REDACTED_GITHUB_TOKEN]' },
+  { name: 'GitHub token', pattern: /gh[pousr]_[A-Za-z0-9_]{36,}/g, replacement: '[REDACTED_GITHUB_TOKEN]' },
   { name: 'GitHub fine-grained token', pattern: /ghp_[A-Za-z0-9_]{36,}/g, replacement: '[REDACTED_GITHUB_TOKEN]' },
   // AWS access keys
   { name: 'AWS access key', pattern: /AKIA[0-9A-Z]{16}/g, replacement: '[REDACTED_AWS_KEY]' },
@@ -740,7 +740,7 @@ class IndexingEngine {
     const batchSize = options.batchSize || 10
     const startTime = Date.now()
     let indexed = 0
-    const skipped = 0
+    let skipped = 0
 
     const discovered = this.registry.discover(source.path, source.harness)
     const files = discovered.map(d => d.filePath)
@@ -798,6 +798,7 @@ class IndexingEngine {
         // Skip extremely large files that could crash the indexer
         const MAX_INDEX_FILE_SIZE = 200 * 1024 * 1024 // 200 MB
         if (fp.size > MAX_INDEX_FILE_SIZE) {
+          skipped++
           console.log(`[ENGINE] indexSource: skipping oversized file ${filePath} (${(fp.size / 1024 / 1024).toFixed(1)} MB)`)
           continue
         }
@@ -1236,18 +1237,49 @@ class IndexingEngine {
     const dateFrom = options.dateFrom || null
     const dateTo = options.dateTo || null
     const brain = options.brain || false
-    // `role` is message-level; accepted here for API compatibility and applied in
-    // searchMessages(). Session search does not filter by role.
+    const role = options.role || null
     const enabledHarnesses = options.enabledHarnesses || null
     const excerptLength = options.excerptLength || 200
 
-    const terms = query.trim().split(/\s+/).filter((t) => t.length > 0)
-    if (terms.length === 0) return []
+    // Parse colon-prefix filters (harness:, project:, date:, role:, brain:)
+    // out of the free-text query so the engine handles them directly.
+    const rawQuery = query
+    const brainMatch = rawQuery.match(/\bbrain:\s*/i)
+    if (brainMatch) { options.brain = true; query = query.replace(brainMatch[0], ' ') }
+    const dateMatch = rawQuery.match(/\bdate:(\S+)/i)
+    if (dateMatch) {
+      const range = dateMatch[1].split('..')
+      options.dateFrom = range[0]
+      if (range[1]) options.dateTo = range[1]
+      query = query.replace(dateMatch[0], ' ')
+    }
+    const harnessMatch = rawQuery.match(/\bharness:(\S+)/i)
+    if (harnessMatch) { options.harness = harnessMatch[1]; query = query.replace(harnessMatch[0], ' ') }
+    const projectMatch = rawQuery.match(/\bproject:(\S+)/i)
+    if (projectMatch) { options.project = projectMatch[1]; query = query.replace(projectMatch[0], ' ') }
+    const roleMatch = rawQuery.match(/\brole:(\S+)/i)
+    if (roleMatch) { options.role = roleMatch[1]; query = query.replace(roleMatch[0], ' ') }
+
+    // Re-derive terms after filter tokens are stripped from the query.
+    const filteredTerms = query.trim().split(/\s+/).filter((t) => t.length > 0)
+    if (filteredTerms.length === 0) return []
+
+    // Compute document frequency per term for IDF weighting.
+    const totalSessions = this.db.prepare('SELECT COUNT(*) as c FROM sessions').get().c
+    const idfWeights = {}
+    for (const term of filteredTerms) {
+      const like = '%' + term + '%'
+      const df = this.db
+        .prepare('SELECT COUNT(*) as c FROM sessions WHERE title LIKE ? OR content LIKE ?')
+        .get(like, like).c
+      // Smoothed IDF: log(N / (df + 1)) + 1
+      idfWeights[term] = Math.log(totalSessions / (df + 1)) + 1
+    }
 
     // Candidate set: sessions matching any query term in title or content.
-    const termClauses = terms.map(() => '(s.title LIKE ? OR s.content LIKE ?)').join(' OR ')
+    const termClauses = filteredTerms.map(() => '(s.title LIKE ? OR s.content LIKE ?)').join(' OR ')
     const params = []
-    for (const term of terms) {
+    for (const term of filteredTerms) {
       const like = '%' + term + '%'
       params.push(like, like)
     }
@@ -1285,6 +1317,10 @@ class IndexingEngine {
       sql += ` AND s.harness IN (${enabledHarnesses.map(() => '?').join(', ')})`
       params.push(...enabledHarnesses)
     }
+    if (role) {
+      sql += ' AND EXISTS (SELECT 1 FROM messages m WHERE m.session_id = s.session_id AND m.role = ?)'
+      params.push(role)
+    }
 
     // Order deterministically before scoring; final ranking is done in JS.
     sql += ' ORDER BY s.created_at DESC'
@@ -1296,9 +1332,9 @@ class IndexingEngine {
       const title = row.title || ''
       const sessionContent = this._getSessionContent(row.session_id)
       const fullText = (title + '\n' + sessionContent)
-      const score = this._bm25Score(terms, title, sessionContent)
+      const score = this._bm25Score(filteredTerms, title, sessionContent, idfWeights)
       if (score <= 0) return null
-      const snippet = this._snippet(fullText, terms, excerptLength)
+      const snippet = this._snippet(fullText, filteredTerms, excerptLength)
       return {
         id: row.session_id,
         session_id: row.session_id,
@@ -1496,7 +1532,9 @@ class IndexingEngine {
   // Score a session for the given query terms. Title matches are weighted more
   // heavily than content matches, and a term present in the title earns a bonus,
   // so sessions whose title names the topic rank first (BM25 "title bias").
-  _bm25Score (terms, title, content) {
+  // IDF (inverse document frequency) down-weights terms that appear in many
+  // sessions and up-weights rare, distinctive terms.
+  _bm25Score (terms, title, content, idfWeights = {}) {
     let score = 0
     const titleLower = (title || '').toLowerCase()
     const contentLower = (content || '').toLowerCase()
@@ -1504,12 +1542,13 @@ class IndexingEngine {
       const t = term.toLowerCase()
       const titleMatches = this._countOccurrences(titleLower, t)
       const contentMatches = this._countOccurrences(contentLower, t)
+      const idf = idfWeights[term] || 1
       if (titleMatches > 0) {
-        score += titleMatches * IndexingEngine.TITLE_WEIGHT
-        score += IndexingEngine.TITLE_PRESENCE_BONUS
+        score += titleMatches * IndexingEngine.TITLE_WEIGHT * idf
+        score += IndexingEngine.TITLE_PRESENCE_BONUS * idf
       }
       if (contentMatches > 0) {
-        score += contentMatches * IndexingEngine.CONTENT_WEIGHT
+        score += contentMatches * IndexingEngine.CONTENT_WEIGHT * idf
       }
     }
     return score
@@ -1544,6 +1583,11 @@ class IndexingEngine {
     const start = Math.max(0, bestIdx - 80)
     const end = Math.min(text.length, bestIdx + bestLen + 80)
     let snippet = text.substring(start, end).replace(/\n/g, ' ')
+    // Wrap all matched term occurrences in <mark> tags
+    for (const term of terms) {
+      const re = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi')
+      snippet = snippet.replace(re, '<mark>$1</mark>')
+    }
     if (start > 0) snippet = '...' + snippet
     if (end < text.length) snippet = snippet + '...'
     return snippet

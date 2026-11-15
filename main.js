@@ -168,6 +168,22 @@ app.whenReady().then(async () => {
   }
   injectBrainIndex()
   watchBrainIndex()
+
+  // Auto-register the Memory Vault (brain/) as an indexing source so its
+  // contents are searchable through the engine alongside harness sources.
+  try {
+    const brainDir = brainmaxxing.BRAIN_DIR
+    if (fs.existsSync(brainDir)) {
+      const existing = engine.listSources().find(s => s.path === brainDir)
+      if (!existing) {
+        const sourceId = engine.addSource(brainDir, 'Brain Vault')
+        console.log(`[syn] Auto-registered brain/ vault as source ${sourceId}`)
+      }
+    }
+  } catch (e) {
+    console.error('[syn] Failed to auto-register brain/ vault:', e.message)
+  }
+
   createWindow()
 
   app.on('activate', () => {
