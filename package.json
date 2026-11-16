@@ -1,21 +1,8 @@
 {
-  "name": "@xen38/syn-mcp",
+  "name": "syn",
   "version": "1.0.0",
   "description": "Syn — a unified agent memory environment: search sessions + Memory Vault via the /locate engine and brainmaxxing console",
   "main": "main.js",
-  "bin": {
-    "syn-mcp": "mcp-server.js"
-  },
-  "files": [
-    "mcp-server.js",
-    "main.js",
-    "preload.js",
-    "packages/",
-    "renderer/",
-    "brain/",
-    "skills/",
-    "test/"
-  ],
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
