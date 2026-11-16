@@ -66,7 +66,7 @@ The plan is complete when `nextphase.md` contains every checkpoint needed to tak
 | `renderer/app.js` | Update `window.locateAPI` references → `window.synAPI` | ✓ 2026-11-14 |
 | `mcp-server.js` | Server name: `syn`, version `2.0.0`, config path `syn-mcp-config.json`, index db `syn/syn-index.db` | ✓ 2026-11-14 |
 | `CONFIG_FILE` / `INDEX_DB_PATH` | Use `app.getPath('userData')` + `syn/` subfolder | ✓ 2026-11-14 |
-| `assets/` | Rename icon files `icon.ico` → syn icons; add macOS `.icns`, Linux `.png` | pending (no icons exist yet) |
+| `assets/` | Rename icon files `icon.ico` → syn icons; add macOS `.icns`, Linux `.png` | ✓ 2026-11-16 — assets/icon.ico, assets/icon.png, assets/icon.iconset/ added; package.json mac icon → assets/icon.iconset |
 
 ### 0.2 Rename the GitHub repository to Syn — DONE
 
@@ -360,7 +360,7 @@ Update `skills/locate/skill.md` to reflect Syn naming and the terminal-based int
 | `npm ci` succeeds | ✓ better-sqlite3 native module installs via prebuilt binaries |
 | `npm test` passes | ✓ search (13), validator-precision (65), fixture-tests (47), indexing (24), real-world-integration (41 — 3 pre-existing failures on real C:\ data) |
 | `package.json` build config present | ✓ `appId: "com.xen38.syn"`, `productName: "Syn"`, win/nsis, mac, linux targets |
-| App icons under `assets/` | pending (no `.ico`/`.icns`/`.png` icons exist yet — needed for `npm run build` to produce installers) |
+| App icons under `assets/` | pending (no `.ico`/`.icns`/`.png` icons exist yet — needed for `npm run build` to produce installers) | ✓ 2026-11-16 — assets/icon.ico, assets/icon.png, assets/icon.iconset/ added; package.json mac icon → assets/icon.iconset |
 
 ---
 
