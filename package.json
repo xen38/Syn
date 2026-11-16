@@ -40,7 +40,7 @@
       "icon": "assets/icon.ico"
     },
     "mac": {
-      "icon": "assets/icon.icns"
+      "icon": "assets/icon.iconset"
     },
     "linux": {
       "icon": "assets/icon.png"
