@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Syn — Unified Agent Memory Environment</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0b0e11;
+      --surface: #131820;
+      --text: #e8eaed;
+      --muted: #94a3b8;
+      --accent: #53C68B;
+      --accent-hover: #43b175;
+      --border: #252c36;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { max-width: 1000px; margin: 0 auto; padding: 0 24px; }
+    header {
+      padding: 48px 0 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px; }
+    .logo span { color: var(--accent); }
+    .tagline { font-size: 1.25rem; color: var(--muted); margin-top: 8px; }
+    nav { margin-top: 24px; }
+    nav a { color: var(--muted); margin-right: 24px; font-size: 0.95rem; }
+    nav a:hover { color: var(--text); }
+
+    .hero { padding: 80px 0 100px; text-align: center; }
+    .hero h1 { font-size: 3rem; font-weight: 800; line-height: 1.1; margin-bottom: 24px; letter-spacing: -1px; }
+    .hero h1 .accent { color: var(--accent); }
+    .hero p { font-size: 1.25rem; color: var(--muted); max-width: 700px; margin: 0 auto 32px; }
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 1rem;
+      border: 1px solid var(--border); background: var(--surface); color: var(--text);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.primary { background: var(--accent); color: #002211; border-color: var(--accent); }
+    .btn.primary:hover { background: var(--accent-hover); }
+
+    .principle {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 40px;
+      margin: 60px 0;
+      text-align: center;
+    }
+    .principle h2 { font-size: 1.75rem; margin-bottom: 16px; }
+    .principle p { color: var(--muted); font-size: 1.1rem; max-width: 750px; margin: 0 auto 24px; }
+    .principle code { font-family: 'Courier New', monospace; color: var(--accent); background: rgba(83,198,139,0.12); padding: 2px 6px; border-radius: 4px; }
+
+    .features { padding: 80px 0; }
+    .features h2 { font-size: 2rem; margin-bottom: 40px; text-align: center; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 32px 24px;
+    }
+    .card h3 { font-size: 1.25rem; margin-bottom: 12px; color: var(--accent); }
+    .card p { color: var(--muted); font-size: 0.95rem; }
+    .card ul { color: var(--muted); font-size: 0.95rem; margin-top: 12px; padding-left: 20px; }
+    .card ul li { margin-bottom: 6px; }
+
+    .install { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 48px; margin: 60px 0; }
+    .install h2 { font-size: 1.75rem; margin-bottom: 16px; }
+    .install pre { background: #0d1117; padding: 16px; border-radius: 6px; font-size: 0.9rem; overflow-x: auto; margin: 16px 0; }
+    .install code { color: var(--accent); }
+
+    .mcp { padding: 80px 0; }
+    .mcp h2 { font-size: 2rem; margin-bottom: 32px; text-align: center; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th { text-align: left; color: var(--muted); font-size: 0.85rem; padding: 12px; border-bottom: 1px solid var(--border); }
+    td { color: var(--text); padding: 12px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    tr:hover td { background: rgba(255,255,255,0.03); }
+    code { font-family: 'Courier New', monospace; }
+
+    footer { padding: 48px 0; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.85rem; text-align: center; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="logo">Syn<span>MCP</span></div>
+    <div class="tagline">Unified agent memory environment — searchable memory infrastructure for AI coding agents</div>
+    <nav>
+      <a href="#principle">Principle</a>
+      <a href="#features">Features</a>
+      <a href="#install">Install</a>
+      <a href="#mcp">MCP Tools</a>
+      <a href="https://github.com/xen38/Syn">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container">
+    <h1>Syn is <span class="accent">not</span> another chat app.</h1>
+    <p>Syn is the unified agent memory environment and searchable memory infrastructure for AI coding agents. It makes every previous session, archive, and craftable memory accessible across harnesses through a single, fast, reliable retrieval engine and interactive terminal.</p>
+    <div class="hero-actions">
+      <a href="#install" class="btn primary">Install via npm</a>
+      <a href="https://github.com/xen38/Syn" class="btn">View on GitHub</a>
+    </div>
+  </div>
+</section>
+
+<section class="principle" id="principle">
+  <div class="container">
+    <h2>Final Project Principle</h2>
+    <p><strong>Syn is not a chat application.</strong><br>
+    <strong>Syn is not another coding agent.</strong><br>
+    <strong>Syn is not a file browser with a search box.</strong><br>
+    <strong>Syn is the unified agent memory environment and searchable memory infrastructure for AI coding agents.</strong></p>
+    <p>Its purpose is to make every previous session, archive, and craftable memory accessible across harnesses through a single, fast, reliable retrieval engine and interactive terminal.</p>
+    <p>An agent or user should be able to execute commands directly or ask:</p>
+    <p><code>/locate Find the implementation decision we made about authentication in the previous project.</code></p>
+    <p>Syn searches the archives and the Memory Vault (<code>brain/</code>), identifies the relevant session or file, retrieves the exact context, and returns it instantly.</p>
+  </div>
+</section>
+
+<section class="features" id="features">
+  <div class="container">
+    <h2>Capabilities</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>/locate Search</h3>
+        <p>Search across all indexed sessions and the Memory Vault with ranked results, snippets, and filters (<code>harness:</code>, <code>date:</code>, <code>role:</code>, <code>brain:</code>).</p>
+      </div>
+      <div class="card">
+        <h3>Memory Vault (<code>brain/</code>)</h3>
+        <p>An Obsidian-style markdown vault. Craft memories with <code>/reflect</code>, <code>/meditate</code>, <code>/ruminate</code>, <code>/plan</code>, and <code>/review</code>.</p>
+      </div>
+      <div class="card">
+        <h3>MCP Server</h3>
+        <p>Programmatic access via <code>syn_*</code> MCP tools over stdio. No network calls — local-only.</p>
+      </div>
+      <div class="card">
+        <h3>Cross-Harness</h3>
+        <p>Adapters for Copilot, Codex, Cursor, Cline, Continue, Zed, Aider, Gemini CLI, Pi, T3, and more.</p>
+      </div>
+      <div class="card">
+        <h3>Desktop App</h3>
+        <p>Electron UI for humans to explore, search, and manage sessions. Search bar + terminal column.</p>
+      </div>
+      <div class="card">
+        <h3>Privacy First</h3>
+        <p>Read-only access to original files. Secret redaction at index time. Local index, never uploaded.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="install" id="install">
+  <div class="container">
+    <h2>Install</h2>
+    <p>Syn publishes <code>@xen38/syn-mcp</code> to npm with <code>npx</code> support.</p>
+    <pre><code># Run the MCP server directly (npx)
+npx @xen38/syn-mcp
+
+# Or install globally
+npm install -g @xen38/syn-mcp
+
+# Clone and run the desktop app
+git clone https://github.com/xen38/Syn.git
+cd Syn
+npm install
+npm start</code></pre>
+    <p>Then register and index your harness directories via MCP tools:</p>
+    <pre><code>syn_add_harness &lt;directory&gt;
+syn_index_all
+syn_search &lt;query&gt;</code></pre>
+  </div>
+</section>
+
+<section class="mcp" id="mcp">
+  <div class="container">
+    <h2>MCP Tools</h2>
+    <table>
+      <thead>
+        <tr><th>Tool</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>syn_search</code></td><td>Search across all indexed sessions</td></tr>
+        <tr><td><code>syn_get_session</code></td><td>Retrieve a full session by ID</td></tr>
+        <tr><td><code>syn_get_context</code></td><td>Get context around a message</td></tr>
+        <tr><td><code>syn_list_sessions</code></td><td>List all indexed sessions</td></tr>
+        <tr><td><code>syn_list_harnesses</code></td><td>List registered harness directories</td></tr>
+        <tr><td><code>syn_add_harness</code></td><td>Register a directory to index</td></tr>
+        <tr><td><code>syn_index_source</code></td><td>Index a single source</td></tr>
+        <tr><td><code>syn_index_all</code></td><td>Index all registered sources</td></tr>
+        <tr><td><code>syn_status</code></td><td>Indexing engine status</td></tr>
+        <tr><td><code>syn_read_brain</code></td><td>Read a Memory Vault file</td></tr>
+        <tr><td><code>syn_write_brain</code></td><td>Write to the Memory Vault</td></tr>
+        <tr><td><code>syn_reflect</code></td><td>Scan session for learnings</td></tr>
+        <tr><td><code>syn_meditate</code></td><td>Audit and prune brain vault</td></tr>
+        <tr><td><code>syn_ruminate</code></td><td>Mine archived sessions for patterns</td></tr>
+        <tr><td><code>syn_plan</code></td><td>Craft a plan from context</td></tr>
+        <tr><td><code>syn_review</code></td><td>Review decisions and context</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    Syn — Your agents' unified memory infrastructure, finally searchable and actionable.<br>
+    &copy; 2026 xen38. <a href="https://github.com/xen38/Syn">GitHub</a> · <a href="https://www.npmjs.com/package/@xen38/syn-mcp">npm</a>
+  </div>
+</footer>
+
+</body>
+</html>
