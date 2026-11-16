@@ -444,15 +444,15 @@ const setup = () => {
     results.forEach((r) => {
       const div = document.createElement('div')
       div.className = 'terminal-result'
-      div.textContent = `${r.title} [${r.harness}]`
+      div.innerHTML = `
+        <div class="title">${escapeHtml(r.title || '')} <span class="meta">[${escapeHtml(r.harness || '')}]</span></div>
+        ${r.snippet ? `<div class="meta" style="font-size:11px;color:#888;margin-top:2px">${escapeHtml(r.snippet)}</div>` : ''}
+      `
       div.style.cursor = 'pointer'
-      div.style.color = '#00ccff'
-      div.style.marginLeft = '20px'
       div.addEventListener('click', () => {
         selectedSessionId = r.id
         renderSessionList(allSessions)
         loadSessionContent(r)
-        // Scroll terminal out of the way / focus session
         terminalOutput.style.display = 'none'
       })
       terminalOutput.appendChild(div)
@@ -731,6 +731,12 @@ const setup = () => {
 
         // Load sessions from all configured harnesses
         await loadSessions()
+
+        // Welcome message in terminal (matches UI Sketch terminal look)
+        appendTerminalLine('syn@agent:~$', 'ok')
+        appendTerminalLine('  Syn — unified agent memory environment', 'normal')
+        appendTerminalLine('  Type /help for commands, or /locate <query> to search.', 'normal')
+        appendTerminalLine('', 'normal')
       }
     } catch (e) {
       console.error('Init failed:', e)

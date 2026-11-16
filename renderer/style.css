@@ -38,11 +38,33 @@ a { color: #ffffff; }
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
+  max-width: 420px;
+}
+
+#searchInput {
+  flex: 1;
+  height: 32px;
+  padding: 0 12px;
+  background: #0d0d0d;
+  border: 1px solid #333333;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 13px;
+  outline: none;
+}
+
+#searchInput::placeholder {
+  color: #666666;
+}
+
+#searchInput:focus {
+  border-color: #53C68B;
 }
 
 
 
-/* Terminal column (right side) */
+/* Terminal column (right side) - styled like a real terminal per UI Sketch */
 .terminal-column {
   width: 340px;
   background: #0a0a0a;
@@ -60,12 +82,12 @@ a { color: #ffffff; }
   padding: 0 16px;
   font-size: 13px;
   font-weight: 600;
-  color: #cccccc;
+  color: #53C68B;
   border-bottom: 1px solid #333333;
 }
 
 .terminal-title {
-  color: #00ccff;
+  color: #53C68B;
 }
 
 .terminal-wrap {
@@ -86,7 +108,7 @@ a { color: #ffffff; }
 }
 
 .prompt {
-  color: #00ccff;
+  color: #53C68B;
   font-size: 13px;
   font-weight: 600;
   user-select: none;
@@ -97,7 +119,7 @@ a { color: #ffffff; }
   min-width: 200px;
   height: 32px;
   padding: 0 12px;
-  background: #111111;
+  background: #0d0d0d;
   border: 1px solid #333333;
   border-radius: 6px;
   color: #ffffff;
@@ -107,16 +129,17 @@ a { color: #ffffff; }
 }
 
 #terminalInput::placeholder {
-  color: #666666;
+  color: #53C68B;
+  opacity: 0.6;
 }
 
 #terminalInput:focus {
-  border-color: #007aff;
+  border-color: #53C68B;
 }
 
 #terminalOutput {
-  display: none;
-  max-height: 200px;
+  display: block;
+  max-height: none;
   overflow-y: auto;
   padding: 8px 0;
   font-size: 13px;
@@ -129,19 +152,33 @@ a { color: #ffffff; }
 }
 
 .terminal-line.cmd { color: #ffffff; }
-.terminal-line.ok { color: #00ff00; }
-.terminal-line.warn { color: #ffff00; }
+.terminal-line.ok { color: #53C68B; }
+.terminal-line.warn { color: #f5a623; }
 .terminal-line.error { color: #ff4444; }
 
 .terminal-result {
-  padding: 4px 8px;
-  margin: 2px 0;
-  border-radius: 4px;
+  padding: 6px 10px;
+  margin: 4px 0;
+  border-radius: 6px;
   background: #111111;
+  border: 1px solid #222222;
+  cursor: pointer;
 }
 
 .terminal-result:hover {
   background: #1a1a1a;
+  border-color: #53C68B;
+}
+
+.terminal-result .title {
+  color: #53C68B;
+  font-weight: 600;
+}
+
+.terminal-result .meta {
+  font-size: 11px;
+  color: #666666;
+  margin-top: 2px;
 }
 
 .menu-btn {
@@ -492,12 +529,13 @@ a { color: #ffffff; }
 }
 
 .session-item .snippet .highlight {
-  background: #ffff00;
-  color: #000000;
+  background: #53C68B;
+  color: #ffffff;
   padding: 0 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  border-radius: 2px;
 }
 
 .session-item .harness {
@@ -639,8 +677,8 @@ a { color: #ffffff; }
 }
 
 .session-content .highlight {
-  background: #ffff00;
-  color: #000000;
+  background: #53C68B;
+  color: #ffffff;
   padding: 0 2px;
   border-radius: 2px;
 }
