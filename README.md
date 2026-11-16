@@ -140,7 +140,3 @@ npm test
 - `docs/HARNESS_COMPATIBILITY.md` — archive structures and adapter strategy for 11+ harnesses
 - `skills/syn/skill.md` — /syn agent skill
 - `skills/locate/skill.md` — /locate agent skill (legacy)
-
-## License
-
-GNU GENERAL PUBLIC LICENSE
