@@ -32,34 +32,38 @@ a { color: #ffffff; }
   font-size: 18px;
   font-weight: 600;
   letter-spacing: -0.5px;
+  z-index: 2;
 }
 
 .search-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
   flex: 1;
-  max-width: 420px;
+  max-width: 520px;
 }
 
 #searchInput {
-  flex: 1;
-  height: 32px;
-  padding: 0 12px;
-  background: #0d0d0d;
+  width: 100%;
+  height: 40px;
+  padding: 0 20px;
+  background: #111111;
   border: 1px solid #333333;
-  border-radius: 6px;
+  border-radius: 20px;
   color: #ffffff;
-  font-size: 13px;
+  font-size: 14px;
   outline: none;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
 }
 
 #searchInput::placeholder {
-  color: #666666;
+  color: #888888;
 }
 
 #searchInput:focus {
   border-color: #53C68B;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.5), 0 0 0 2px rgba(83, 198, 139, 0.2);
+  background: #161616;
 }
 
 
@@ -139,7 +143,7 @@ a { color: #ffffff; }
 
 #terminalOutput {
   display: block;
-  max-height: none;
+  max-height: 60vh;
   overflow-y: auto;
   padding: 8px 0;
   font-size: 13px;
@@ -155,6 +159,51 @@ a { color: #ffffff; }
 .terminal-line.ok { color: #53C68B; }
 .terminal-line.warn { color: #f5a623; }
 .terminal-line.error { color: #ff4444; }
+.terminal-line.info { color: #00ccff; }
+.terminal-line.hint { color: #aaaaaa; }
+.terminal-line.keyword { color: #ff69b4; }
+.terminal-line.string { color: #69ff69; }
+.terminal-line.number { color: #ff9900; }
+.terminal-line.fn { color: #cc99ff; }
+
+/* Terminal toggle button (Kindle-style floating button) */
+.terminal-toggle {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 48px;
+  background: #0d0d0d;
+  border: 1px solid #333333;
+  border-radius: 0 8px 8px 0;
+  color: #53C68B;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  z-index: 100;
+  transition: all 0.2s ease;
+}
+
+.terminal-toggle:hover {
+  background: #1a1a1a;
+  border-color: #53C68B;
+  box-shadow: 0 0 12px rgba(83, 198, 139, 0.3);
+}
+
+.terminal-toggle.closed {
+  right: 60px;
+  border-radius: 8px 0 0 8px;
+}
+
+.terminal-toggle.open {
+  right: 340px;
+  border-radius: 0 8px 8px 0;
+}
 
 .terminal-result {
   padding: 6px 10px;
@@ -219,10 +268,6 @@ a { color: #ffffff; }
 
 .menu-panel.open {
   display: block;
-}
-
-.menu-panel {
-  display: none;
 }
 
 .menu-section {
@@ -320,7 +365,7 @@ a { color: #ffffff; }
 }
 
 .setting-row select:focus {
-  border-color: #007aff;
+  border-color: #53C68B;
 }
 
 .setting-desc {
@@ -409,8 +454,8 @@ a { color: #ffffff; }
   transition: transform 0.2s ease;
 }
 .harness-toggle:checked {
-  background: #007aff;
-  border-color: #007aff;
+  background: #53C68B;
+  border-color: #53C68B;
 }
 .harness-toggle:checked::before {
   transform: translateX(20px);
@@ -426,7 +471,7 @@ a { color: #ffffff; }
 }
 
 .harness-toggle:focus {
-  border-color: #007aff;
+  border-color: #53C68B;
   outline: none;
 }
 .harness-toggle:active::before {
@@ -443,6 +488,7 @@ a { color: #ffffff; }
 .container {
   display: flex;
   height: calc(100% - 48px);
+  position: relative;
 }
 
 /* Sidebar */
@@ -512,7 +558,7 @@ a { color: #ffffff; }
 
 .session-item.selected {
   background: #1a1a1a;
-  border-color: #007aff;
+  border-color: #53C68B;
 }
 
 .session-item .label {
@@ -600,7 +646,7 @@ a { color: #ffffff; }
 
 .meta-harness {
   font-weight: 600;
-  color: #007aff;
+  color: #53C68B;
 }
 
 .meta-path {
@@ -657,7 +703,7 @@ a { color: #ffffff; }
 }
 
 .session-content a {
-  color: #007aff;
+  color: #53C68B;
   text-decoration: underline;
 }
 
@@ -718,7 +764,7 @@ a { color: #ffffff; }
   background: transparent;
   border: 1px solid #333333;
   border-radius: 4px;
-  color: #007aff;
+  color: #53C68B;
   font-size: 18px;
   font-weight: bold;
   cursor: pointer;
@@ -732,7 +778,7 @@ a { color: #ffffff; }
 
 .close-btn:hover {
   background: #1a1a1a;
-  border-color: #007aff;
+  border-color: #53C68B;
   color: #00a0ff;
 }
 
@@ -850,3 +896,4 @@ a { color: #ffffff; }
 .ctx-confirm-delete:hover {
   background: #2a1a1a;
 }
+

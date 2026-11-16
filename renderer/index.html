@@ -11,8 +11,8 @@
     <div class="app-title">Syn</div>
     <div class="search-wrap">
       <input type="text" id="searchInput" placeholder="Search sessions..." autocomplete="off">
-      <button id="menuBtn" class="menu-btn" title="Menu">&#9776;</button>
     </div>
+      <button id="menuBtn" class="menu-btn" title="Menu">&#9776;</button>
   </header>
 
   <div class="menu-panel" id="menuPanel">
@@ -87,7 +87,6 @@
     <aside class="terminal-column">
       <div class="terminal-header">
         <span class="terminal-title">Terminal</span>
-        <button id="btnCloseTerminal" class="close-btn" title="Close terminal">&#215;</button>
       </div>
       <div class="terminal-wrap">
         <div class="terminal-input-row">
@@ -98,6 +97,9 @@
       </div>
     </aside>
   </div>
+
+  <!-- Terminal toggle button (floating, Kindle-style) -->
+  <button id="btnCloseTerminal" class="terminal-toggle" title="Toggle terminal">&#9654;</button>
 
   <script src="app.js"></script>
 

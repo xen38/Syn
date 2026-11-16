@@ -16,6 +16,10 @@ const setup = () => {
   const terminalOutput = document.getElementById('terminalOutput')
   const terminalColumn = document.querySelector('.terminal-column')
   const btnCloseTerminal = document.getElementById('btnCloseTerminal')
+  // Terminal starts closed per spec: ▶ = closed
+  btnCloseTerminal.textContent = '▶'
+  btnCloseTerminal.className = 'terminal-toggle closed'
+  terminalColumn.style.display = 'none'
   const searchInput = document.getElementById('searchInput')
   const menuBtn = document.getElementById('menuBtn')
   const menuPanel = document.getElementById('menuPanel')
@@ -61,7 +65,7 @@ const setup = () => {
   let ctxTargetSession = null
   const terminalHistory = []
   let terminalHistoryIndex = -1
-  let terminalVisible = true
+  let terminalVisible = false
   let searchQuery = ''
 
   // Toggle menu
@@ -271,14 +275,18 @@ const setup = () => {
     }
   })
 
-  // Close terminal column toggle
+  // Terminal column toggle (Kindle-style triangle button)
   btnCloseTerminal.addEventListener('click', (e) => {
     e.stopPropagation()
     terminalVisible = !terminalVisible
     if (terminalVisible) {
       terminalColumn.style.display = ''
+      btnCloseTerminal.textContent = '◀'
+      btnCloseTerminal.className = 'terminal-toggle open'
     } else {
       terminalColumn.style.display = 'none'
+      btnCloseTerminal.textContent = '▶'
+      btnCloseTerminal.className = 'terminal-toggle closed'
     }
   })
 
@@ -400,25 +408,26 @@ const setup = () => {
     }
 
     case '/syn': {
-      appendTerminalLine('/syn — Syn skill guidance', 'ok')
-      appendTerminalLine('Use /locate <query> to search sessions and Memory Vault.', 'ok')
-      appendTerminalLine('Use /reflect, /meditate, /ruminate, /plan, /review for brainmaxxing.', 'ok')
-      appendTerminalLine('Use /brain <read|write|list|index> for Memory Vault file ops.', 'ok')
-      appendTerminalLine('Click any search result to open the session.', 'ok')
+      appendTerminalLine('/syn — Syn skill guidance', 'keyword')
+      appendTerminalLine('Use /locate <query> to search sessions and Memory Vault.', 'info')
+      appendTerminalLine('Use /reflect, /meditate, /ruminate, /plan, /review for brainmaxxing.', 'info')
+      appendTerminalLine('Use /brain <read|write|list|index> for Memory Vault file ops.', 'info')
+      appendTerminalLine('Click any search result to open the session.', 'hint')
       break
     }
 
     case '/help': {
-      appendTerminalLine('Available commands:', 'ok')
-      appendTerminalLine('  /locate <query> [filters]  — search sessions + Memory Vault', 'ok')
-      appendTerminalLine('  /reflect [sessionId]       — reflect on a session', 'ok')
-      appendTerminalLine('  /meditate                  — audit brain vault', 'ok')
-      appendTerminalLine('  /ruminate                  — mine session patterns', 'ok')
-      appendTerminalLine('  /plan <task>               — create phased plan', 'ok')
-      appendTerminalLine('  /review <content>          — review content against principles', 'ok')
-      appendTerminalLine('  /brain <list|index|read|write>  — Memory Vault file ops', 'ok')
-      appendTerminalLine('  /syn                       — skill guidance', 'ok')
-      appendTerminalLine('  /help                      — this help', 'ok')
+      appendTerminalLine('Available commands:', 'keyword')
+      appendTerminalLine('  /locate <query> [filters]  — search sessions + Memory Vault', 'string')
+      appendTerminalLine('  /reflect [sessionId]       — reflect on a session', 'string')
+      appendTerminalLine('  /meditate                  — audit brain vault', 'string')
+      appendTerminalLine('  /ruminate                  — mine session patterns', 'string')
+      appendTerminalLine('  /plan <task>               — create phased plan', 'string')
+      appendTerminalLine('  /review <content>          — review content against principles', 'string')
+      appendTerminalLine('  /brain <list|index|read|write>  — Memory Vault file ops', 'string')
+      appendTerminalLine('  /syn                       — skill guidance', 'string')
+      appendTerminalLine('  /help                      — this help', 'string')
+      appendTerminalLine('Tip: click any search result to open the session.', 'hint')
       break
     }
 
@@ -433,6 +442,7 @@ const setup = () => {
     div.className = `terminal-line terminal-${type}`
     div.textContent = text
     terminalOutput.appendChild(div)
+    terminalOutput.scrollTop = terminalOutput.scrollHeight
   }
 
   function renderSearchResults (results) {
@@ -445,8 +455,8 @@ const setup = () => {
       const div = document.createElement('div')
       div.className = 'terminal-result'
       div.innerHTML = `
-        <div class="title">${escapeHtml(r.title || '')} <span class="meta">[${escapeHtml(r.harness || '')}]</span></div>
-        ${r.snippet ? `<div class="meta" style="font-size:11px;color:#888;margin-top:2px">${escapeHtml(r.snippet)}</div>` : ''}
+        <div class="title"><span style="color:#ff69b4">▸</span> ${escapeHtml(r.title || '')} <span class="meta">[${escapeHtml(r.harness || '')}]</span></div>
+        ${r.snippet ? `<div class="meta" style="font-size:11px;color:#53C68B;margin-top:2px">${escapeHtml(r.snippet)}</div>` : ''}
       `
       div.style.cursor = 'pointer'
       div.addEventListener('click', () => {
@@ -829,7 +839,7 @@ const setup = () => {
     const parts = []
     messages.forEach((m, i) => {
       const role = (m.role || 'unknown').toLowerCase()
-      const roleColor = role === 'user' ? '#007aff' : role === 'assistant' ? '#00ccff' : '#888888'
+      const roleColor = role === 'user' ? '#53C68B' : role === 'assistant' ? '#00ccff' : '#888888'
       const roleLabel = role.charAt(0).toUpperCase() + role.slice(1)
       const ts = m.timestamp ? ` <span style="color:#666;font-size:11px;margin-left:8px">${escapeHtml(m.timestamp)}</span>` : ''
       const content = escapeHtml(m.content || '')
