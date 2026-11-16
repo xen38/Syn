@@ -1,44 +1,56 @@
-# /locate
+# Syn
 
-A local-first, cross-harness memory search engine for AI coding agents.
+A unified agent memory environment and searchable memory infrastructure for AI coding agents.
 
-Locate is an independent desktop application that acts as a centralized search engine for archived sessions and conversation history of AI coding agents. It allows both humans and AI agents to search, retrieve, explore, and read previous sessions across multiple coding harnesses without manually opening, parsing, or reading archive files themselves.
+Syn is an independent desktop application that acts as a centralized search engine for archived sessions and conversation history of AI coding agents. It allows both humans and AI agents to search, retrieve, explore, and read previous sessions across multiple coding harnesses without manually opening, parsing, or reading archive files themselves.
 
-## Core principle
+## Final project principle
 
-**Locate is not a chat application. Locate is not another coding agent. Locate is not a file browser with a search box. Locate is the searchable memory infrastructure for AI coding agents.**
+**Syn is not a chat application.**
+**Syn is not another coding agent.**
+**Syn is not a file browser with a search box.**
+**Syn is the unified agent memory environment and searchable memory infrastructure for AI coding agents.**
 
-An agent should be able to ask:
+Its purpose is to make every previous session, archive, and craftable memory accessible across harnesses through a single, fast, reliable retrieval engine and interactive terminal.
+
+An agent or user should be able to execute commands directly or ask:
 
 ```
 /locate Find the implementation decision we made about authentication in the previous project.
 ```
 
-Locate searches the archives, identifies the relevant session, retrieves the exact context, and returns it to the agent. The model does not need to read thousands of lines or inspect archive directories.
+Syn searches the archives and the Memory Vault (`brain/`), identifies the relevant session or file, retrieves the exact context, and returns it instantly.
+
+The model does not need to read thousands of lines. The model does not need to inspect archive directories. The model does not need to waste tokens searching its own historical files.
+
+It simply uses Syn's terminal or MCP tools (`syn_*`) to `/locate`, `/reflect`, `/meditate`, `/ruminate`, `/plan`, or `/review`.
 
 ## Architecture
 
-Locate consists of three main components sharing a single SQLite FTS5 indexing engine:
+Syn consists of three main components sharing a single indexing engine:
 
 | Component | Description | Entry point |
 |-----------|-------------|-------------|
-| **Locate Core** | Indexing engine (SQLite FTS5) — discovery, parsing, indexing, search | `packages/core/index.js` |
-| **Locate Desktop App** | Electron UI for humans to explore, search, and manage sessions | `main.js` + `renderer/` |
-| **Locate MCP Server** | MCP tools for AI agents to search and retrieve programmatically | `mcp-server.js` |
+| **Syn Core** | Indexing engine — discovery, parsing, indexing, search | `packages/core/index.js` |
+| **Syn Desktop App** | Electron UI for humans to explore, search, and manage sessions | `main.js` + `renderer/` |
+| **Syn MCP Server** | MCP tools for AI agents to search and retrieve programmatically | `mcp-server.js` |
 
-The desktop app and MCP server share the same index database at `%APPDATA%\locate\locate-index.db`. Either component can index sources, and both can search the same index.
+The desktop app and MCP server share the same index database at `%APPDATA%\Syn\Syn-index.db`. Either component can index sources, and both can search the same index.
 
 ## Critical constraint
 
-**NEVER COPY, MOVE, MODIFY, OR DUPLICATE ORIGINAL SESSION FILES.** Locate only reads original files read-only. It maintains its own lightweight metadata database and search index, which never modify or duplicate the original session archives.
+**NEVER COPY, MOVE, MODIFY, OR DUPLICATE ORIGINAL SESSION FILES.** Syn only reads original files read-only. It maintains its own lightweight metadata database and search index, which never modify or duplicate the original session archives.
 
 ## Supported adapters
 
 File extensions → adapter:
-- `.db`, `.sqlite` → SQLiteAdapter (Copilot `data.db`, Codex `goals_1.sqlite`, T3 `statev2.sqlite`, etc.)
-- `.jsonl` → JsonlAdapter (Cline, Pi, Aider, Gemini CLI, etc.)
-- `.json` → JsonAdapter (Cline, Continue, Zed, etc.)
-- `.md`, `.txt` → TextAdapter (Cursor, etc.)
+
+| Extension | Adapter | Example harnesses |
+|-----------|---------|-------------------|
+| `.db`, `.sqlite` | SQLiteAdapter | Copilot `data.db`, Codex `goals_1.sqlite`, T3 `statev2.sqlite` |
+| `.jsonl` | JsonlAdapter | Cline, Pi, Aider, Gemini CLI |
+| `.json` | JsonAdapter | Cline, Continue, Zed |
+| `.md`, `.txt` | TextAdapter | Cursor |
 
 ## Quick start
 
@@ -60,14 +72,15 @@ node mcp-server.js
 ```
 
 Then register and index harness directories via MCP tools:
-- `locate_add_harness` — register a directory
-- `locate_index_source` / `locate_index_all` — index sessions
-- `locate_search` — search across all indexed sessions
+
+- `syn_add_harness` — register a directory
+- `syn_index_source` / `syn_index_all` — index sessions
+- `syn_search` — search across all indexed sessions
 
 ## Project structure
 
 ```
-packages/core/        # Indexing engine (SQLite FTS5)
+packages/core/        # Indexing engine
 packages/adapters/    # Per-format parsers (SQLite, JSONL, JSON, Text)
 main.js               # Electron main process (IPC handlers)
 preload.js            # Electron preload (bridge to renderer)
@@ -75,21 +88,22 @@ renderer/             # Desktop UI
 mcp-server.js         # MCP server (stdio transport)
 test/                 # Indexing engine tests
 docs/                 # Documentation (HARNESS_COMPATIBILITY.md, etc.)
-skills/locate/        # /locate agent skill
+skills/syn/           # /syn agent skill
+skills/locate/        # /locate agent skill (legacy name)
 ```
 
 ## Search and retrieval model
 
-Locate separates search from retrieval for token efficiency:
+Syn separates search from retrieval for token efficiency:
 
-| Operation | What Locate returns |
-|-----------|---------------------|
+| Operation | What Syn returns |
+|-----------|------------------|
 | Search | Ranked excerpts from relevant sessions |
 | Context | Relevant message + surrounding messages |
 | Retrieve | Complete selected messages |
 | Session | Entire session, only when explicitly requested |
 
-### Ranking (Phase 9)
+### Ranking
 
 Because the engine (sql.js) ships without native FTS5, ranking is implemented in JavaScript as a BM25-style scorer over LIKE candidate rows:
 
@@ -124,9 +138,9 @@ npm test
 ## Documentation
 
 - `docs/HARNESS_COMPATIBILITY.md` — archive structures and adapter strategy for 11+ harnesses
-- `skills/locate/skill.md` — /locate agent skill
+- `skills/syn/skill.md` — /syn agent skill
+- `skills/locate/skill.md` — /locate agent skill (legacy)
 
 ## License
 
 GNU GENERAL PUBLIC LICENSE
-
