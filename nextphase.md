@@ -185,19 +185,23 @@ The plan is complete when `nextphase.md` contains every checkpoint needed to tak
 ### 0.5 UI Rework — Match UI Sketch.jpg — COMPLETE
 
 - Centered pill-shaped search bar bubble at top of header (40px height, 20px border-radius, max-width 520px, black aesthetic with #53C68B focus ring).
-- Floating Kindle-style terminal toggle button (28x48px, triangle ◀=open/▶=closed) at right:60px when closed (center-right), right:340px when open (flush against terminal column).
-- Terminal column on right side (340px width), hidden by default, opens/closes via toggle.
-- All highlights unified to #53C68B (session-item.selected border, meta-harness, close-btn hover, links, search focus, terminal ok/prompt/
-esult colors).
+- Floating Kindle-style terminal toggle button (20x40px, thinner; triangle ◀=open/▶=closed) sticks to right edge when closed (right: 0), right:340px when open (flush against terminal column).
+- Terminal column on right side (340px width), **open by default** on startup (◀), opens/closes via toggle.
+- Toggle only changes arrow text (◀/▶), not button shape — no full button flip.
+- Brainmaxxing moved OUT of Settings into its own button + menu panel beside Settings.
+- Copy Session ID added to right-click context menu (navigator.clipboard).
+- Session ID displayed at top of session view beside harness name and file route (.meta-session-id, #53C68B monospace).
+- Removed 🔍 emoji from empty state (left only text).
+- Draggable column separators (resizerSidebar, resizerTerminal) for sidebar/main/terminal columns with min-width constraints and auto-adjust (no overlap).
+- All highlights unified to #53C68B (session-item.selected border, meta-harness, close-btn hover, links, search focus, terminal ok/prompt/result colors).
 - Colorful terminal text output: keyword #ff69b4, string #69ff69, number #ff9900, fn #cc99ff, info #00ccff, hint #aaa, cmd #fff, ok #53C68B, warn #f5a623, error #ff4444.
-- Terminal toggle starts closed (▶), terminal column hidden on startup.
 - Removed duplicate .menu-panel { display: none; } CSS rule.
-- Verified: ESLint passes on renderer/app.js, Electron app launches successfully.
+- Verified: ESLint passes on renderer/app.js, Electron app launches successfully, all 6 reference-image fixes tested.
 
-Files changed: 
-enderer/index.html, 
-enderer/style.css, 
-enderer/app.js
+Files changed:
+renderer/index.html,
+renderer/style.css,
+renderer/app.js
 
 
 ---
