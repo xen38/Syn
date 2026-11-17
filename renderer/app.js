@@ -16,19 +16,22 @@ const setup = () => {
   const terminalOutput = document.getElementById('terminalOutput')
   const terminalColumn = document.querySelector('.terminal-column')
   const btnCloseTerminal = document.getElementById('btnCloseTerminal')
-  // Terminal starts closed per spec: ▶ = closed
-  btnCloseTerminal.textContent = '▶'
-  btnCloseTerminal.className = 'terminal-toggle closed'
-  terminalColumn.style.display = 'none'
+  // Terminal starts open per spec: ◀ = open
+  btnCloseTerminal.textContent = '◀'
+  btnCloseTerminal.className = 'terminal-toggle open'
+  terminalColumn.style.display = 'flex'
   const searchInput = document.getElementById('searchInput')
   const menuBtn = document.getElementById('menuBtn')
   const menuPanel = document.getElementById('menuPanel')
+  const btnBrainmaxxing = document.getElementById('btnBrainmaxxing')
+  const brainmaxxingPanel = document.getElementById('brainmaxxingPanel')
   const sessionList = document.getElementById('sessionList')
   const btnRefreshSessions = document.getElementById('btnRefreshSessions')
   const emptyState = document.getElementById('emptyState')
   const sessionView = document.getElementById('sessionView')
   const sessionContent = document.getElementById('sessionContent')
   const metaHarness = document.getElementById('metaHarness')
+  const metaSessionId = document.getElementById('metaSessionId')
   const metaPath = document.getElementById('metaPath')
   const harnessList = document.getElementById('harnessList')
   const harnessSettingsEl = document.getElementById('harnessSettings')
@@ -44,6 +47,7 @@ const setup = () => {
 
   // Context menu elements
   const ctxMenu = document.getElementById('ctxMenu')
+  const ctxCopySessionId = document.getElementById('ctxCopySessionId')
   const ctxDeleteEntry = document.getElementById('ctxDeleteEntry')
   const ctxDeleteFile = document.getElementById('ctxDeleteFile')
   const ctxConfirmOverlay = document.getElementById('ctxConfirmOverlay')
@@ -59,13 +63,14 @@ const setup = () => {
   let allSessions = []
   let selectedSessionId = null
   let menuOpen = false
+  let brainmaxxingOpen = false
   let batchSize = 10
   let harnessSettings = {}
   let ctxTargetSessionId = null
   let ctxTargetSession = null
   const terminalHistory = []
   let terminalHistoryIndex = -1
-  let terminalVisible = false
+  let terminalVisible = true
   let searchQuery = ''
 
   // Toggle menu
@@ -86,6 +91,28 @@ const setup = () => {
 
   // Menu button click
   menuBtn.addEventListener('click', toggleMenu)
+
+  // Brainmaxxing button click (separate from Settings menu)
+  btnBrainmaxxing.addEventListener('click', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    brainmaxxingOpen = !brainmaxxingOpen
+    if (brainmaxxingOpen) {
+      brainmaxxingPanel.style.display = 'block'
+      menuOpen = false
+      menuPanel.style.display = 'none'
+    } else {
+      brainmaxxingPanel.style.display = 'none'
+    }
+  })
+
+  // Close brainmaxxing panel when clicking outside
+  document.addEventListener('click', (e) => {
+    if (brainmaxxingOpen && !brainmaxxingPanel.contains(e.target) && e.target !== btnBrainmaxxing) {
+      brainmaxxingOpen = false
+      brainmaxxingPanel.style.display = 'none'
+    }
+  })
 
   // Close menu when clicking outside
   document.addEventListener('click', (e) => {
@@ -280,7 +307,7 @@ const setup = () => {
     e.stopPropagation()
     terminalVisible = !terminalVisible
     if (terminalVisible) {
-      terminalColumn.style.display = ''
+      terminalColumn.style.display = 'flex'
       btnCloseTerminal.textContent = '◀'
       btnCloseTerminal.className = 'terminal-toggle open'
     } else {
@@ -613,6 +640,21 @@ const setup = () => {
     closeSession()
   })
 
+  // Context menu: Copy Session ID
+  ctxCopySessionId.addEventListener('click', async (e) => {
+    e.stopPropagation()
+    ctxMenu.style.display = 'none'
+    if (!ctxTargetSessionId) return
+    try {
+      await navigator.clipboard.writeText(ctxTargetSessionId)
+    } catch (err) {
+      console.error('Copy failed:', err)
+      alert('Failed to copy session ID: ' + err.message)
+    }
+    ctxTargetSessionId = null
+    ctxTargetSession = null
+  })
+
   // Context menu: Delete Entry (white text) - removes from list, undoable via refresh
   ctxDeleteEntry.addEventListener('click', async (e) => {
     e.stopPropagation()
@@ -819,6 +861,7 @@ const setup = () => {
     sessionView.style.display = 'flex'
 
     metaHarness.textContent = session.harness
+    metaSessionId.textContent = session.id
     metaPath.textContent = session.source_path
 
     try {
@@ -989,6 +1032,68 @@ const setup = () => {
 
   // Initialize
   init()
+
+  // ── Column resizing ─────────────────────────────────────────────────
+  const sidebar = document.querySelector('.sidebar')
+  const panel = document.querySelector('.panel')
+  const terminalColumn = document.querySelector('.terminal-column')
+  const resizerSidebar = document.getElementById('resizerSidebar')
+  const resizerTerminal = document.getElementById('resizerTerminal')
+
+  let resizing = false
+  let resizerType = null
+  let startX = 0
+  let startSidebarWidth = 320
+  let startTerminalWidth = 340
+
+  function startResize (e, type) {
+    e.preventDefault()
+    resizing = true
+    resizerType = type
+    startX = e.clientX
+    startSidebarWidth = sidebar.offsetWidth
+    startTerminalWidth = terminalColumn.offsetWidth
+    document.body.style.cursor = 'col-resize'
+    if (type === 'sidebar') {
+      resizerSidebar.classList.add('active')
+    } else {
+      resizerTerminal.classList.add('active')
+    }
+  }
+
+  function endResize () {
+    resizing = false
+    resizerType = null
+    document.body.style.cursor = ''
+    resizerSidebar.classList.remove('active')
+    resizerTerminal.classList.remove('active')
+  }
+
+  function doResize (e) {
+    if (!resizing) return
+    e.preventDefault()
+    const dx = e.clientX - startX
+    const containerWidth = document.querySelector('.container').offsetWidth
+    const minWidth = 200
+
+    if (resizerType === 'sidebar') {
+      let newWidth = startSidebarWidth + dx
+      newWidth = Math.max(minWidth, Math.min(newWidth, containerWidth - minWidth - 280))
+      sidebar.style.width = newWidth + 'px'
+      panel.style.flex = '1'
+    } else if (resizerType === 'terminal') {
+      let newWidth = startTerminalWidth - dx
+      newWidth = Math.max(minWidth, Math.min(newWidth, containerWidth - minWidth - 280))
+      terminalColumn.style.width = newWidth + 'px'
+      terminalColumn.style.flex = '0 0 auto'
+      panel.style.flex = '1'
+    }
+  }
+
+  resizerSidebar.addEventListener('mousedown', (e) => startResize(e, 'sidebar'))
+  resizerTerminal.addEventListener('mousedown', (e) => startResize(e, 'terminal'))
+  document.addEventListener('mousemove', doResize)
+  document.addEventListener('mouseup', endResize)
 }
 
 // Helpers

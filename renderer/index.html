@@ -13,6 +13,7 @@
       <input type="text" id="searchInput" placeholder="Search sessions..." autocomplete="off">
     </div>
       <button id="menuBtn" class="menu-btn" title="Menu">&#9776;</button>
+      <button id="btnBrainmaxxing" class="menu-btn" title="Brainmaxxing">&#128166;</button>
   </header>
 
   <div class="menu-panel" id="menuPanel">
@@ -46,6 +47,10 @@
       <div class="menu-item">Syn v1.0.0</div>
       <div class="menu-item">Reads session files directly — no copies</div>
     </div>
+  </div>
+
+  <!-- Brainmaxxing panel (separate from Settings) -->
+  <div id="brainmaxxingPanel" class="menu-panel">
     <div class="menu-section">
       <div class="menu-section-title">Brainmaxxing</div>
       <div class="menu-actions">
@@ -67,10 +72,10 @@
       </div>
       <div id="sessionList" class="session-list"></div>
     </aside>
+    <div class="column-resizer resizer-sidebar" id="resizerSidebar"></div>
 
     <main class="panel">
       <div id="emptyState" class="empty-state">
-        <div class="empty-icon">&#128269;</div>
         <div class="empty-title">Select a session</div>
         <div class="empty-desc">Click a session on the left to read its contents.</div>
       </div>
@@ -78,11 +83,13 @@
         <button id="btnCloseSession" class="close-btn" title="Close session">&#215;</button>
         <div class="session-meta">
           <span id="metaHarness" class="meta-harness"></span>
+          <span id="metaSessionId" class="meta-session-id"></span>
           <span id="metaPath" class="meta-path"></span>
         </div>
         <div id="sessionContent" class="session-content"></div>
       </div>
     </main>
+    <div class="column-resizer resizer-terminal" id="resizerTerminal"></div>
 
     <aside class="terminal-column">
       <div class="terminal-header">
@@ -105,6 +112,7 @@
 
   <!-- Context menu for session items -->
   <div id="ctxMenu" class="ctx-menu">
+      <div class="ctx-menu-item" id="ctxCopySessionId">Copy Session ID</div>
     <div class="ctx-menu-item" id="ctxDeleteEntry">Delete Entry</div>
     <div class="ctx-menu-item ctx-menu-item-delete" id="ctxDeleteFile">Delete Session File</div>
   </div>
