@@ -1590,6 +1590,8 @@ Syn/
   3. Removed dead CSS `.empty-icon` rule (no icon element exists in empty state — text only per spec).
   - Verified: ESLint clean, syntax OK, Electron app launches with no console errors.
 
+- 2026-11-18: Status indicator (loading/working/idle) added — `assets/loading-working.gif` and `assets/idle.gif` copied from `C:\Users\luizy\Pictures\clors\`. Placed in empty-state area with responsive sizing (max 18vw / max 18vh). Wired to: app launch (`init()` shows loading), refresh sessions button (`loadSessions()`), scan button (renamed from "Scan & autodetect harnesses" to "Scan"), all terminal commands (`executeTerminalCommand()`), and search engine (`performSearch()`). GIF forced reload fix: clear `src` before assigning new URL. All changes committed and pushed (`dc918cd`).
+
 ---
 
 **End of nextphase.md.** This is the complete 0% ? 100% guide for building Syn. Execute phase by phase, validating at each checkpoint before proceeding.
