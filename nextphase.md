@@ -198,6 +198,13 @@ The plan is complete when `nextphase.md` contains every checkpoint needed to tak
 - Removed duplicate .menu-panel { display: none; } CSS rule.
 - Verified: ESLint passes on renderer/app.js, Electron app launches successfully, all 6 reference-image fixes tested.
 - Fixed: SyntaxError from duplicate `const terminalColumn` declaration (lines 17 & 1039) that prevented entire renderer from loading; all UI features now work.
+- Fixed UI from user feedback:
+  - Swap Settings and Brainmaxxing button order (Brainmaxxing left of Settings)
+  - Brainmaxxing button: bold B in #53C68B instead of 🧠 emoji
+  - Brainmaxxing panel positioned to left of Settings panel
+  - Both menus open/close together via Settings button
+  - Fix column resizer positions: sidebar resizer at left:320px, terminal resizer at right:340px
+  - Update resizer handle positions during drag
 
 Files changed:
 renderer/index.html,
