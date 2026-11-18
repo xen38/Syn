@@ -164,7 +164,12 @@ const setup = () => {
 
   // Refresh sessions
   btnRefreshSessions.addEventListener('click', async () => {
-    await loadSessions()
+    setStatusLoading()
+    try {
+      await loadSessions()
+    } finally {
+      setStatusIdle()
+    }
   })
 
   // Add folder
@@ -279,11 +284,14 @@ const setup = () => {
 
   // Scan & autodetect harnesses
   btnScanHarnesses.addEventListener('click', async () => {
+    setStatusLoading()
     try {
       await scanAndAutodetectHarnesses()
     } catch (e) {
       console.error('Scan failed:', e)
       alert('Scan failed: ' + e.message)
+    } finally {
+      setStatusIdle()
     }
     menuOpen = false
     menuPanel.style.display = 'none'
@@ -387,7 +395,9 @@ const setup = () => {
     const cmd = parts[0].toLowerCase()
     const args = parts.slice(1)
 
-    switch (cmd) {
+    setStatusLoading()
+    try {
+      switch (cmd) {
     case '/locate': {
       if (args.length === 0) {
         appendTerminalLine('Usage: /locate <search query> [filters...]', 'warn')
@@ -529,6 +539,8 @@ const setup = () => {
       appendTerminalLine(`Unknown command: ${cmd}. Type /help for available commands.`, 'error')
     }
     }
+        } finally {
+          setStatusIdle()
   }
 
   function appendTerminalLine (text, type = 'normal') {
@@ -1012,6 +1024,7 @@ const setup = () => {
   }
 
   async function scanAndAutodetectHarnesses () {
+    setStatusLoading()
     try {
       const detected = await synAPI.autodetectHarnesses()
       const current = await synAPI.listHarnesses()
@@ -1047,6 +1060,8 @@ const setup = () => {
     } catch (e) {
       console.error('Scan failed:', e)
       alert('Scan failed: ' + e.message)
+    } finally {
+      setStatusIdle()
     }
     menuOpen = false
     menuPanel.style.display = 'none'
