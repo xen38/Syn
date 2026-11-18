@@ -411,10 +411,8 @@ const setup = () => {
         filters[k] = v
       })
       appendTerminalLine(`/locate "${query}" ${JSON.stringify(filters)}`, 'cmd')
-      setStatusLoading()
       const results = await synAPI.searchSessions(query, { batchSize, filters })
       renderSearchResults(results)
-      setStatusIdle()
       break
     }
 
