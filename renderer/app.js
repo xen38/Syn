@@ -398,147 +398,148 @@ const setup = () => {
     setStatusLoading()
     try {
       switch (cmd) {
-    case '/locate': {
-      if (args.length === 0) {
-        appendTerminalLine('Usage: /locate <search query> [filters...]', 'warn')
-        appendTerminalLine('Filters: harness:X, date:YYYY-MM-DD, role:user, role:assistant, brain:X', 'warn')
-        return
-      }
-      const query = args.filter(a => !a.includes(':')).join(' ')
-      const filters = {}
-      args.filter(a => a.includes(':')).forEach(f => {
-        const [k, v] = f.split(':', 2)
-        filters[k] = v
-      })
-      appendTerminalLine(`/locate "${query}" ${JSON.stringify(filters)}`, 'cmd')
-      const results = await synAPI.searchSessions(query, { batchSize, filters })
-      renderSearchResults(results)
-      break
-    }
-
-    case '/reflect': {
-      const sessionId = args[0] || selectedSessionId
-      if (!sessionId) {
-        appendTerminalLine('Usage: /reflect <sessionId> (or select a session first)', 'warn')
-        return
-      }
-      const result = await synAPI.brainReflect(sessionId)
-      appendTerminalLine(`/reflect → ${result.path || 'done'}`, 'ok')
-      appendTerminalLine(`Learnings: ${result.learningsCount || 0}`, 'ok')
-      break
-    }
-
-    case '/meditate': {
-      const result = await synAPI.brainMeditate()
-      appendTerminalLine(`/meditate → ${result.path || 'done'}`, 'ok')
-      appendTerminalLine(`Files audited: ${result.filesAudited || 0}, principles: ${result.principlesExtracted || 0}, stale: ${result.staleNotes ? result.staleNotes.length : 0}`, 'ok')
-      break
-    }
-
-    case '/ruminate': {
-      const result = await synAPI.brainRuminate()
-      appendTerminalLine(`/ruminate → ${result.path || 'done'}`, 'ok')
-      appendTerminalLine(`Sessions scanned: ${result.sessionsScanned || 0}, patterns: ${result.patternsFound || 0}`, 'ok')
-      break
-    }
-
-    case '/plan': {
-      const task = args.join(' ')
-      if (!task) {
-        appendTerminalLine('Usage: /plan <task description>', 'warn')
-        return
-      }
-      const result = await synAPI.brainPlan(task)
-      appendTerminalLine(`/plan → ${result.path || 'done'}`, 'ok')
-      appendTerminalLine(`Task: ${result.task || task}`, 'ok')
-      break
-    }
-
-    case '/review': {
-      const content = args.join(' ')
-      if (!content) {
-        appendTerminalLine('Usage: /review <content to review>', 'warn')
-        return
-      }
-      const result = await synAPI.brainReview(content)
-      appendTerminalLine(`/review → ${result.path || 'done'}`, 'ok')
-      if (result.issues && result.issues.length) {
-        result.issues.forEach((issue, i) => {
-          appendTerminalLine(`  ${i + 1}. [${issue.severity}] ${issue.message}`, 'warn')
+      case '/locate': {
+        if (args.length === 0) {
+          appendTerminalLine('Usage: /locate <search query> [filters...]', 'warn')
+          appendTerminalLine('Filters: harness:X, date:YYYY-MM-DD, role:user, role:assistant, brain:X', 'warn')
+          return
+        }
+        const query = args.filter(a => !a.includes(':')).join(' ')
+        const filters = {}
+        args.filter(a => a.includes(':')).forEach(f => {
+          const [k, v] = f.split(':', 2)
+          filters[k] = v
         })
-      } else {
-        appendTerminalLine('No issues found.', 'ok')
+        appendTerminalLine(`/locate "${query}" ${JSON.stringify(filters)}`, 'cmd')
+        const results = await synAPI.searchSessions(query, { batchSize, filters })
+        renderSearchResults(results)
+        break
       }
-      break
-    }
 
-    case '/brain': {
-      const sub = args[0]
-      if (sub === 'list') {
-        const files = await synAPI.brainList()
-        appendTerminalLine('Brain files:', 'ok')
-        files.forEach(f => appendTerminalLine(`  [[${f}]]`, 'ok'))
-      } else if (sub === 'index') {
-        const result = await synAPI.brainIndex()
-        appendTerminalLine(`/brain index → ${result.files} files indexed`, 'ok')
-      } else if (sub === 'read') {
-        const path = args[1]
-        if (!path) {
-          appendTerminalLine('Usage: /brain read <path>', 'warn')
+      case '/reflect': {
+        const sessionId = args[0] || selectedSessionId
+        if (!sessionId) {
+          appendTerminalLine('Usage: /reflect <sessionId> (or select a session first)', 'warn')
           return
         }
-        const result = await synAPI.brainRead(path)
-        if (result.ok) {
-          appendTerminalLine(`--- ${path} ---`, 'ok')
-          appendTerminalLine(result.content, 'ok')
+        const result = await synAPI.brainReflect(sessionId)
+        appendTerminalLine(`/reflect → ${result.path || 'done'}`, 'ok')
+        appendTerminalLine(`Learnings: ${result.learningsCount || 0}`, 'ok')
+        break
+      }
+
+      case '/meditate': {
+        const result = await synAPI.brainMeditate()
+        appendTerminalLine(`/meditate → ${result.path || 'done'}`, 'ok')
+        appendTerminalLine(`Files audited: ${result.filesAudited || 0}, principles: ${result.principlesExtracted || 0}, stale: ${result.staleNotes ? result.staleNotes.length : 0}`, 'ok')
+        break
+      }
+
+      case '/ruminate': {
+        const result = await synAPI.brainRuminate()
+        appendTerminalLine(`/ruminate → ${result.path || 'done'}`, 'ok')
+        appendTerminalLine(`Sessions scanned: ${result.sessionsScanned || 0}, patterns: ${result.patternsFound || 0}`, 'ok')
+        break
+      }
+
+      case '/plan': {
+        const task = args.join(' ')
+        if (!task) {
+          appendTerminalLine('Usage: /plan <task description>', 'warn')
+          return
+        }
+        const result = await synAPI.brainPlan(task)
+        appendTerminalLine(`/plan → ${result.path || 'done'}`, 'ok')
+        appendTerminalLine(`Task: ${result.task || task}`, 'ok')
+        break
+      }
+
+      case '/review': {
+        const content = args.join(' ')
+        if (!content) {
+          appendTerminalLine('Usage: /review <content to review>', 'warn')
+          return
+        }
+        const result = await synAPI.brainReview(content)
+        appendTerminalLine(`/review → ${result.path || 'done'}`, 'ok')
+        if (result.issues && result.issues.length) {
+          result.issues.forEach((issue, i) => {
+            appendTerminalLine(`  ${i + 1}. [${issue.severity}] ${issue.message}`, 'warn')
+          })
         } else {
-          appendTerminalLine(`Read failed: ${result.error}`, 'error')
+          appendTerminalLine('No issues found.', 'ok')
         }
-      } else if (sub === 'write') {
-        const path = args[1]
-        const content = args.slice(2).join(' ')
-        if (!path || !content) {
-          appendTerminalLine('Usage: /brain write <path> <content>', 'warn')
-          return
-        }
-        const result = await synAPI.brainWrite(path, content)
-        appendTerminalLine(`/brain write → ${result.path}`, 'ok')
-      } else {
-        appendTerminalLine('Usage: /brain <list|index|read <path>|write <path> <content>>', 'warn')
+        break
       }
-      break
-    }
 
-    case '/syn': {
-      appendTerminalLine('/syn — Syn skill guidance', 'keyword')
-      appendTerminalLine('Use /locate <query> to search sessions and Memory Vault.', 'info')
-      appendTerminalLine('Use /reflect, /meditate, /ruminate, /plan, /review for brainmaxxing.', 'info')
-      appendTerminalLine('Use /brain <read|write|list|index> for Memory Vault file ops.', 'info')
-      appendTerminalLine('Click any search result to open the session.', 'hint')
-      break
-    }
+      case '/brain': {
+        const sub = args[0]
+        if (sub === 'list') {
+          const files = await synAPI.brainList()
+          appendTerminalLine('Brain files:', 'ok')
+          files.forEach(f => appendTerminalLine(`  [[${f}]]`, 'ok'))
+        } else if (sub === 'index') {
+          const result = await synAPI.brainIndex()
+          appendTerminalLine(`/brain index → ${result.files} files indexed`, 'ok')
+        } else if (sub === 'read') {
+          const path = args[1]
+          if (!path) {
+            appendTerminalLine('Usage: /brain read <path>', 'warn')
+            return
+          }
+          const result = await synAPI.brainRead(path)
+          if (result.ok) {
+            appendTerminalLine(`--- ${path} ---`, 'ok')
+            appendTerminalLine(result.content, 'ok')
+          } else {
+            appendTerminalLine(`Read failed: ${result.error}`, 'error')
+          }
+        } else if (sub === 'write') {
+          const path = args[1]
+          const content = args.slice(2).join(' ')
+          if (!path || !content) {
+            appendTerminalLine('Usage: /brain write <path> <content>', 'warn')
+            return
+          }
+          const result = await synAPI.brainWrite(path, content)
+          appendTerminalLine(`/brain write → ${result.path}`, 'ok')
+        } else {
+          appendTerminalLine('Usage: /brain <list|index|read <path>|write <path> <content>>', 'warn')
+        }
+        break
+      }
 
-    case '/help': {
-      appendTerminalLine('Available commands:', 'keyword')
-      appendTerminalLine('  /locate <query> [filters]  — search sessions + Memory Vault', 'string')
-      appendTerminalLine('  /reflect [sessionId]       — reflect on a session', 'string')
-      appendTerminalLine('  /meditate                  — audit brain vault', 'string')
-      appendTerminalLine('  /ruminate                  — mine session patterns', 'string')
-      appendTerminalLine('  /plan <task>               — create phased plan', 'string')
-      appendTerminalLine('  /review <content>          — review content against principles', 'string')
-      appendTerminalLine('  /brain <list|index|read|write>  — Memory Vault file ops', 'string')
-      appendTerminalLine('  /syn                       — skill guidance', 'string')
-      appendTerminalLine('  /help                      — this help', 'string')
-      appendTerminalLine('Tip: click any search result to open the session.', 'hint')
-      break
-    }
+      case '/syn': {
+        appendTerminalLine('/syn — Syn skill guidance', 'keyword')
+        appendTerminalLine('Use /locate <query> to search sessions and Memory Vault.', 'info')
+        appendTerminalLine('Use /reflect, /meditate, /ruminate, /plan, /review for brainmaxxing.', 'info')
+        appendTerminalLine('Use /brain <read|write|list|index> for Memory Vault file ops.', 'info')
+        appendTerminalLine('Click any search result to open the session.', 'hint')
+        break
+      }
 
-    default: {
-      appendTerminalLine(`Unknown command: ${cmd}. Type /help for available commands.`, 'error')
+      case '/help': {
+        appendTerminalLine('Available commands:', 'keyword')
+        appendTerminalLine('  /locate <query> [filters]  — search sessions + Memory Vault', 'string')
+        appendTerminalLine('  /reflect [sessionId]       — reflect on a session', 'string')
+        appendTerminalLine('  /meditate                  — audit brain vault', 'string')
+        appendTerminalLine('  /ruminate                  — mine session patterns', 'string')
+        appendTerminalLine('  /plan <task>               — create phased plan', 'string')
+        appendTerminalLine('  /review <content>          — review content against principles', 'string')
+        appendTerminalLine('  /brain <list|index|read|write>  — Memory Vault file ops', 'string')
+        appendTerminalLine('  /syn                       — skill guidance', 'string')
+        appendTerminalLine('  /help                      — this help', 'string')
+        appendTerminalLine('Tip: click any search result to open the session.', 'hint')
+        break
+      }
+
+      default: {
+        appendTerminalLine(`Unknown command: ${cmd}. Type /help for available commands.`, 'error')
+      }
+      }
+    } finally {
+      setStatusIdle()
     }
-    }
-        } finally {
-          setStatusIdle()
   }
 
   function appendTerminalLine (text, type = 'normal') {
