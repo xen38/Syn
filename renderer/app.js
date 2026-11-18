@@ -1036,7 +1036,6 @@ const setup = () => {
   // ── Column resizing ─────────────────────────────────────────────────
   const sidebar = document.querySelector('.sidebar')
   const panel = document.querySelector('.panel')
-  const terminalColumn = document.querySelector('.terminal-column')
   const resizerSidebar = document.getElementById('resizerSidebar')
   const resizerTerminal = document.getElementById('resizerTerminal')
 
