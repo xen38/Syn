@@ -1177,7 +1177,7 @@ const setup = () => {
       terminalColumn.style.width = newWidth + 'px'
       terminalColumn.style.flex = '0 0 auto'
       panel.style.flex = '1'
-      resizerTerminal.style.right = (newWidth + 10) + 'px'
+      resizerTerminal.style.right = (newWidth + 20) + 'px'
       // Update toggle position if terminal is visible
       if (terminalVisible) {
         updateTogglePosition()
