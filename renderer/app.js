@@ -17,6 +17,7 @@ const setup = () => {
   const terminalColumn = document.querySelector('.terminal-column')
   const btnCloseTerminal = document.getElementById('btnCloseTerminal')
   // Terminal starts open per spec: ◀ = open (arrow points left toward terminal, click to close)
+  let terminalVisible = true
   btnCloseTerminal.textContent = '◀'
   btnCloseTerminal.className = 'terminal-toggle open'
   terminalColumn.style.display = 'flex'
@@ -71,7 +72,6 @@ const setup = () => {
   let ctxTargetSession = null
   const terminalHistory = []
   let terminalHistoryIndex = -1
-  let terminalVisible = true
   let searchQuery = ''
 
   // Toggle Settings menu (Settings button ONLY opens Settings)

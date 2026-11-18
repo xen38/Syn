@@ -1540,6 +1540,11 @@ Syn/
   - `updateTogglePosition()` called on startup, toggle click, and during terminal resizer drag.
   - Verified: ESLint passes cleanly, Electron app launches successfully, all UI features work.
 
+- 2026-11-16: CRITICAL BUG FIX — "nothing is working" / no buttons / sessions not listed:
+  - Root cause: `let terminalVisible = true` was declared AFTER `updateTogglePosition()` was first called inside `setup()` (line 24 vs line 84). Since `let` is in the temporal dead zone until its declaration, calling `updateTogglePosition()` (which reads `terminalVisible`) threw `ReferenceError: Cannot access 'terminalVisible' before initialization`, aborting `setup()` before any click handlers were registered and before `loadSessions()` was called.
+  - Fix: Moved `let terminalVisible = true` to before the first `updateTogglePosition()` call (right after `terminalColumn`/`btnCloseTerminal` declarations). Removed the duplicate declaration from the State section.
+  - Verified: `node --check renderer/app.js` passes; Electron app launches cleanly with no console errors; `setup()` completes fully, click handlers register, `loadSessions()` populates the session list.
+
 ---
 
 **End of nextphase.md.** This is the complete 0% ? 100% guide for building Syn. Execute phase by phase, validating at each checkpoint before proceeding.
