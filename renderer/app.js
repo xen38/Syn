@@ -359,7 +359,7 @@ const setup = () => {
 
     if (terminalVisible) {
       // Attach to terminal's interior left edge, flush against resizer (inside terminal column)
-      btnCloseTerminal.style.right = (terminalWidth - 23) + 'px'
+      btnCloseTerminal.style.right = (terminalWidth - 10) + 'px'
       btnCloseTerminal.style.top = '50%'
       btnCloseTerminal.style.transform = 'translateY(-50%)'
       btnCloseTerminal.style.position = 'absolute'
@@ -1177,7 +1177,7 @@ const setup = () => {
       terminalColumn.style.width = newWidth + 'px'
       terminalColumn.style.flex = '0 0 auto'
       panel.style.flex = '1'
-      resizerTerminal.style.right = newWidth + 'px'
+      resizerTerminal.style.right = (newWidth + 10) + 'px'
       // Update toggle position if terminal is visible
       if (terminalVisible) {
         updateTogglePosition()

@@ -206,8 +206,9 @@ a { color: #ffffff; }
 
 .terminal-toggle.open {
   /* When terminal open: attach to terminal's interior left edge, inside terminal column.
-     Square edge faces main panel (left), rounded side faces terminal (right). */
-  right: 277px;
+     Square edge faces main panel (left), rounded side faces terminal (right).
+     Positioned flush against resizer-terminal (10px scrollbar gap). */
+  right: 290px;
   border-radius: 0 6px 6px 0;
 }
 

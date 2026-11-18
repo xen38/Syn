@@ -248,6 +248,12 @@ renderer/app.js
     - Fixed terminal text not filling bottom space: #terminalOutput removed max-height: 60vh, added flex: 1 + min-height: 0
     - Verified: node --check passes, ESLint clean (0 errors, 0 warnings)
 
+  - 2026-11-18: Second pass of UI layout fixes from reference screenshot:
+    - Swapped Settings and Brainmaxxing button order in HTML (Settings first, then B button)
+    - Toggle flush against terminal interior left edge when open: .terminal-toggle.open right: 277px→290px; JS updateTogglePosition: terminalWidth - 23→-10
+    - Resizer terminal keeps 10px scrollbar gap during drag: JS resizerTerminal.style.right: newWidth→newWidth + 10
+    - Verified: Electron app launches successfully (logs: "Index engine opened successfully", "Window created, loading index.html...", "index.html loaded")
+
 ---
 ## Phase 1 — Memory Vault & Brainmaxxing Port (10% → 30%)
 
