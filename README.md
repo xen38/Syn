@@ -1,5 +1,7 @@
 # Syn
 
+![Syn](assets/syn-cat.png)
+
 A unified agent memory environment and searchable memory infrastructure for AI coding agents.
 
 Syn is an independent desktop application that acts as a centralized search engine for archived sessions and conversation history of AI coding agents. It allows both humans and AI agents to search, retrieve, explore, and read previous sessions across multiple coding harnesses without manually opening, parsing, or reading archive files themselves.
