@@ -263,7 +263,14 @@ renderer/app.js
       - Session-view padding: 16px→16px 8px 16px 16px (reduces right padding so text uses full column width)
       - Verified: Electron app launches successfully
 
+- 2026-11-19: Fourth pass of UI layout fixes:
+    - Fixed text indentation: session text starts at left edge of session view (removed left padding)
+    - Eliminated gap between scrollbar and column resizer: scrollbar immediately left of resizer (no empty space)
+    - Changed default terminal width from 300px to 600px (sidebar stays 300px) — CSS .terminal-column width 300→600, .resizer-terminal right: 320→600px; JS startTerminalWidth 300→600
+    - Verified: node --check passes, ESLint clean, Electron app launches successfully
+
 ---
+
 ## Phase 1 — Memory Vault & Brainmaxxing Port (10% → 30%)
 
 

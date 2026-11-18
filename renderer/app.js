@@ -1133,7 +1133,7 @@ const setup = () => {
   let resizerType = null
   let startX = 0
   let startSidebarWidth = 300
-  let startTerminalWidth = 300
+  let startTerminalWidth = 600
 
   function startResize (e, type) {
     e.preventDefault()
