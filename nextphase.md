@@ -197,6 +197,7 @@ The plan is complete when `nextphase.md` contains every checkpoint needed to tak
 - Colorful terminal text output: keyword #ff69b4, string #69ff69, number #ff9900, fn #cc99ff, info #00ccff, hint #aaa, cmd #fff, ok #53C68B, warn #f5a623, error #ff4444.
 - Removed duplicate .menu-panel { display: none; } CSS rule.
 - Verified: ESLint passes on renderer/app.js, Electron app launches successfully, all 6 reference-image fixes tested.
+- Fixed: SyntaxError from duplicate `const terminalColumn` declaration (lines 17 & 1039) that prevented entire renderer from loading; all UI features now work.
 
 Files changed:
 renderer/index.html,
