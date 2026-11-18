@@ -1545,6 +1545,12 @@ Syn/
   - Fix: Moved `let terminalVisible = true` to before the first `updateTogglePosition()` call (right after `terminalColumn`/`btnCloseTerminal` declarations). Removed the duplicate declaration from the State section.
   - Verified: `node --check renderer/app.js` passes; Electron app launches cleanly with no console errors; `setup()` completes fully, click handlers register, `loadSessions()` populates the session list.
 
+- 2026-11-18: Additional polish fixes (sub-agent reports):
+  1. Fixed terminal output hidden permanently after clicking a terminal search result — removed `terminalOutput.style.display = 'none'` from `renderSearchResults` click handler (was never restored).
+  2. Changed session meta path from `session.source_path` to `session.file_path || session.source_path` so the actual session file path shows instead of just the harness root directory.
+  3. Removed dead CSS `.empty-icon` rule (no icon element exists in empty state — text only per spec).
+  - Verified: ESLint clean, syntax OK, Electron app launches with no console errors.
+
 ---
 
 **End of nextphase.md.** This is the complete 0% ? 100% guide for building Syn. Execute phase by phase, validating at each checkpoint before proceeding.

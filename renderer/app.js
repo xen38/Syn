@@ -545,7 +545,6 @@ const setup = () => {
         selectedSessionId = r.id
         renderSessionList(allSessions)
         loadSessionContent(r)
-        terminalOutput.style.display = 'none'
       })
       terminalOutput.appendChild(div)
     })
@@ -953,7 +952,7 @@ const setup = () => {
 
     metaHarness.textContent = session.harness
     metaSessionId.textContent = session.id
-    metaPath.textContent = session.source_path
+    metaPath.textContent = session.file_path || session.source_path
 
     try {
       const data = await synAPI.readSession(session.id)
