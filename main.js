@@ -94,11 +94,14 @@ let mainWindow = null
 
 function createWindow () {
   console.log('Creating window...')
+  const windowIcon = path.join(__dirname, 'assets', 'icon.png')
+
   mainWindow = new BrowserWindow({
     width: config.windowBounds.width || 1200,
     height: config.windowBounds.height || 800,
     minWidth: 900,
     minHeight: 600,
+    icon: windowIcon,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
