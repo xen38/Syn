@@ -375,11 +375,11 @@ const setup = () => {
 
   // Status indicator: toggle between idle and loading/working GIF
   function setStatusIdle () {
-    if (statusIndicatorImg) statusIndicatorImg.src = 'assets/idle.gif'
+    if (statusIndicatorImg) statusIndicatorImg.src = '../assets/idle.gif'
   }
 
   function setStatusLoading () {
-    if (statusIndicatorImg) statusIndicatorImg.src = 'assets/loading-working.gif'
+    if (statusIndicatorImg) statusIndicatorImg.src = '../assets/loading-working.gif'
   }
 
   async function executeTerminalCommand (raw) {
