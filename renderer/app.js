@@ -1133,7 +1133,7 @@ const setup = () => {
   let resizerType = null
   let startX = 0
   let startSidebarWidth = 300
-  let startTerminalWidth = 600
+  let startTerminalWidth = 500
 
   function startResize (e, type) {
     e.preventDefault()
@@ -1177,7 +1177,7 @@ const setup = () => {
       terminalColumn.style.width = newWidth + 'px'
       terminalColumn.style.flex = '0 0 auto'
       panel.style.flex = '1'
-      resizerTerminal.style.right = (newWidth + 20) + 'px'
+      resizerTerminal.style.right = newWidth + 'px'
       // Update toggle position if terminal is visible
       if (terminalVisible) {
         updateTogglePosition()
