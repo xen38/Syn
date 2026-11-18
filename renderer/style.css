@@ -261,19 +261,19 @@ a { color: #ffffff; }
   gap: 5px;
 }
 
-/* Brainmaxxing button - bold B on #53C68B background */
+/* Brainmaxxing button - black background with bold B on #53C68B green */
 #btnBrainmaxxing {
-  background: #53C68B;
-  color: #ffffff;
+  background: #000000;
+  color: #53C68B;
   font-weight: 900;
   font-size: 16px;
   border-color: #53C68B;
 }
 
 #btnBrainmaxxing:hover {
-  background: #3ab073;
-  border-color: #3ab073;
-  color: #ffffff;
+  background: #1a1a1a;
+  border-color: #53C68B;
+  color: #53C68B;
 }
 
 /* Menu panel */
@@ -658,7 +658,7 @@ a { color: #ffffff; }
   overflow-y: auto;
   padding: 16px;
   position: relative;
-  margin-right: 5px;
+  margin-right: 7px;
 }
 
 .session-view.hidden {
