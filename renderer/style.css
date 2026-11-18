@@ -247,6 +247,19 @@ a { color: #ffffff; }
   border-color: #555555;
 }
 
+/* Brainmaxxing button - bold B in #53C68B */
+#btnBrainmaxxing {
+  color: #53C68B;
+  font-weight: 900;
+  font-size: 16px;
+  border-color: #53C68B;
+}
+
+#btnBrainmaxxing:hover {
+  background: rgba(83, 198, 139, 0.1);
+  border-color: #53C68B;
+}
+
 /* Menu panel */
 .menu-panel {
   position: fixed;
@@ -266,6 +279,11 @@ a { color: #ffffff; }
 
 .menu-panel.open {
   display: block;
+}
+
+/* Brainmaxxing panel positioned to the left of Settings panel */
+#brainmaxxingPanel {
+  right: 342px;
 }
 
 .menu-section {
@@ -921,13 +939,13 @@ a { color: #ffffff; }
 }
 
 .resizer-sidebar {
-  right: 0;
+  left: 320px;
   border-left: 1px solid #333333;
   border-right: 1px solid #333333;
 }
 
 .resizer-terminal {
-  left: 0;
+  right: 340px;
   border-left: 1px solid #333333;
   border-right: 1px solid #333333;
 }

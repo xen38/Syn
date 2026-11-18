@@ -82,10 +82,14 @@ const setup = () => {
     menuOpen = !menuOpen
     if (menuOpen) {
       menuPanel.style.display = 'block'
+      brainmaxxingPanel.style.display = 'block'
+      brainmaxxingOpen = true
       renderHarnesses()
       renderHarnessSettings()
     } else {
       menuPanel.style.display = 'none'
+      brainmaxxingPanel.style.display = 'none'
+      brainmaxxingOpen = false
     }
   }
 
@@ -119,6 +123,8 @@ const setup = () => {
     if (menuOpen && !menuPanel.contains(e.target) && e.target !== menuBtn) {
       menuOpen = false
       menuPanel.style.display = 'none'
+      brainmaxxingPanel.style.display = 'none'
+      brainmaxxingOpen = false
     }
     // Close context menu when clicking outside
     if (ctxMenu.style.display === 'block' && !ctxMenu.contains(e.target)) {
@@ -1080,12 +1086,14 @@ const setup = () => {
       newWidth = Math.max(minWidth, Math.min(newWidth, containerWidth - minWidth - 280))
       sidebar.style.width = newWidth + 'px'
       panel.style.flex = '1'
+      resizerSidebar.style.left = newWidth + 'px'
     } else if (resizerType === 'terminal') {
       let newWidth = startTerminalWidth - dx
       newWidth = Math.max(minWidth, Math.min(newWidth, containerWidth - minWidth - 280))
       terminalColumn.style.width = newWidth + 'px'
       terminalColumn.style.flex = '0 0 auto'
       panel.style.flex = '1'
+      resizerTerminal.style.right = newWidth + 'px'
     }
   }
 
