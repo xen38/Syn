@@ -60,6 +60,8 @@
 
 - 2026-11-16: UI Rework final fixes — toggle border-radius (box flips per state), toggle attaches to terminal interior edge when open / right edge when closed, column resizers full height with #53C68B, z-index management (toggle 300 above resizers 200), Escape key closes menus, all overlapping elements fixed, Settings/Brainmaxxing independent buttons, app verified running (ESLint clean, electron launches successfully).
 
+- 2026-11-17: UI layout fixes 4th pass — `.resizer-terminal` right: 500→505px (scrollbar moved 5px left); `.terminal-column` width set to 500px default; `startTerminalWidth`: 600→500; removed +20px JS drag offset (resizerTerminal.style.right = newWidth + 'px') so scrollbar stays adjacent during drag; `.session-view` padding kept at 16px all sides; all changes committed (`9b5a69d`) and pushed to origin/main; Electron app restarted and verified running ("index.html loaded").
+
 ---
 
 
