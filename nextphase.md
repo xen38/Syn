@@ -62,6 +62,8 @@
 
 - 2026-11-17: UI layout fixes 4th pass — `.resizer-terminal` right: 500→505px (scrollbar moved 5px left); `.terminal-column` width set to 500px default; `startTerminalWidth`: 600→500; removed +20px JS drag offset (resizerTerminal.style.right = newWidth + 'px') so scrollbar stays adjacent during drag; `.session-view` padding kept at 16px all sides; all changes committed (`9b5a69d`) and pushed to origin/main; Electron app restarted and verified running ("index.html loaded").
 
+- 2026-11-18: Corrected scrollbar fix — Reverted `.resizer-terminal` right: 505px → 500px (was moving resizer not scrollbar). Added `margin-right: 5px` to `.session-view` to shift the session text displayer's vertical scrollbar 5px left. Committed (`fc83551`) and pushed to origin/main.
+
 ---
 
 
