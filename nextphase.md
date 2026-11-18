@@ -237,6 +237,16 @@ renderer/app.js
   - Escape key closes all open menus/overlays
   - Verified app launches and runs (logs: "Index engine opened successfully", "Window created, loading index.html...", "index.html loaded")
 
+  - 2026-11-19: UI layout fixes from 4 reference screenshots:
+    - Aligned default column widths with search bar: sidebar 320px→300px, terminal 340px→300px, leaving small gap
+    - Moved Brainmaxxing (B) button 5px to the right of Settings button (margin-left: 5px)
+    - Separated scrollbar and column resizer: terminal resizer at right:340px→310px (10px scrollbar gap)
+    - Moved terminal toggle 3px to the right when terminal open (updateTogglePosition: terminalWidth - 23 instead of -20)
+    - Fixed text alignment: session view padding 24px→16px (removed excessive left spacing)
+    - Fixed terminal toggle lag during resize: removed `transition: all 0.2s ease` from .terminal-toggle (only transition color/shadow now, not position)
+    - Enforced right column resizer minimum limit: JS minWidth 200→280 (matches CSS .terminal-column min-width: 280px)
+    - Fixed terminal text not filling bottom space: #terminalOutput removed max-height: 60vh, added flex: 1 + min-height: 0
+    - Verified: node --check passes, ESLint clean (0 errors, 0 warnings)
 
 ---
 ## Phase 1 — Memory Vault & Brainmaxxing Port (10% → 30%)
