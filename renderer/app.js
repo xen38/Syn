@@ -16,8 +16,8 @@ const setup = () => {
   const terminalOutput = document.getElementById('terminalOutput')
   const terminalColumn = document.querySelector('.terminal-column')
   const btnCloseTerminal = document.getElementById('btnCloseTerminal')
-  // Terminal starts open per spec: ▶ = open (arrow points right, toward closing)
-  btnCloseTerminal.textContent = '▶'
+  // Terminal starts open per spec: ◀ = open (arrow points left toward terminal, click to close)
+  btnCloseTerminal.textContent = '◀'
   btnCloseTerminal.className = 'terminal-toggle open'
   terminalColumn.style.display = 'flex'
   updateTogglePosition()
@@ -340,13 +340,13 @@ const setup = () => {
     if (terminalVisible) {
       terminalColumn.style.display = 'flex'
       resizerTerminal.style.display = 'block'
-      btnCloseTerminal.textContent = '▶'
+      btnCloseTerminal.textContent = '◀'
       btnCloseTerminal.className = 'terminal-toggle open'
       updateTogglePosition()
     } else {
       terminalColumn.style.display = 'none'
       resizerTerminal.style.display = 'none'
-      btnCloseTerminal.textContent = '◀'
+      btnCloseTerminal.textContent = '▶'
       btnCloseTerminal.className = 'terminal-toggle closed'
       updateTogglePosition()
     }
@@ -358,8 +358,8 @@ const setup = () => {
     const terminalWidth = terminalVisible ? terminalColumn.offsetWidth : 0
 
     if (terminalVisible) {
-      // Attach to terminal's interior left edge, flush against resizer
-      btnCloseTerminal.style.right = terminalWidth + 'px'
+      // Attach to terminal's interior left edge, flush against resizer (inside terminal column)
+      btnCloseTerminal.style.right = (terminalWidth - 20) + 'px'
       btnCloseTerminal.style.top = '50%'
       btnCloseTerminal.style.transform = 'translateY(-50%)'
       btnCloseTerminal.style.position = 'absolute'

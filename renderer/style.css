@@ -203,9 +203,9 @@ a { color: #ffffff; }
 }
 
 .terminal-toggle.open {
-  /* When terminal open: attach to terminal's interior left edge, flush with resizer.
+  /* When terminal open: attach to terminal's interior left edge, inside terminal column.
      Square edge faces main panel (left), rounded side faces terminal (right). */
-  right: 340px;
+  right: 320px;
   border-radius: 0 6px 6px 0;
 }
 
@@ -931,7 +931,7 @@ a { color: #ffffff; }
 /* Column resizer handles */
 .column-resizer {
   position: absolute;
-  top: 48px;
+  top: 0;
   bottom: 0;
   width: 6px;
   cursor: col-resize;

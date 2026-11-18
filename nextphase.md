@@ -1531,6 +1531,17 @@ Syn/
 
 
 
+- 2026-11-16: UI Rework final fixes (uncommitted):
+  - Moved `#btnCloseTerminal` inside `.container` div so `position: absolute` positions relative to container, not viewport.
+  - Swapped toggle arrows: open=◀ (triangle points left), closed=▶ (triangle points right) — arrow only flips, not the whole button.
+  - Changed column resizers `top: 48px` to `top: 0` so they extend full height of container (top to bottom).
+  - Changed toggle open position from `right: terminalWidth` to `right: (terminalWidth - 20)` so toggle attaches to terminal's interior left edge, flush with resizer.
+  - Changed CSS `.terminal-toggle.open` default from `right: 340px` to `right: 320px` to match app.js calculation (terminalWidth - 20).
+  - `updateTogglePosition()` called on startup, toggle click, and during terminal resizer drag.
+  - Verified: ESLint passes cleanly, Electron app launches successfully, all UI features work.
+
+---
+
 **End of nextphase.md.** This is the complete 0% ? 100% guide for building Syn. Execute phase by phase, validating at each checkpoint before proceeding.
 
 
