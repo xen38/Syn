@@ -31,6 +31,7 @@ const setup = () => {
   const btnRefreshSessions = document.getElementById('btnRefreshSessions')
   const emptyState = document.getElementById('emptyState')
   const sessionView = document.getElementById('sessionView')
+  const statusIndicatorImg = document.getElementById('statusIndicatorImg')
   const sessionContent = document.getElementById('sessionContent')
   const metaHarness = document.getElementById('metaHarness')
   const metaSessionId = document.getElementById('metaSessionId')
@@ -372,6 +373,15 @@ const setup = () => {
     }
   }
 
+  // Status indicator: toggle between idle and loading/working GIF
+  function setStatusIdle () {
+    if (statusIndicatorImg) statusIndicatorImg.src = 'assets/idle.gif'
+  }
+
+  function setStatusLoading () {
+    if (statusIndicatorImg) statusIndicatorImg.src = 'assets/loading-working.gif'
+  }
+
   async function executeTerminalCommand (raw) {
     const parts = raw.split(/\s+/)
     const cmd = parts[0].toLowerCase()
@@ -391,8 +401,10 @@ const setup = () => {
         filters[k] = v
       })
       appendTerminalLine(`/locate "${query}" ${JSON.stringify(filters)}`, 'cmd')
+      setStatusLoading()
       const results = await synAPI.searchSessions(query, { batchSize, filters })
       renderSearchResults(results)
+      setStatusIdle()
       break
     }
 
@@ -614,12 +626,15 @@ const setup = () => {
     }
     const { query, options } = parseSearchFilters(raw)
     searchQuery = raw
+    setStatusLoading()
     try {
       const results = await synAPI.searchSessions(query, { batchSize, ...options })
       renderSearchResultsList(results, raw)
     } catch (err) {
       console.error('Search failed:', err)
       sessionList.innerHTML = `<div style="padding:12px;color:#ff6666;font-size:13px">Search failed: ${escapeHtml(err.message)}</div>`
+    } finally {
+      setStatusIdle()
     }
   }
 
@@ -875,12 +890,16 @@ const setup = () => {
     } catch (e) {
       console.error('Init failed:', e)
       alert('Init failed: ' + e.message)
+    } finally {
+      setStatusIdle()
     }
   }
 
   async function loadSessions () {
+    setStatusLoading()
     allSessions = await synAPI.listAllSessions()
     renderSessionList(allSessions)
+    setStatusIdle()
   }
 
   function renderSessionList (sessions) {
@@ -954,12 +973,15 @@ const setup = () => {
     metaSessionId.textContent = session.id
     metaPath.textContent = session.file_path || session.source_path
 
+    setStatusLoading()
     try {
       const data = await synAPI.readSession(session.id)
       const messages = data.messages || []
       renderMessages(messages)
     } catch (e) {
       sessionContent.innerHTML = `<div style="color:#ff6666;padding:12px">Error loading session: ${escapeHtml(e.message)}</div>`
+    } finally {
+      setStatusIdle()
     }
   }
 
