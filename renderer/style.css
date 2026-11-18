@@ -658,6 +658,7 @@ a { color: #ffffff; }
   overflow-y: auto;
   padding: 16px;
   position: relative;
+  margin-right: 5px;
 }
 
 .session-view.hidden {
@@ -960,6 +961,6 @@ a { color: #ffffff; }
 }
 
 .resizer-terminal {
-  right: 505px;
+  right: 500px;
 }
 
