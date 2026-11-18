@@ -254,6 +254,15 @@ renderer/app.js
     - Resizer terminal keeps 10px scrollbar gap during drag: JS resizerTerminal.style.right: newWidth→newWidth + 10
     - Verified: Electron app launches successfully (logs: "Index engine opened successfully", "Window created, loading index.html...", "index.html loaded")
 
+    - 2026-11-18: Third pass of UI layout fixes from reference screenshots:
+      - Restored Brainmaxxing B button to the LEFT of Settings button (both together, not separated)
+      - Wrapped header buttons in .header-actions flex container (gap: 5px)
+      - Removed margin-left from #btnBrainmaxxing (handled by header-actions gap)
+      - Moved terminal resizer right: 310px→320px so scrollbar sits to the LEFT of the resizer
+      - JS resizerTerminal.style.right: newWidth + 10→+20 (keeps scrollbar gap during drag)
+      - Session-view padding: 16px→16px 8px 16px 16px (reduces right padding so text uses full column width)
+      - Verified: Electron app launches successfully
+
 ---
 ## Phase 1 — Memory Vault & Brainmaxxing Port (10% → 30%)
 
