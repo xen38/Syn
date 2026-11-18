@@ -40,14 +40,14 @@ a { color: #ffffff; }
   align-items: center;
   justify-content: center;
   flex: 1;
-  max-width: 520px;
+  max-width: 720px;
 }
 
 #searchInput {
   width: 100%;
   height: 40px;
   padding: 0 20px;
-  background: #111111;
+  background: #000000;
   border: 1px solid #333333;
   border-radius: 20px;
   color: #ffffff;
@@ -196,14 +196,16 @@ a { color: #ffffff; }
 }
 
 .terminal-toggle.closed {
-  /* When terminal closed: attach to right edge of screen, offset for scrollbar */
-  right: 12px;
+  /* When terminal closed: attach to right edge of screen, clear scrollbar.
+     Rounded side faces inward (left), square edge faces screen edge (right). */
+  right: 14px;
   border-radius: 6px 0 0 6px;
 }
 
 .terminal-toggle.open {
-  /* When terminal open: attach to terminal's interior left edge */
-  right: 342px;
+  /* When terminal open: attach to terminal's interior left edge, flush with resizer.
+     Square edge faces main panel (left), rounded side faces terminal (right). */
+  right: 340px;
   border-radius: 0 6px 6px 0;
 }
 
@@ -251,17 +253,19 @@ a { color: #ffffff; }
   border-color: #555555;
 }
 
-/* Brainmaxxing button - bold B in #53C68B */
+/* Brainmaxxing button - bold B on #53C68B background */
 #btnBrainmaxxing {
-  color: #53C68B;
+  background: #53C68B;
+  color: #ffffff;
   font-weight: 900;
   font-size: 16px;
   border-color: #53C68B;
 }
 
 #btnBrainmaxxing:hover {
-  background: rgba(83, 198, 139, 0.1);
-  border-color: #53C68B;
+  background: #3ab073;
+  border-color: #3ab073;
+  color: #ffffff;
 }
 
 /* Menu panel */
@@ -708,7 +712,7 @@ a { color: #ffffff; }
   border-radius: 4px;
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 12.5px;
-  color: #00ff00;
+  color: #53C68B;
 }
 
 .session-content pre {
@@ -806,7 +810,7 @@ a { color: #ffffff; }
 .close-btn:hover {
   background: #1a1a1a;
   border-color: #53C68B;
-  color: #00a0ff;
+  color: #53C68B;
 }
 
 /* Message rendering in session content */
@@ -933,26 +937,26 @@ a { color: #ffffff; }
   cursor: col-resize;
   z-index: 200;
   user-select: none;
-  background: transparent;
+  background: #53C68B;
+  opacity: 0.35;
+  border: none;
 }
 
 .column-resizer:hover {
-  background: #333333;
+  opacity: 1;
+  background: #53C68B;
 }
 
 .column-resizer.active {
   background: #53C68B;
+  opacity: 1;
 }
 
 .resizer-sidebar {
   left: 320px;
-  border-left: 1px solid #333333;
-  border-right: 1px solid #333333;
 }
 
 .resizer-terminal {
   right: 340px;
-  border-left: 1px solid #333333;
-  border-right: 1px solid #333333;
 }
 

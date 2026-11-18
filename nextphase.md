@@ -58,6 +58,8 @@
 
 - 2026-11-16: GitHub Pages landing page created at docs/index.html; Pages configured on gh-pages branch, building at https://xen38.github.io/Syn/. README copy polished (`locate`?`Syn`, final project principle added, MCP tool names updated to `syn_*`). Pending: screenshots/GIF (11.6).
 
+- 2026-11-16: UI Rework final fixes — toggle border-radius (box flips per state), toggle attaches to terminal interior edge when open / right edge when closed, column resizers full height with #53C68B, z-index management (toggle 300 above resizers 200), Escape key closes menus, all overlapping elements fixed, Settings/Brainmaxxing independent buttons, app verified running (ESLint clean, electron launches successfully).
+
 ---
 
 
@@ -201,18 +203,24 @@ The plan is complete when `nextphase.md` contains every checkpoint needed to tak
 - Fixed UI from user feedback:
   - Swap Settings and Brainmaxxing button order (Brainmaxxing left of Settings)
   - Brainmaxxing button: bold B in #53C68B instead of 🧠 emoji
-  - Brainmaxxing panel positioned to left of Settings panel when both open; same position as Settings when Settings closed
-  - Settings button ONLY opens Settings menu (Brainmaxxing is independent via its own button)
-  - Both menus can be open simultaneously; Brainmaxxing shifts left when Settings opens
+  - Brainmaxxing panel: opens at Settings position (right: 16px) when Settings closed; shifts left of Settings (right: 342px) when Settings open — Settings button ONLY opens Settings menu, Brainmaxxing independent via its own button
   - Fix column resizer positions: sidebar resizer at left:320px, terminal resizer at right:340px
-  - Update resizer handle positions during drag; z-index: 200 to respect toggle/scrollbar limits
-  - Column resizers extend full height (top: 48px to bottom: 0)
-  - Fix terminal toggle positioning: attaches to terminal's interior left edge when open (right: terminalWidth + 2px), attaches to right edge of screen (right: 12px) when closed with scrollbar offset
-  - Toggle only flips arrow text (◀/▶), not the entire button
-  - Fix overlapping between column resizers, scrollbars, and toggle button via z-index management
+  - Column resizers extend full height (top: 48px to bottom: 0), background #53C68B opacity 0.35, z-index: 200
+  - Update resizer handle positions during drag
+  - Fix terminal toggle positioning: attaches to terminal's interior left edge when open (right: terminalWidth, position:absolute), attaches to right edge of screen when closed (right: 14px, position:absolute, clears scrollbar)
+  - Toggle only flips arrow text (◀/▶), not entire button — box border-radius flips per state (closed: round-left/square-right; open: square-left/round-right)
+  - Terminal open by default on startup (◀ toggle arrow)
+  - Fix overlapping between column resizers, scrollbars, and toggle button via z-index management (toggle z-index: 300 above resizers z-index: 200)
   - Fix duplicate .menu-panel { display: none; } CSS rule
   - All highlights unified to #53C68B (session-item.selected border, meta-harness, close-btn hover, links, search focus, terminal ok/prompt/result colors)
   - Colorful terminal text output: keyword #ff69b4, string #69ff69, number #ff9900, fn #cc99ff, info #00ccff, hint #aaa, cmd #fff, ok #53C68B, warn #f5a623, error #ff4444
+  - Brainmaxxing moved OUT of Settings into its own button + menu panel beside Settings
+  - Copy Session ID added to right-click context menu (navigator.clipboard) + "Copied!" visual feedback
+  - Session ID displayed at top of session view beside harness name and file route (.meta-session-id, #53C68B monospace)
+  - Removed 🔍 emoji from empty state (left only text)
+  - Draggable column separators (resizerSidebar, resizerTerminal) for sidebar/main/terminal columns with min-width constraints and auto-adjust (no overlap)
+  - Removed duplicate document.click listener; added Escape key listener to close menus/overlays
+  - Added contextmenu handler + viewport clamping in renderSearchResultsList and renderSessionList
   - Verified: ESLint passes on renderer/app.js, Electron app launches successfully, all UI features work
   - Fixed: SyntaxError from duplicate `const terminalColumn` declaration (lines 17 & 1039) that prevented entire renderer from loading; all UI features now work.
 
@@ -220,6 +228,14 @@ Files changed:
 renderer/index.html,
 renderer/style.css,
 renderer/app.js
+
+- Latest UI fixes (after sub-agent review):
+  - Toggle border-radius added back per-user: box now flips (closed: border-radius 6px 0 0 6px round-left; open: border-radius 0 6px 6px 0 round-right)
+  - Toggle closed position: right: 14px; open position: right: 340px (flush with resizer, no +2px gap)
+  - Column resizers: top: 48px to bottom: 0 full height, background #53C68B opacity 0.35
+  - z-index management: toggle 300 above resizers 200 — no overlap with scrollbars
+  - Escape key closes all open menus/overlays
+  - Verified app launches and runs (logs: "Index engine opened successfully", "Window created, loading index.html...", "index.html loaded")
 
 
 ---

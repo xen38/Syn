@@ -16,8 +16,8 @@ const setup = () => {
   const terminalOutput = document.getElementById('terminalOutput')
   const terminalColumn = document.querySelector('.terminal-column')
   const btnCloseTerminal = document.getElementById('btnCloseTerminal')
-  // Terminal starts open per spec: ◀ = open
-  btnCloseTerminal.textContent = '◀'
+  // Terminal starts open per spec: ▶ = open (arrow points right, toward closing)
+  btnCloseTerminal.textContent = '▶'
   btnCloseTerminal.className = 'terminal-toggle open'
   terminalColumn.style.display = 'flex'
   updateTogglePosition()
@@ -119,7 +119,7 @@ const setup = () => {
     }
   })
 
-  // Close Settings panel when clicking outside
+  // Close panels when clicking outside
   document.addEventListener('click', (e) => {
     if (menuOpen && !menuPanel.contains(e.target) && e.target !== menuBtn) {
       menuOpen = false
@@ -141,21 +141,23 @@ const setup = () => {
     }
   })
 
-  // Close menu when clicking outside
-  document.addEventListener('click', (e) => {
-    if (menuOpen && !menuPanel.contains(e.target) && e.target !== menuBtn) {
-      menuOpen = false
-      menuPanel.style.display = 'none'
-      brainmaxxingPanel.style.display = 'none'
-      brainmaxxingOpen = false
-    }
-    // Close context menu when clicking outside
-    if (ctxMenu.style.display === 'block' && !ctxMenu.contains(e.target)) {
-      ctxMenu.style.display = 'none'
-    }
-    // Close confirm overlay when clicking outside
-    if (ctxConfirmOverlay.style.display === 'block' && !ctxConfirmOverlay.contains(e.target)) {
-      hideConfirm()
+  // Escape key to close open menus / overlays
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (menuOpen) {
+        menuOpen = false
+        menuPanel.style.display = 'none'
+      }
+      if (brainmaxxingOpen) {
+        brainmaxxingOpen = false
+        brainmaxxingPanel.style.display = 'none'
+      }
+      if (ctxMenu.style.display === 'block') {
+        ctxMenu.style.display = 'none'
+      }
+      if (ctxConfirmOverlay.style.display === 'block') {
+        hideConfirm()
+      }
     }
   })
 
@@ -337,12 +339,14 @@ const setup = () => {
     terminalVisible = !terminalVisible
     if (terminalVisible) {
       terminalColumn.style.display = 'flex'
-      btnCloseTerminal.textContent = '◀'
+      resizerTerminal.style.display = 'block'
+      btnCloseTerminal.textContent = '▶'
       btnCloseTerminal.className = 'terminal-toggle open'
       updateTogglePosition()
     } else {
       terminalColumn.style.display = 'none'
-      btnCloseTerminal.textContent = '▶'
+      resizerTerminal.style.display = 'none'
+      btnCloseTerminal.textContent = '◀'
       btnCloseTerminal.className = 'terminal-toggle closed'
       updateTogglePosition()
     }
@@ -354,17 +358,17 @@ const setup = () => {
     const terminalWidth = terminalVisible ? terminalColumn.offsetWidth : 0
 
     if (terminalVisible) {
-      // Attach to terminal's interior left edge (just inside terminal column)
-      btnCloseTerminal.style.right = (terminalWidth + 2) + 'px'
+      // Attach to terminal's interior left edge, flush against resizer
+      btnCloseTerminal.style.right = terminalWidth + 'px'
       btnCloseTerminal.style.top = '50%'
       btnCloseTerminal.style.transform = 'translateY(-50%)'
       btnCloseTerminal.style.position = 'absolute'
     } else {
-      // Attach to right edge of screen, offset for scrollbar/resizer
-      btnCloseTerminal.style.right = '12px'
+      // Attach to right edge of screen, clear scrollbar/resizer zone
+      btnCloseTerminal.style.right = '14px'
       btnCloseTerminal.style.top = '50%'
       btnCloseTerminal.style.transform = 'translateY(-50%)'
-      btnCloseTerminal.style.position = 'fixed'
+      btnCloseTerminal.style.position = 'absolute'
     }
   }
 
@@ -667,6 +671,26 @@ const setup = () => {
         renderSessionList(allSessions)
         loadSessionContent(r)
       })
+      // Right-click context menu on search results
+      item.addEventListener('contextmenu', (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        ctxMenu.style.display = 'none'
+        ctxTargetSessionId = r.id
+        ctxTargetSession = r
+        // Position menu near cursor, clamped to viewport
+        let left = e.clientX
+        let top = e.clientY
+        const menuWidth = ctxMenu.offsetWidth || 200
+        const menuHeight = ctxMenu.offsetHeight || 120
+        if (left + menuWidth > window.innerWidth) left = window.innerWidth - menuWidth - 8
+        if (top + menuHeight > window.innerHeight) top = window.innerHeight - menuHeight - 8
+        if (left < 8) left = 8
+        if (top < 8) top = 8
+        ctxMenu.style.left = left + 'px'
+        ctxMenu.style.top = top + 'px'
+        ctxMenu.style.display = 'block'
+      })
       fragment.appendChild(item)
     })
     sessionList.appendChild(fragment)
@@ -698,6 +722,14 @@ const setup = () => {
     if (!ctxTargetSessionId) return
     try {
       await navigator.clipboard.writeText(ctxTargetSessionId)
+      // Visual feedback: flash the menu item text
+      const original = ctxCopySessionId.textContent
+      ctxCopySessionId.textContent = 'Copied!'
+      ctxCopySessionId.style.color = '#53C68B'
+      setTimeout(() => {
+        ctxCopySessionId.textContent = original
+        ctxCopySessionId.style.color = ''
+      }, 1000)
     } catch (err) {
       console.error('Copy failed:', err)
       alert('Failed to copy session ID: ' + err.message)
@@ -894,9 +926,17 @@ const setup = () => {
         ctxMenu.style.display = 'none'
         ctxTargetSessionId = s.id
         ctxTargetSession = s
-        // Position menu near cursor
-        ctxMenu.style.left = e.clientX + 'px'
-        ctxMenu.style.top = e.clientY + 'px'
+        // Position menu near cursor, clamped to viewport
+        let left = e.clientX
+        let top = e.clientY
+        const menuWidth = ctxMenu.offsetWidth || 200
+        const menuHeight = ctxMenu.offsetHeight || 120
+        if (left + menuWidth > window.innerWidth) left = window.innerWidth - menuWidth - 8
+        if (top + menuHeight > window.innerHeight) top = window.innerHeight - menuHeight - 8
+        if (left < 8) left = 8
+        if (top < 8) top = 8
+        ctxMenu.style.left = left + 'px'
+        ctxMenu.style.top = top + 'px'
         ctxMenu.style.display = 'block'
       })
 
