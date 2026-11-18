@@ -359,7 +359,7 @@ const setup = () => {
 
     if (terminalVisible) {
       // Attach to terminal's interior left edge, flush against resizer (inside terminal column)
-      btnCloseTerminal.style.right = (terminalWidth - 20) + 'px'
+      btnCloseTerminal.style.right = (terminalWidth - 23) + 'px'
       btnCloseTerminal.style.top = '50%'
       btnCloseTerminal.style.transform = 'translateY(-50%)'
       btnCloseTerminal.style.position = 'absolute'
@@ -1132,8 +1132,8 @@ const setup = () => {
   let resizing = false
   let resizerType = null
   let startX = 0
-  let startSidebarWidth = 320
-  let startTerminalWidth = 340
+    let startSidebarWidth = 300
+    let startTerminalWidth = 300
 
   function startResize (e, type) {
     e.preventDefault()
@@ -1163,7 +1163,7 @@ const setup = () => {
     e.preventDefault()
     const dx = e.clientX - startX
     const containerWidth = document.querySelector('.container').offsetWidth
-    const minWidth = 200
+        const minWidth = 280
 
     if (resizerType === 'sidebar') {
       let newWidth = startSidebarWidth + dx
