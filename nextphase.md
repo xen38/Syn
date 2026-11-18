@@ -64,6 +64,8 @@
 
 - 2026-11-18: Corrected scrollbar fix — Reverted `.resizer-terminal` right: 505px → 500px (was moving resizer not scrollbar). Added `margin-right: 5px` to `.session-view` to shift the session text displayer's vertical scrollbar 5px left. Committed (`fc83551`) and pushed to origin/main.
 
+- 2026-11-18: Increased `.session-view` `margin-right` from 5px to 7px to move scrollbar further left. Changed Brainmaxxing button to black background with bold B on #53C68B green (was green background with white B). Committed (`5de5d46`) and pushed to origin/main.
+
 ---
 
 
