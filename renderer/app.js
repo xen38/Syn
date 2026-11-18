@@ -387,7 +387,10 @@ const setup = () => {
   }
 
   function setStatusLoading () {
-    if (statusIndicatorImg) statusIndicatorImg.src = '../assets/loading-working.gif'
+    if (statusIndicatorImg) {
+      statusIndicatorImg.src = ''
+      statusIndicatorImg.src = '../assets/loading-working.gif'
+    }
   }
 
   async function executeTerminalCommand (raw) {
@@ -855,6 +858,7 @@ const setup = () => {
   }
 
   async function init () {
+    setStatusLoading()
     try {
       const config = await synAPI.getConfig()
       batchSize = config.batchSize || 10
