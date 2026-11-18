@@ -20,6 +20,7 @@ const setup = () => {
   btnCloseTerminal.textContent = '◀'
   btnCloseTerminal.className = 'terminal-toggle open'
   terminalColumn.style.display = 'flex'
+  updateTogglePosition()
   const searchInput = document.getElementById('searchInput')
   const menuBtn = document.getElementById('menuBtn')
   const menuPanel = document.getElementById('menuPanel')
@@ -73,7 +74,7 @@ const setup = () => {
   let terminalVisible = true
   let searchQuery = ''
 
-  // Toggle menu
+  // Toggle Settings menu (Settings button ONLY opens Settings)
   function toggleMenu (e) {
     if (e) {
       e.preventDefault()
@@ -82,39 +83,61 @@ const setup = () => {
     menuOpen = !menuOpen
     if (menuOpen) {
       menuPanel.style.display = 'block'
-      brainmaxxingPanel.style.display = 'block'
-      brainmaxxingOpen = true
       renderHarnesses()
       renderHarnessSettings()
+      // If Brainmaxxing is also open, shift it to the left of Settings
+      if (brainmaxxingOpen) {
+        brainmaxxingPanel.style.right = '342px'
+      }
     } else {
       menuPanel.style.display = 'none'
-      brainmaxxingPanel.style.display = 'none'
-      brainmaxxingOpen = false
+      // If Brainmaxxing is still open, move it back to Settings position
+      if (brainmaxxingOpen) {
+        brainmaxxingPanel.style.right = '16px'
+      }
     }
   }
 
-  // Menu button click
+  // Menu button click - Settings only
   menuBtn.addEventListener('click', toggleMenu)
 
-  // Brainmaxxing button click (separate from Settings menu)
+  // Brainmaxxing button click (independent from Settings menu)
   btnBrainmaxxing.addEventListener('click', (e) => {
     e.preventDefault()
     e.stopPropagation()
     brainmaxxingOpen = !brainmaxxingOpen
     if (brainmaxxingOpen) {
       brainmaxxingPanel.style.display = 'block'
-      menuOpen = false
-      menuPanel.style.display = 'none'
+      // Position: if Settings is open, shift left; otherwise at Settings position
+      if (menuOpen) {
+        brainmaxxingPanel.style.right = '342px'
+      } else {
+        brainmaxxingPanel.style.right = '16px'
+      }
     } else {
       brainmaxxingPanel.style.display = 'none'
     }
   })
 
-  // Close brainmaxxing panel when clicking outside
+  // Close Settings panel when clicking outside
   document.addEventListener('click', (e) => {
+    if (menuOpen && !menuPanel.contains(e.target) && e.target !== menuBtn) {
+      menuOpen = false
+      menuPanel.style.display = 'none'
+      // Don't close Brainmaxxing when clicking outside Settings
+    }
+    // Close Brainmaxxing panel when clicking outside
     if (brainmaxxingOpen && !brainmaxxingPanel.contains(e.target) && e.target !== btnBrainmaxxing) {
       brainmaxxingOpen = false
       brainmaxxingPanel.style.display = 'none'
+    }
+    // Close context menu when clicking outside
+    if (ctxMenu.style.display === 'block' && !ctxMenu.contains(e.target)) {
+      ctxMenu.style.display = 'none'
+    }
+    // Close confirm overlay when clicking outside
+    if (ctxConfirmOverlay.style.display === 'block' && !ctxConfirmOverlay.contains(e.target)) {
+      hideConfirm()
     }
   })
 
@@ -316,12 +339,34 @@ const setup = () => {
       terminalColumn.style.display = 'flex'
       btnCloseTerminal.textContent = '◀'
       btnCloseTerminal.className = 'terminal-toggle open'
+      updateTogglePosition()
     } else {
       terminalColumn.style.display = 'none'
       btnCloseTerminal.textContent = '▶'
       btnCloseTerminal.className = 'terminal-toggle closed'
+      updateTogglePosition()
     }
   })
+
+  // Update terminal toggle position based on terminal state and resizer position
+  function updateTogglePosition () {
+    if (!btnCloseTerminal || !terminalColumn) return
+    const terminalWidth = terminalVisible ? terminalColumn.offsetWidth : 0
+
+    if (terminalVisible) {
+      // Attach to terminal's interior left edge (just inside terminal column)
+      btnCloseTerminal.style.right = (terminalWidth + 2) + 'px'
+      btnCloseTerminal.style.top = '50%'
+      btnCloseTerminal.style.transform = 'translateY(-50%)'
+      btnCloseTerminal.style.position = 'absolute'
+    } else {
+      // Attach to right edge of screen, offset for scrollbar/resizer
+      btnCloseTerminal.style.right = '12px'
+      btnCloseTerminal.style.top = '50%'
+      btnCloseTerminal.style.transform = 'translateY(-50%)'
+      btnCloseTerminal.style.position = 'fixed'
+    }
+  }
 
   async function executeTerminalCommand (raw) {
     const parts = raw.split(/\s+/)
@@ -1094,6 +1139,10 @@ const setup = () => {
       terminalColumn.style.flex = '0 0 auto'
       panel.style.flex = '1'
       resizerTerminal.style.right = newWidth + 'px'
+      // Update toggle position if terminal is visible
+      if (terminalVisible) {
+        updateTogglePosition()
+      }
     }
   }
 

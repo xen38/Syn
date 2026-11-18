@@ -201,10 +201,20 @@ The plan is complete when `nextphase.md` contains every checkpoint needed to tak
 - Fixed UI from user feedback:
   - Swap Settings and Brainmaxxing button order (Brainmaxxing left of Settings)
   - Brainmaxxing button: bold B in #53C68B instead of 🧠 emoji
-  - Brainmaxxing panel positioned to left of Settings panel
-  - Both menus open/close together via Settings button
+  - Brainmaxxing panel positioned to left of Settings panel when both open; same position as Settings when Settings closed
+  - Settings button ONLY opens Settings menu (Brainmaxxing is independent via its own button)
+  - Both menus can be open simultaneously; Brainmaxxing shifts left when Settings opens
   - Fix column resizer positions: sidebar resizer at left:320px, terminal resizer at right:340px
-  - Update resizer handle positions during drag
+  - Update resizer handle positions during drag; z-index: 200 to respect toggle/scrollbar limits
+  - Column resizers extend full height (top: 48px to bottom: 0)
+  - Fix terminal toggle positioning: attaches to terminal's interior left edge when open (right: terminalWidth + 2px), attaches to right edge of screen (right: 12px) when closed with scrollbar offset
+  - Toggle only flips arrow text (◀/▶), not the entire button
+  - Fix overlapping between column resizers, scrollbars, and toggle button via z-index management
+  - Fix duplicate .menu-panel { display: none; } CSS rule
+  - All highlights unified to #53C68B (session-item.selected border, meta-harness, close-btn hover, links, search focus, terminal ok/prompt/result colors)
+  - Colorful terminal text output: keyword #ff69b4, string #69ff69, number #ff9900, fn #cc99ff, info #00ccff, hint #aaa, cmd #fff, ok #53C68B, warn #f5a623, error #ff4444
+  - Verified: ESLint passes on renderer/app.js, Electron app launches successfully, all UI features work
+  - Fixed: SyntaxError from duplicate `const terminalColumn` declaration (lines 17 & 1039) that prevented entire renderer from loading; all UI features now work.
 
 Files changed:
 renderer/index.html,

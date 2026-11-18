@@ -185,7 +185,7 @@ a { color: #ffffff; }
   justify-content: center;
   line-height: 1;
   padding: 0;
-  z-index: 100;
+  z-index: 300;
   transition: all 0.2s ease;
 }
 
@@ -196,11 +196,15 @@ a { color: #ffffff; }
 }
 
 .terminal-toggle.closed {
-  right: 0;
+  /* When terminal closed: attach to right edge of screen, offset for scrollbar */
+  right: 12px;
+  border-radius: 6px 0 0 6px;
 }
 
 .terminal-toggle.open {
-  right: 340px;
+  /* When terminal open: attach to terminal's interior left edge */
+  right: 342px;
+  border-radius: 0 6px 6px 0;
 }
 
 .terminal-result {
@@ -281,9 +285,10 @@ a { color: #ffffff; }
   display: block;
 }
 
-/* Brainmaxxing panel positioned to the left of Settings panel */
+/* Brainmaxxing panel - defaults to Settings panel position (right: 16px);
+   shifts left when Settings panel is also open (handled in JS) */
 #brainmaxxingPanel {
-  right: 342px;
+  right: 16px;
 }
 
 .menu-section {
@@ -926,8 +931,9 @@ a { color: #ffffff; }
   bottom: 0;
   width: 6px;
   cursor: col-resize;
-  z-index: 50;
+  z-index: 200;
   user-select: none;
+  background: transparent;
 }
 
 .column-resizer:hover {
