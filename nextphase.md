@@ -266,7 +266,8 @@ renderer/app.js
 - 2026-11-19: Fourth pass of UI layout fixes:
     - Fixed text indentation: session-view padding restored to 16px (all sides) so USER/ASSISTANT entries start at a consistent distance from the left edge without overlapping the UI
     - Eliminated scrollbar/resizer gap during drag: removed +20px offset in JS (resizerTerminal.style.right = newWidth, no offset)
-    - Changed default terminal width from 600px to 500px — CSS .terminal-column width 600→500px, .resizer-terminal right: 600→500px; JS startTerminalWidth 600→500
+    - Changed default terminal width from 600px to 500px — CSS .terminal-column width 600→500px; JS startTerminalWidth 600→500
+    - Moved scrollbar 5px to the left: .resizer-terminal right: 500→505px (creates small gap between scrollbar and resizer)
     - Verified: node --check passes, ESLint clean, Electron app launches successfully
 
 ---
