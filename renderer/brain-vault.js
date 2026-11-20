@@ -46,7 +46,14 @@ function showDiagnostic (msg) {
     el.style.border = '1px solid #333333'
     el.style.borderRadius = '6px'
   }
+  if (bvStatusText) bvStatusText.textContent = msg
   console.error('[Brain Vault diagnostic]', msg)
+}
+
+// ── Update status bar with current state ──
+function updateStatus (msg) {
+  if (bvStatusText) bvStatusText.textContent = msg
+  if (bvStatusBar) bvStatusBar.style.display = 'flex'
 }
 
 // ── DOM elements ──
@@ -59,6 +66,10 @@ const bvGraphCanvas = document.getElementById('bvGraphCanvas')
 const bvGraphContainer = document.getElementById('bvGraphContainer')
 const bvGraphEmpty = document.getElementById('bvGraphEmpty')
 const bvGraphTooltip = document.getElementById('bvGraphTooltip')
+
+// Status bar
+const bvStatusBar = document.getElementById('bvStatusBar')
+const bvStatusText = document.getElementById('bvStatusText')
 
 // Window controls
 const bvBtnClose = document.getElementById('bvBtnClose')
@@ -132,21 +143,29 @@ let brainVaultInitialized = false
 if (bvBtnClose) {
   bvBtnClose.addEventListener('click', async (e) => {
     e.stopPropagation()
-    if (await checkUnsavedClose()) {
-      await synAPI.brainVaultWindowClose()
+    try {
+      if (await checkUnsavedClose()) {
+        await synAPI.brainVaultWindowClose()
+      }
+    } catch (err) {
+      showDiagnostic('Close failed: ' + escapeHtml(err.message || String(err)))
     }
   })
 }
 
 if (bvBtnMinimize) {
   bvBtnMinimize.addEventListener('click', () => {
-    synAPI.brainVaultWindowMinimize()
+    try { synAPI.brainVaultWindowMinimize() } catch (err) {
+      showDiagnostic('Minimize failed: ' + escapeHtml(err.message || String(err)))
+    }
   })
 }
 
 if (bvBtnMaximize) {
   bvBtnMaximize.addEventListener('click', () => {
-    synAPI.brainVaultWindowMaximize()
+    try { synAPI.brainVaultWindowMaximize() } catch (err) {
+      showDiagnostic('Maximize failed: ' + escapeHtml(err.message || String(err)))
+    }
   })
 }
 
@@ -223,6 +242,7 @@ async function loadBrainVault () {
     return
   }
   brainFiles = files || []
+  updateStatus('synAPI OK · ' + brainFiles.length + ' vault files')
 
   if (brainFiles.length === 0) {
     showDiagnostic('Brain Vault: brainList() returned 0 files. Check that brain/ directory exists at ' + (await synAPI.brainDir ? (await synAPI.brainDir()).path : 'unknown'))
@@ -339,6 +359,7 @@ async function loadBrainVault () {
 
   // Draw now so the graph appears even when loadBrainVault() runs after the
   // window has been shown (the canvas was 0x0 on the first hidden run).
+  updateStatus('synAPI OK · ' + brainFiles.length + ' files · ' + nodes.size + ' nodes · ' + edges.length + ' links · canvas ' + bvGraphCanvas.width + '×' + bvGraphCanvas.height)
   render()
 
   // ── Idempotency: event listeners once ──
@@ -540,6 +561,27 @@ function render () {
   // while the container had 0×0 dimensions (flex chain not yet laid out).
   resizeCanvas()
   ctx.clearRect(0, 0, bvGraphCanvas.width, bvGraphCanvas.height)
+
+  // Fallback: if no nodes, draw a centered hint on the canvas
+  if (nodes.size === 0) {
+    ctx.fillStyle = '#666666'
+    ctx.font = '14px system-ui, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('No vault notes yet. Right-click graph to Create or Import.', bvGraphCanvas.width / 2, bvGraphCanvas.height / 2)
+    requestAnimationFrame(render)
+    return
+  }
+
+  // Diagnostic: if all nodes are at or near origin / off-canvas, log it.
+  const nodeArr = Array.from(nodes.values())
+  const offScreen = nodeArr.filter(n =>
+    Math.abs(n.x) > bvGraphCanvas.width * 10 ||
+    Math.abs(n.y) > bvGraphCanvas.height * 10 ||
+    (n.x === 0 && n.y === 0)).length
+  if (offScreen > 0 && bvGraphCanvas.width > 0 && bvGraphCanvas.height > 0) {
+    showDiagnostic('Render warning: ' + offScreen + '/' + nodeArr.length + ' nodes off-canvas (canvas ' + bvGraphCanvas.width + '×' + bvGraphCanvas.height + ')')
+  }
 
   const seenEdges = new Set()
   for (const e of edges) {

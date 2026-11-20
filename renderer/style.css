@@ -1718,6 +1718,20 @@ a { color: #ffffff; }
   resize: vertical;
 }
 
+/* ── Status bar (Brain Vault) ── */
+.bv-status-bar {
+  height: 20px;
+  padding: 2px 8px;
+  background: #0d0d0d;
+  border-top: 1px solid #333333;
+  font-size: 11px;
+  color: #888888;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 /* ── Context menus (Brain Vault) ── */
 .bv-ctx-menu {
   position: fixed;

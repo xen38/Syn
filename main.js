@@ -176,8 +176,6 @@ function createBrainVaultWindow () {
     brainVaultWindow.show()
     // Notify renderer that window is visible so it can size the graph canvas correctly
     brainVaultWindow.webContents.send('bv:window-shown')
-    // Open DevTools for debugging
-    brainVaultWindow.webContents.openDevTools()
   }).catch(e => {
     console.error('Failed to load brain-vault.html:', e)
   })
