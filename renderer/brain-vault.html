@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brain Vault — Syn</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="brain-vault-window-header">
+    <div class="brain-vault-window-title-wrap">
+      <div class="brain-vault-window-title">Brain Vault</div>
+    </div>
+    <div class="brain-vault-window-actions">
+      <button id="bvBtnMinimize" class="brain-vault-window-btn" aria-label="Minimize" title="Minimize">─</button>
+      <button id="bvBtnMaximize" class="brain-vault-window-btn" aria-label="Maximize/Restore" title="Maximize/Restore">□</button>
+      <button id="bvBtnClose" class="brain-vault-window-btn bv-btn-close" aria-label="Close" title="Close">✕</button>
+    </div>
+  </header>
+
+  <div class="brain-vault-toolbar">
+    <div class="brain-vault-tabs" id="bvTabs">
+      <button class="brain-vault-tab active" data-tab="vault">Vault</button>
+      <button class="brain-vault-tab" data-tab="index">Brain index</button>
+    </div>
+    <div class="brain-vault-toolbar-right">
+      <button id="bvBtnCreateNote" class="bv-btn-action" title="Create new note">+ Note</button>
+      <button id="bvBtnGraphMenu" class="bv-btn-action" title="Graph actions (right-click graph for menu)">⋮</button>
+    </div>
+  </div>
+
+  <div class="brain-vault-content">
+    <!-- Vault tab: Graph view -->
+    <div id="bvTabVault" class="brain-vault-tab-content active" data-tab="vault">
+      <div class="brain-vault-graph-wrap">
+        <div class="brain-vault-graph-controls">
+          <span class="graph-zoom-label">Zoom: <span id="bvGraphZoomVal">100</span>%</span>
+          <button id="bvGraphZoomIn" class="graph-btn" title="Zoom in">+</button>
+          <button id="bvGraphZoomOut" class="graph-btn" title="Zoom out">-</button>
+          <button id="bvGraphReset" class="graph-btn" title="Reset view">↺</button>
+        </div>
+        <div id="bvGraphContainer" class="brain-vault-graph-container">
+          <canvas id="bvGraphCanvas" class="brain-graph-canvas"></canvas>
+          <div id="bvGraphEmpty" class="graph-empty">Drag a session from Syn to create a note, or right-click to create.</div>
+        </div>
+        <div id="bvGraphTooltip" class="graph-tooltip"></div>
+      </div>
+    </div>
+
+    <!-- Brain index tab: plain text -->
+    <div id="bvTabIndex" class="brain-vault-tab-content hidden" data-tab="index">
+      <div id="bvBrainIndexContent" class="brain-vault-index-content"></div>
+    </div>
+
+    <!-- Dynamic note tabs (editing) -->
+    <div id="bvTabNotes" class="brain-vault-tab-notes"></div>
+  </div>
+
+  <!-- ── Graph background context menu ── -->
+  <div id="bvGraphCtxMenu" class="bv-ctx-menu bv-graph-ctx-menu" role="menu" aria-label="Graph context menu">
+    <div class="bv-ctx-section">
+      <div class="bv-ctx-item" id="bvCtxCreateNote">Create</div>
+      <div class="bv-ctx-item" id="bvCtxCreateGroup">Create Group</div>
+      <div class="bv-ctx-item" id="bvCtxImport">Import</div>
+      <div class="bv-ctx-item" id="bvCtxOpenFolder">Open Brain folder</div>
+    </div>
+  </div>
+
+  <!-- ── Node context menu ── -->
+  <div id="bvNodeCtxMenu" class="bv-ctx-menu bv-node-ctx-menu" role="menu" aria-label="Node context menu">
+    <div class="bv-ctx-section">
+      <div class="bv-ctx-item" id="bvCtxNodeOpen">Open</div>
+      <div class="bv-ctx-item" id="bvCtxNodeCopy">Copy</div>
+      <div class="bv-ctx-separator"></div>
+      <div class="bv-ctx-item bv-ctx-danger" id="bvCtxNodeDelete">Delete</div>
+    </div>
+  </div>
+
+  <!-- ── Unsaved changes confirm dialog ── -->
+  <div id="bvConfirmOverlay" class="bv-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="bvConfirmTitle" aria-describedby="bvConfirmMessage">
+    <div class="bv-confirm-card">
+      <div class="bv-confirm-title" id="bvConfirmTitle">Unsaved changes</div>
+      <div class="bv-confirm-message" id="bvConfirmMessage">This document has been edited; are you sure you don't want to [proceed]?</div>
+      <div class="bv-confirm-actions">
+        <button id="bvConfirmCancel" class="bv-confirm-btn bv-confirm-cancel" aria-label="Cancel">No</button>
+        <button id="bvConfirmDiscard" class="bv-confirm-btn bv-confirm-discard" aria-label="Discard changes">Yes, discard</button>
+        <button id="bvConfirmSave" class="bv-confirm-btn bv-confirm-save" aria-label="Save changes">Yes, save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Rename dialog ── -->
+  <div id="bvRenameOverlay" class="bv-confirm-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="bvRenameTitle" aria-describedby="bvRenameMessage">
+    <div class="bv-confirm-card">
+      <div class="bv-confirm-title" id="bvRenameTitle">Rename document</div>
+      <div class="bv-rename-field">
+        <label for="bvRenameInput" style="display:block;margin-bottom:6px;font-size:12px;color:#888;">New name</label>
+        <input type="text" id="bvRenameInput" class="bv-rename-input" spellcheck="false" autocomplete="off">
+        <div id="bvRenameError" style="color:#ff6666;font-size:11px;margin-top:4px;display:none;"></div>
+      </div>
+      <div class="bv-confirm-actions">
+        <button id="bvRenameCancel" class="bv-confirm-btn bv-confirm-cancel" aria-label="Cancel">Cancel</button>
+        <button id="bvRenameSave" class="bv-confirm-btn bv-confirm-save" aria-label="Save">Rename</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Create note dialog ── -->
+  <div id="bvCreateOverlay" class="bv-confirm-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="bvCreateTitle" aria-describedby="bvCreateMessage">
+    <div class="bv-confirm-card">
+      <div class="bv-confirm-title" id="bvCreateTitle">Create new note</div>
+      <div class="bv-rename-field">
+        <label for="bvCreateInput" style="display:block;margin-bottom:6px;font-size:12px;color:#888;">Note name (.md will be added)</label>
+        <input type="text" id="bvCreateInput" class="bv-rename-input" spellcheck="false" autocomplete="off">
+        <div id="bvCreateError" style="color:#ff6666;font-size:11px;margin-top:4px;display:none;"></div>
+      </div>
+      <div class="bv-confirm-actions">
+        <button id="bvCreateCancel" class="bv-confirm-btn bv-confirm-cancel" aria-label="Cancel">Cancel</button>
+        <button id="bvCreateSave" class="bv-confirm-btn bv-confirm-save" aria-label="Save">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Import dialog ── -->
+  <div id="bvImportOverlay" class="bv-confirm-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="bvImportTitle" aria-describedby="bvImportMessage">
+    <div class="bv-confirm-card">
+      <div class="bv-confirm-title" id="bvImportTitle">Import into Brain Vault</div>
+      <div class="bv-confirm-message" id="bvImportMessage">Select .md file(s) or a folder containing .md files.</div>
+      <div class="bv-confirm-actions">
+        <button id="bvImportCancel" class="bv-confirm-btn bv-confirm-cancel" aria-label="Cancel">Cancel</button>
+        <button id="bvImportFile" class="bv-confirm-btn bv-confirm-save" aria-label="Select file(s)">Choose file(s)…</button>
+        <button id="bvImportFolder" class="bv-confirm-btn" aria-label="Select folder">Choose folder…</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="brain-vault.js"></script>
+</body>
+</html>

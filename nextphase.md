@@ -932,7 +932,7 @@ Update `skills/locate/skill.md` to reflect Syn naming and the terminal-based int
 
 
 
-`docs/HARNESSES.md` (or `HARNESSES.md`):
+`docs/harnessindex.md` (or `harnessindex.md`):
 
 
 
@@ -1534,7 +1534,7 @@ Syn/
 
 +-- LICENSE
 
-+-- HARNESSES.md                    # compatibility matrix
++-- harnessindex.md                    # compatibility matrix
 
 +-- docs/
 
@@ -1941,7 +1941,58 @@ Syn/
 
 ---
 
-**End of nextphase.md.** This is the multi-phased plan for a trustworthy Syn v1. Execute Phase A–E (release gates) before tagging v1; Phase F–J before broad adoption; Phase K after v1 is stable. Validate at each checkpoint before proceeding.
+---
+
+## Phase 13 — v1 pre-release: Brain Vault window, editing, drag-drop, ctx menus, enhanced search
+
+**Goal:** Ship the remaining v1 features requested by the user: (1) Brain Vault as its own draggable/resizable BrowserWindow; (2) inline file editing with Save button, unsaved-changes confirm-on-close, double-click rename; (3) drag a session from the list onto the graph view to create a .md in the vault; (4) graph background right-click menu (Create, Create Group, Import, Open Brain folder) + node menu (Open, Copy, Delete); (5) search bar renamed "Search sessions/vault" searching sessions + brain .md files with persistent state + auto-highlight navigation; (6) refresh icon black & white; (7) rename HARNESSES.md → harnessindex.md; (8) verify deleted files aren't gitignored.
+
+| Item | Change | Done |
+|------|--------|------|
+| 13.1 | Write Phase 13 plan into nextphase.md (this table) | in_progress |
+| 13.2 | Brain Vault as separate draggable/resizable BrowserWindow; btnBrain opens the window instead of toggling in-panel; same spawn aspect/position; title bar drag; move out of Syn window / to secondary monitor | pending |
+| 13.3 | Inline file editing: click to edit in note tabs; "Save" button appears beside doc name on change; unsaved-changes confirm dialog ("This document has been edited; are you sure you don't want to [proceed]?") with Yes/No on X close | pending |
+| 13.4 | Double-click note tab name to rename the document | pending |
+| 13.5 | Drag a session from session list → drop onto graph view canvas; copies session content (everything) into a new .md in brain vault; opens in new tab | pending |
+| 13.6 | Graph background right-click menu: "Create" (new .md in Brain folder, open in new tab), "Create Group" (select 2+ notes, auto-link with [[l#serialnumber]] serial #000001-#999999 at bottom of docs + visual link in graph), "Import" (file/folder picker, .md only, recursive folder scan, copy into Brain folder), "Open Brain folder" (OS file explorer to brain dir) | pending |
+| 13.7 | Node right-click menu: "Open" (open file in file viewer tab), "Copy" (copy content to clipboard without opening), "Delete" (delete file) | pending |
+| 13.8 | Search bar placeholder → "Search sessions/vault"; search across all sessions (names + content) AND all .md files in brain vault (names + content); keep search state while interacting with app/files; click a result → auto-drive to match location + highlight; search state does not reset | pending |
+| 13.9 | Refresh button icon → black & white (replace 🔄 with ↻ / ⮕) | pending |
+| 13.10 | Rename HARNESSES.md → harnessindex.md via git mv; update all references (nextphase.md, .obsidian/workspace.json); verify nothing breaks | done |
+| 13.11 | Verify deleted files are not on .gitignore or otherwise excluded | done |
+| 13.12 | Run lint + tests (npm test, npx eslint . --ext .js --max-warnings 0) | pending |
+| 13.13 | Review, commit, and push all changes to origin/main | pending |
+
+**Why:** These are the remaining user-requested features before a trustworthy v1. The Brain Vault window gives Obsidian-like freedom; editing + rename make it a real note-taking surface; drag-drop and graph menus make it a knowledge workspace; unified search makes sessions + vault discoverable together.
+
+**Validation rule:** Every item adds/updates code in renderer/, main.js, preload.js, packages/core/brainmaxxing.js, and/or tests/; run full suite on clean checkout before marking done.
+
+---
+
+### Files changed (Phase 13)
+
+| File | Change |
+|------|--------|
+| `main.js` | New BrowserWindow for brain vault; new IPC handlers: brain:write (exists), brain:rename, brain:delete, brain:import (dialog:openFile/folder), shell:showItemInFolder, dialog:openFile; window spawn position/size; webPreferences matching main window |
+| `preload.js` | New synAPI bridges: brainVaultOpen, brainRename, brainDelete, brainImport, brainShowInFolder, brainOpenFileDialog |
+| `renderer/app.js` | btnBrain opens external window; note editing (contenteditable/textarea), Save button, dirty-state tracking, confirm-on-close, double-click rename; drag source on session items; drop target on graph canvas; graph background context menu; node context menu; search placeholder + .md search + persistent state + highlight navigation; searchQuery not reset on click |
+| `renderer/index.html` | Search input placeholder; brain vault panel hidden by default (window handles UI); Save button, rename input, confirm dialog markup (can also be injected via JS) |
+| `renderer/style.css` | .brain-vault-panel no longer needed as fixed overlay (window is separate); refresh-btn B&W icon styling; search input placeholder styling; note edit styles |
+| `packages/core/brainmaxxing.js` | Add brainRename, brainDelete helpers (containBrainPath + fs ops); import helper (copy .md files into vault) |
+| `nextphase.md` | Phase 13 plan (this table); update references to HARNESSES.md → harnessindex.md |
+| `HARNESSES.md` → `harnessindex.md` | git mv |
+| `.obsidian/workspace.json` | Update HARNESSES.md reference → harnessindex.md |
+
+**Validation loop**
+- `npm ci` on clean checkout
+- `npx eslint . --ext .js --max-warnings 0` passes
+- `npm test` passes (all suites)
+- Electron app launches; brain vault window opens; drag session → graph creates .md; graph ctx menus work; search searches vault; rename works; save/confirm works
+- Commit and push to origin/main
+
+---
+
+**End of nextphase.md.** This is the multi-phased plan for a trustworthy Syn v1. Execute Phase A–E (release gates) before tagging v1; Phase F–J before broad adoption; Phase 13 before v1 tag; Phase K after v1 is stable. Validate at each checkpoint before proceeding.
 
 
 

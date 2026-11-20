@@ -12,7 +12,6 @@ const synAPI = {
   getHarnessSettings: () => ipcRenderer.invoke('harness:settings:get'),
   setHarnessSetting: (name, enabled) => ipcRenderer.invoke('harness:settings:set', name, enabled),
   autodetectHarnesses: () => ipcRenderer.invoke('harness:autodetect'),
-  openFolderDialog: () => ipcRenderer.invoke('dialog:openFolder'),
 
   // Source indexing
   indexSource: (sourceId) => ipcRenderer.invoke('source:index', sourceId),
@@ -33,12 +32,23 @@ const synAPI = {
   getBrainIndex: () => ipcRenderer.invoke('brain:getIndex'),
   brainRead: (relativePath) => ipcRenderer.invoke('brain:read', relativePath),
   brainWrite: (relativePath, content) => ipcRenderer.invoke('brain:write', relativePath, content),
+  brainRename: (oldPath, newPath) => ipcRenderer.invoke('brain:rename', oldPath, newPath),
+  brainDelete: (relativePath) => ipcRenderer.invoke('brain:delete', relativePath),
   brainList: () => ipcRenderer.invoke('brain:list'),
+  brainImport: (sourcePath) => ipcRenderer.invoke('brain:import', sourcePath),
   brainReflect: (sessionId) => ipcRenderer.invoke('brain:reflect', sessionId),
   brainMeditate: (sessionId) => ipcRenderer.invoke('brain:meditate', sessionId),
   brainRuminate: (sessionId) => ipcRenderer.invoke('brain:ruminate', sessionId),
   brainPlan: (sessionId) => ipcRenderer.invoke('brain:plan', sessionId),
   brainReview: (sessionId) => ipcRenderer.invoke('brain:review', sessionId),
+
+  // Brain Vault window
+  brainVaultOpen: () => ipcRenderer.invoke('brainVault:open'),
+
+  // File dialogs
+  openFileDialog: () => ipcRenderer.invoke('dialog:openFile'),
+  openFolderDialog: () => ipcRenderer.invoke('dialog:openFolder'),
+  showItemInFolder: (fullPath) => ipcRenderer.invoke('shell:showItemInFolder', fullPath),
 
   // Database health (Gate G7)
   dbHealth: () => ipcRenderer.invoke('db:health'),

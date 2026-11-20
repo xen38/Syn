@@ -341,8 +341,11 @@ a { color: #ffffff; }
   }
 }
 
-/* Brain vault panel (Obsidian-style, opens in middle column) */
+/* Brain vault panel (Obsidian-style, opens in middle column) -
+   Kept hidden by default; the Brain Vault now opens as its own
+   standalone window via synAPI.brainVaultOpen(). */
 .brain-vault-panel {
+  display: none !important;
   position: fixed;
   top: 48px;
   left: 300px;
@@ -353,13 +356,12 @@ a { color: #ffffff; }
   border: 1px solid #333333;
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.8);
-  display: none;
   flex-direction: column;
   z-index: 1000;
 }
 
 .brain-vault-panel.hidden {
-  display: none;
+  display: none !important;
 }
 
 .brain-vault-header {
@@ -1015,9 +1017,9 @@ a { color: #ffffff; }
   width: 24px;
   height: 24px;
   background: transparent;
-  border: 1px solid #333333;
+  border: 1px solid #555555;
   border-radius: 4px;
-  color: #aaaaaa;
+  color: #ffffff;
   font-size: 14px;
   cursor: pointer;
   display: flex;
@@ -1029,7 +1031,7 @@ a { color: #ffffff; }
 
 .refresh-btn:hover {
   background: #1a1a1a;
-  border-color: #555555;
+  border-color: #888888;
   color: #ffffff;
 }
 
@@ -1445,5 +1447,433 @@ a { color: #ffffff; }
 
 .resizer-terminal {
   right: 500px;
+}
+
+/* ── Brain Vault standalone window styles ── */
+
+/* Window header (title bar) for the separate BrowserWindow */
+.brain-vault-window-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 0 12px;
+  background: #0d0d0d;
+  border-bottom: 1px solid #333333;
+  cursor: default;
+  -webkit-app-region: drag;
+}
+
+.brain-vault-window-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  -webkit-app-region: drag;
+}
+
+.brain-vault-window-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #cccccc;
+  letter-spacing: -0.5px;
+}
+
+.brain-vault-window-actions {
+  display: flex;
+  gap: 4px;
+  -webkit-app-region: no-drag;
+}
+
+.brain-vault-window-btn {
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #cccccc;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+}
+
+.brain-vault-window-btn:hover {
+  background: #1a1a1a;
+  border-color: #333333;
+}
+
+.bv-btn-close {
+  color: #cccccc;
+}
+
+.bv-btn-close:hover {
+  background: #2a1a1a;
+  border-color: #ff4444;
+  color: #ff4444;
+}
+
+/* Toolbar */
+.brain-vault-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 36px;
+  padding: 0 12px;
+  background: #0d0d0d;
+  border-bottom: 1px solid #333333;
+}
+
+.brain-vault-tabs {
+  display: flex;
+  gap: 2px;
+}
+
+.brain-vault-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #888888;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.brain-vault-tab:hover {
+  color: #cccccc;
+  background: rgba(255,255,255,0.03);
+}
+
+.brain-vault-tab.active {
+  color: #53C68B;
+  border-bottom-color: #53C68B;
+  background: rgba(83, 198, 139, 0.05);
+}
+
+.bv-tab-label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.tab-close {
+  margin-left: 6px;
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #666666;
+  cursor: pointer;
+  border-radius: 3px;
+  line-height: 1;
+}
+
+.tab-close:hover {
+  background: rgba(255,255,255,0.1);
+  color: #ffffff;
+}
+
+/* Save button appearing beside doc name when editing */
+.bv-save-btn {
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid #333333;
+  border-radius: 4px;
+  background: #53C68B;
+  color: #000000;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.bv-save-btn:hover {
+  background: #40a870;
+}
+
+.bv-btn-action {
+  width: 26px;
+  height: 26px;
+  background: #161616;
+  border: 1px solid #333333;
+  border-radius: 4px;
+  color: #cccccc;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+}
+
+.bv-btn-action:hover {
+  background: #1a1a1a;
+  border-color: #53C68B;
+  color: #53C68B;
+}
+
+/* Content area */
+.brain-vault-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.brain-vault-tab-content {
+  display: none;
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.brain-vault-tab-content.active {
+  display: block;
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.brain-vault-note-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #cccccc;
+  background: #0a0a0a;
+}
+
+.brain-vault-index-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 13px;
+  color: #e0e0e0;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  background: #0a0a0a;
+  border-radius: 6px;
+  border: 1px solid #222222;
+}
+
+/* Drag-over state on graph container */
+.brain-vault-graph-container.drag-over {
+  border: 2px dashed #53C68B;
+  background: rgba(83, 198, 139, 0.05);
+}
+
+/* Highlight for search matches */
+.highlight {
+  background: #53C68B;
+  color: #ffffff;
+  padding: 0 2px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+.highlight-active {
+  background: #ff4444;
+  box-shadow: 0 0 12px rgba(255, 68, 68, 0.6);
+}
+
+/* Inline note editor (textarea) */
+.bv-note-editor {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  background: #0a0a0a;
+  color: #cccccc;
+  border: none;
+  outline: none;
+  padding: 0;
+  resize: vertical;
+}
+
+/* ── Context menus (Brain Vault) ── */
+.bv-ctx-menu {
+  position: fixed;
+  background: #0a0a0a;
+  border: 1px solid #333333;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.8);
+  z-index: 5000;
+  display: none;
+  min-width: 180px;
+  overflow: hidden;
+}
+
+.bv-ctx-section {
+  padding: 4px 0;
+}
+
+.bv-ctx-item {
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.bv-ctx-item:hover {
+  background: #1a1a1a;
+}
+
+.bv-ctx-separator {
+  height: 1px;
+  background: #333333;
+  margin: 4px 0;
+}
+
+.bv-ctx-danger {
+  color: #ff4444;
+}
+
+.bv-ctx-danger:hover {
+  background: #2a1a1a;
+}
+
+/* ── Confirm / rename / create / import overlays ── */
+.bv-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 6000;
+}
+
+.bv-confirm-card {
+  background: #0a0a0a;
+  border: 1px solid #333333;
+  border-radius: 8px;
+  padding: 24px;
+  min-width: 320px;
+  max-width: 520px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.8);
+}
+
+.bv-confirm-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 12px;
+}
+
+.bv-confirm-message {
+  font-size: 13px;
+  color: #cccccc;
+  line-height: 1.5;
+  margin-bottom: 20px;
+  white-space: pre-wrap;
+}
+
+.bv-rename-field {
+  margin-bottom: 16px;
+}
+
+.bv-rename-input {
+  width: 100%;
+  height: 32px;
+  padding: 0 12px;
+  background: #000000;
+  border: 1px solid #333333;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 13px;
+  outline: none;
+}
+
+.bv-rename-input:focus {
+  border-color: #53C68B;
+}
+
+.bv-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.bv-confirm-btn {
+  height: 32px;
+  padding: 0 16px;
+  border: 1px solid #333333;
+  border-radius: 4px;
+  background: #111111;
+  color: #ffffff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.bv-confirm-btn:hover {
+  background: #1a1a1a;
+  border-color: #555555;
+}
+
+.bv-confirm-save {
+  background: #53C68B;
+  border-color: #53C68B;
+  color: #000000;
+  font-weight: 600;
+}
+
+.bv-confirm-save:hover {
+  background: #40a870;
+}
+
+.bv-confirm-cancel:hover {
+  color: #cccccc;
+}
+
+/* Graph empty state and tooltip (reuse colors) */
+.graph-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #666666;
+  font-size: 13px;
+  font-style: italic;
+  pointer-events: none;
+}
+
+.graph-tooltip {
+  position: absolute;
+  pointer-events: none;
+  padding: 6px 10px;
+  background: #161616;
+  border: 1px solid #333333;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 100;
+  display: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+}
+
+/* Search input placeholder tweak */
+#searchInput::placeholder {
+  color: #aaaaaa;
 }
 

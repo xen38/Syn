@@ -91,6 +91,7 @@ const engine = new IndexingEngine(INDEX_DB_PATH, {
 })
 
 let mainWindow = null
+let brainVaultWindow = null
 
 function createWindow () {
   console.log('Creating window...')
@@ -132,6 +133,55 @@ function createWindow () {
       saveConfig()
     }
   })
+}
+
+// ── Brain Vault window (separate draggable/resizable BrowserWindow) ─────
+function createBrainVaultWindow () {
+  const windowIcon = path.join(__dirname, 'assets', 'icon.png')
+
+  // Spawn at same aspect/position as the main window's brain vault area would be:
+  // offset slightly down and right from main window so both are visible.
+  const mainBounds = mainWindow ? mainWindow.getBounds() : null
+  const spawnX = mainBounds ? Math.round(mainBounds.x + 60) : 100
+  const spawnY = mainBounds ? Math.round(mainBounds.y + 60) : 100
+
+  brainVaultWindow = new BrowserWindow({
+    x: spawnX,
+    y: spawnY,
+    width: 900,
+    height: 700,
+    minWidth: 600,
+    minHeight: 400,
+    icon: windowIcon,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
+    },
+    title: 'Brain Vault — Syn',
+    backgroundColor: '#000000',
+    show: false // don't show until loaded
+  })
+
+  brainVaultWindow.loadFile(path.join(__dirname, 'renderer', 'brain-vault.html')).then(() => {
+    brainVaultWindow.show()
+  }).catch(e => {
+    console.error('Failed to load brain-vault.html:', e)
+  })
+
+  brainVaultWindow.on('closed', () => {
+    brainVaultWindow = null
+  })
+}
+
+// Open or focus the brain vault window
+function openBrainVaultWindow () {
+  if (brainVaultWindow) {
+    if (brainVaultWindow.isMinimized()) brainVaultWindow.restore()
+    brainVaultWindow.focus()
+    return
+  }
+  createBrainVaultWindow()
 }
 
 // ── Session-start hook: inject brain/index.md ────────────────────────────
@@ -645,4 +695,63 @@ ipcMain.handle('brain:review', async (event, content) => {
   } catch (e) {
     throw new Error(`Review failed: ${e.message}`)
   }
+})
+
+// ── Brain Vault window IPC ─────────────────────────────────────────────
+ipcMain.handle('brainVault:open', async () => {
+  openBrainVaultWindow()
+  return { ok: true }
+})
+
+ipcMain.handle('brain:rename', async (event, oldPath, newPath) => {
+  try {
+    return brainmaxxing.brainRename(oldPath, newPath)
+  } catch (e) {
+    throw new Error(`Brain rename failed: ${e.message}`)
+  }
+})
+
+ipcMain.handle('brain:delete', async (event, relativePath) => {
+  try {
+    return brainmaxxing.brainDelete(relativePath)
+  } catch (e) {
+    throw new Error(`Brain delete failed: ${e.message}`)
+  }
+})
+
+ipcMain.handle('brain:import', async (event, sourcePath) => {
+  try {
+    return brainmaxxing.brainImport(sourcePath)
+  } catch (e) {
+    throw new Error(`Brain import failed: ${e.message}`)
+  }
+})
+
+ipcMain.handle('dialog:openFile', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile', 'multiSelections'],
+    filters: [{ name: 'Markdown files', extensions: ['md'] }],
+    title: 'Select .md file(s) to import into Brain Vault'
+  })
+  if (!result.canceled && result.filePaths.length > 0) {
+    return result.filePaths
+  }
+  return null
+})
+
+ipcMain.handle('dialog:openFolder', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory', 'createDirectory'],
+    title: 'Select folder to import .md files into Brain Vault'
+  })
+  if (!result.canceled && result.filePaths.length > 0) {
+    return result.filePaths[0]
+  }
+  return null
+})
+
+ipcMain.handle('shell:showItemInFolder', async (event, fullPath) => {
+  const { shell } = require('electron')
+  await shell.showItemInFolder(fullPath)
+  return { ok: true }
 })

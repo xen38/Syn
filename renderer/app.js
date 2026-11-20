@@ -16,9 +16,9 @@ const setup = () => {
   const terminalOutput = document.getElementById('terminalOutput')
   const terminalColumn = document.querySelector('.terminal-column')
   const btnCloseTerminal = document.getElementById('btnCloseTerminal')
-  // Terminal starts open per spec: ◀ = open (arrow points left toward terminal, click to close)
+  // Terminal starts open per spec: â—€ = open (arrow points left toward terminal, click to close)
   let terminalVisible = true
-  btnCloseTerminal.textContent = '◀'
+  btnCloseTerminal.textContent = 'â—€'
   btnCloseTerminal.className = 'terminal-toggle open'
   terminalColumn.style.display = 'flex'
   updateTogglePosition()
@@ -64,17 +64,11 @@ const setup = () => {
   // Close session button
   const btnCloseSession = document.getElementById('btnCloseSession')
 
-  // Brain vault panel elements
-  const brainVaultPanel = document.getElementById('brainVaultPanel')
-  const btnCloseBrainVault = document.getElementById('btnCloseBrainVault')
-  const brainVaultIndexContent = document.getElementById('brainVaultIndexContent')
-
   // State
   let allSessions = []
   let selectedSessionId = null
   let menuOpen = false
   let brainmaxxingOpen = false
-  let brainVaultOpen = false
   let batchSize = 10
   let harnessSettings = {}
   let ctxTargetSessionId = null
@@ -132,20 +126,14 @@ const setup = () => {
     }
   })
 
-  // Brain button click - opens Obsidian-style brain vault menu in middle column
+  // Brain button click - opens standalone Brain Vault window
   btnBrain.addEventListener('click', (e) => {
     e.preventDefault()
     e.stopPropagation()
-    brainVaultOpen = !brainVaultOpen
-    if (brainVaultOpen) {
-      brainVaultPanel.style.display = 'flex'
-      loadBrainVault()
-    } else {
-      brainVaultPanel.style.display = 'none'
-    }
+    synAPI.openBrainVault()
   })
 
-  // ── Database health (Gate G7) ─────────────────────────────────────────
+  // â”€â”€ Database health (Gate G7) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const DB_HEALTH_COLORS = {
     healthy: '#53C68B',
     corrupt: '#ff4444',
@@ -167,7 +155,7 @@ const setup = () => {
         btnRebuildIndex.style.display = 'none'
       } else {
         btnRebuildIndex.style.display = 'inline-block'
-        btnRebuildIndex.textContent = status === 'corrupt' ? 'Rebuild index' : 'Rebuilding…'
+        btnRebuildIndex.textContent = status === 'corrupt' ? 'Rebuild index' : 'Rebuildingâ€¦'
         btnRebuildIndex.disabled = status === 'rebuilding'
       }
     } catch (e) {
@@ -179,490 +167,12 @@ const setup = () => {
     }
   }
 
-  // ── Brain vault (Gate G11) ────────────────────────────────────────────
-  let brainVaultInitialized = false
-
-  async function loadBrainVault () {
-    try {
-      const files = await synAPI.brainList()
-      const canvas = document.getElementById('brainGraphCanvas')
-      const container = document.getElementById('brainVaultGraphContainer')
-      const empty = document.getElementById('graphEmpty')
-      const ctx = canvas.getContext('2d')
-
-      if (!files || files.length === 0) {
-        canvas.style.display = 'none'
-        empty.style.display = 'block'
-        return
-      }
-      canvas.style.display = 'block'
-      empty.style.display = 'none'
-
-      // Read each file and extract [[wikilink]] references
-      const nodes = new Map()
-      const edges = []
-      const linkRe = /\[\[([^\]]+)\]\]/g
-
-      for (const file of files) {
-        nodes.set(file, { id: file, label: file.replace(/\.md$/, ''), x: 0, y: 0, vx: 0, vy: 0, fixed: false })
-      }
-
-      for (const file of files) {
-        const result = await synAPI.brainRead(file)
-        if (!result.ok) continue
-        const content = result.content || ''
-        let match
-        while ((match = linkRe.exec(content)) !== null) {
-          const target = match[1].replace(/\.md$/, '')
-          const targetFile = nodes.has(target + '.md')
-            ? target + '.md'
-            : nodes.has(target) ? target : null
-          if (targetFile && targetFile !== file) {
-            edges.push({ source: file, target: targetFile })
-          }
-        }
-      }
-
-      // ── Force-directed layout (not a perfect circle) ──
-      // Related nodes pulled together, all nodes repel each other,
-      // some end up inside, some outside, roughly equidistant.
-      const nodeArr = Array.from(nodes.values())
-      const centerX = container.clientWidth / 2
-      const centerY = container.clientHeight / 2
-
-      // Initial positions: random in a circle with some jitter
-      nodeArr.forEach((n, i) => {
-        const angle = (i / nodeArr.length) * 2 * Math.PI
-        const r = Math.min(centerX, centerY) * 0.35 + Math.random() * 60
-        n.x = centerX + Math.cos(angle) * r
-        n.y = centerY + Math.sin(angle) * r
-        n.vx = 0
-        n.vy = 0
-      })
-
-      const ITERATIONS = 120
-      const REPULSION = 5000
-      const ATTRACTION = 0.06
-      const DAMPING = 0.85
-      const MIN_DIST = 250
-
-      for (let iter = 0; iter < ITERATIONS; iter++) {
-        // Repulsion between all pairs
-        for (let i = 0; i < nodeArr.length; i++) {
-          for (let j = i + 1; j < nodeArr.length; j++) {
-            const a = nodeArr[i]
-            const b = nodeArr[j]
-            const dx = a.x - b.x
-            const dy = a.y - b.y
-            const dist2 = dx * dx + dy * dy
-            const dist = Math.sqrt(dist2) || 1
-            const force = REPULSION / dist2
-            const fx = (dx / dist) * force
-            const fy = (dy / dist) * force
-            a.vx += fx
-            a.vy += fy
-            b.vx -= fx
-            b.vy -= fy
-          }
-        }
-
-        // Attraction along edges
-        for (const e of edges) {
-          const a = nodes.get(e.source)
-          const b = nodes.get(e.target)
-          if (!a || !b) continue
-          const dx = b.x - a.x
-          const dy = b.y - a.y
-          const dist = Math.sqrt(dx * dx + dy * dy) || 1
-          const force = (dist - MIN_DIST) * ATTRACTION
-          const fx = (dx / dist) * force
-          const fy = (dy / dist) * force
-          a.vx += fx
-          a.vy += fy
-          b.vx -= fx
-          b.vy -= fy
-        }
-
-        // Apply velocity with damping, plus gentle center gravity
-        for (const n of nodeArr) {
-          n.vx *= DAMPING
-          n.vy *= DAMPING
-          const dx = centerX - n.x
-          const dy = centerY - n.y
-          n.vx += dx * 0.005
-          n.vy += dy * 0.005
-          n.x += n.vx
-          n.y += n.vy
-        }
-      }
-
-      // View state
-      let scale = 1
-      let offsetX = 0
-      let offsetY = 0
-      let isDragging = false
-      let dragStart = { x: 0, y: 0 }
-      let hoveredNode = null
-      let selectedNode = null
-
-      const MIN_SCALE = 0.3
-      const MAX_SCALE = 2.5
-
-      function resizeCanvas () {
-        canvas.width = container.clientWidth
-        canvas.height = container.clientHeight
-      }
-      resizeCanvas()
-
-      // Idempotency: only set up event listeners and render loop once
-      if (!brainVaultInitialized) {
-        brainVaultInitialized = true
-        window.addEventListener('resize', resizeCanvas)
-
-        function worldToScreen (x, y) {
-          return { x: (x + offsetX) * scale, y: (y + offsetY) * scale }
-        }
-        function screenToWorld (x, y) {
-          return { x: x / scale - offsetX, y: y / scale - offsetY }
-        }
-
-        function getNodeAt (wx, wy) {
-          for (const n of nodeArr) {
-            const dx = n.x - wx
-            const dy = n.y - wy
-            if (dx * dx + dy * dy < 40 * 40) return n
-          }
-          return null
-        }
-
-        function drawNode (ctx, n, isHover, isSelected) {
-          const s = worldToScreen(n.x, n.y)
-          const r = 14
-          ctx.beginPath()
-          ctx.arc(s.x, s.y, r, 0, Math.PI * 2)
-          ctx.fillStyle = isSelected ? '#53C68B' : (isHover ? '#1a1a1a' : '#111111')
-          ctx.fill()
-          ctx.strokeStyle = isSelected || isHover ? '#53C68B' : '#333333'
-          ctx.lineWidth = 2
-          ctx.stroke()
-
-          // Label
-          ctx.fillStyle = '#cccccc'
-          ctx.font = '11px system-ui, sans-serif'
-          ctx.textAlign = 'center'
-          ctx.textBaseline = 'middle'
-          ctx.fillText(n.label, s.x, s.y + r + 14)
-        }
-
-        function drawEdge (ctx, a, b) {
-          const sa = worldToScreen(a.x, a.y)
-          const sb = worldToScreen(b.x, b.y)
-          const gradient = ctx.createLinearGradient(sa.x, sa.y, sb.x, sb.y)
-          gradient.addColorStop(0, '#4f46e5')
-          gradient.addColorStop(1, '#7c3aed')
-          const cx = (sa.x + sb.x) / 2
-          const cy = (sa.y + sb.y) / 2
-          const dx = sb.x - sa.x
-          const dy = sb.y - sa.y
-          const dist = Math.sqrt(dx * dx + dy * dy) || 1
-          const perpX = -dy / dist
-          const perpY = dx / dist
-          const curve = Math.min(dist * 0.25, 60)
-          ctx.beginPath()
-          ctx.moveTo(sa.x, sa.y)
-          ctx.bezierCurveTo(
-            cx + perpX * curve, cy + perpY * curve,
-            cx + perpX * curve, cy + perpY * curve,
-            sb.x, sb.y
-          )
-          ctx.strokeStyle = gradient
-          ctx.lineWidth = 1.5
-          ctx.stroke()
-        }
-
-        function render () {
-          ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-          // Draw edges first (behind nodes)
-          const seenEdges = new Set()
-          for (const e of edges) {
-            const key = e.source + '->' + e.target
-            if (seenEdges.has(key)) continue
-            seenEdges.add(key)
-            const a = nodes.get(e.source)
-            const b = nodes.get(e.target)
-            if (a && b) drawEdge(ctx, a, b)
-          }
-
-          // Draw nodes
-          for (const n of nodeArr) {
-            drawNode(ctx, n, n === hoveredNode, n === selectedNode)
-          }
-
-          requestAnimationFrame(render)
-        }
-        render()
-
-        // ── Mouse interactions ──
-        canvas.addEventListener('mousedown', (e) => {
-          const rect = canvas.getBoundingClientRect()
-          const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
-          const node = getNodeAt(world.x, world.y)
-          if (node) {
-            e.preventDefault()
-            e.stopPropagation()
-            selectedNode = node
-            // Open node content in a new tab next to Brain index
-            synAPI.brainRead(node.id).then(result => {
-              if (result.ok) {
-                const html = renderNoteContent(node.id, result.content)
-                createTab(`note-${node.id}`, node.label, html, node.id)
-                // Wire up wikilink clicks in this tab
-                const contentEl = document.querySelector(`.brain-vault-tab-content[data-tab="note-${node.id}"]`)
-                if (contentEl) {
-                  contentEl.querySelectorAll('.wiki-link').forEach(link => {
-                    link.addEventListener('click', (e) => {
-                      e.preventDefault()
-                      const targetFile = link.dataset.link + '.md'
-                      synAPI.brainRead(targetFile).then(res => {
-                        if (res.ok) {
-                          const tabId = `note-${targetFile}`
-                          const h = renderNoteContent(targetFile, res.content)
-                          createTab(tabId, link.dataset.link, h, targetFile)
-                        }
-                      })
-                    })
-                  })
-                }
-              }
-            })
-            isDragging = false
-          } else {
-            isDragging = true
-            dragStart = { x: e.clientX - rect.left, y: e.clientY - rect.top }
-          }
-        })
-
-        canvas.addEventListener('mousemove', (e) => {
-          const rect = canvas.getBoundingClientRect()
-          const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
-          const node = getNodeAt(world.x, world.y)
-          hoveredNode = node
-          canvas.style.cursor = node ? 'pointer' : 'grab'
-          if (node) {
-            const s = worldToScreen(node.x, node.y)
-            const tip = document.getElementById('graphTooltip')
-            tip.style.display = 'block'
-            tip.style.left = (s.x + 18) + 'px'
-            tip.style.top = (s.y - 28) + 'px'
-            tip.textContent = node.label
-          } else {
-            document.getElementById('graphTooltip').style.display = 'none'
-          }
-          if (isDragging) {
-            offsetX += (e.clientX - rect.left - dragStart.x) / scale
-            offsetY += (e.clientY - rect.top - dragStart.y) / scale
-            dragStart = { x: e.clientX - rect.left, y: e.clientY - rect.top }
-          }
-        })
-
-        canvas.addEventListener('mouseup', () => { isDragging = false })
-
-        canvas.addEventListener('wheel', (e) => {
-          e.preventDefault()
-          const rect = canvas.getBoundingClientRect()
-          const worldBefore = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
-          const delta = -e.deltaY * 0.001
-          let newScale = scale * (1 + delta)
-          newScale = Math.min(Math.max(newScale, MIN_SCALE), MAX_SCALE)
-          const worldAfter = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
-          offsetX += worldBefore.x - worldAfter.x
-          offsetY += worldBefore.y - worldAfter.y
-          scale = newScale
-        }, { passive: false })
-
-        // Zoom controls
-        document.getElementById('graphZoomIn').addEventListener('click', () => {
-          scale = Math.min(scale * 1.2, MAX_SCALE)
-          document.getElementById('graphZoomVal').textContent = Math.round(scale * 100)
-        })
-        document.getElementById('graphZoomOut').addEventListener('click', () => {
-          scale = Math.max(scale / 1.2, MIN_SCALE)
-          document.getElementById('graphZoomVal').textContent = Math.round(scale * 100)
-        })
-        document.getElementById('graphReset').addEventListener('click', () => {
-          scale = 1
-          offsetX = 0
-          offsetY = 0
-          document.getElementById('graphZoomVal').textContent = '100'
-        })
-      } // end idempotency guard
-    } catch (e) {
-      console.error('Failed to load brain vault:', e)
-      document.getElementById('graphEmpty').textContent = 'Failed to load brain vault: ' + escapeHtml(e.message)
-      document.getElementById('graphEmpty').style.display = 'block'
-    }
-  }
-
-  async function loadBrainIndexContent () {
-    try {
-      const result = await synAPI.brainRead('index.md')
-      if (result.ok) {
-        const html = renderNoteContent('index.md', result.content)
-        brainVaultIndexContent.innerHTML = html
-        // Wire up wikilink clicks in Brain index tab
-        brainVaultIndexContent.querySelectorAll('.wiki-link').forEach(link => {
-          link.addEventListener('click', (e) => {
-            e.preventDefault()
-            const targetFile = link.dataset.link + '.md'
-            synAPI.brainRead(targetFile).then(res => {
-              if (res.ok) {
-                const tabId = `note-${targetFile}`
-                const h = renderNoteContent(targetFile, res.content)
-                createTab(tabId, link.dataset.link, h, targetFile)
-              }
-            })
-          })
-        })
-      } else {
-        const idx = await synAPI.getBrainIndex()
-        brainVaultIndexContent.textContent = idx.content || '(brain index empty — rebuild via /brain index)'
-      }
-    } catch (e) {
-      console.error('Failed to load brain index:', e)
-      brainVaultIndexContent.textContent = '(brain index unavailable)'
-    }
-  }
-
-  // Render note content: escape HTML, convert [[wikilink]] to clickable spans
-  function renderNoteContent (file, content) {
-    let html = escapeHtml(content)
-    html = html.replace(/\[\[([^\]]+)\]\]/g, (match, link) => {
-      const label = link.replace(/\.md$/, '')
-      return '<span class="wiki-link" data-link="' + escapeHtml(label) + '">' + escapeHtml(label) + '</span>'
-    })
-    html = html.replace(/\n/g, '<br>')
-    return html
-  }
-
-  // Create a new brain vault tab (note) and switch to it
-  function createTab (tabId, label, html, file) {
-    const tabs = document.getElementById('brainVaultTabs')
-    const notesContainer = document.getElementById('brainVaultTabNotes')
-
-    // If tab already exists, just switch to it
-    const existingTab = document.querySelector('.brain-vault-tab[data-tab="' + tabId + '"]')
-    if (existingTab) {
-      switchBrainVaultTab(tabId)
-      return
-    }
-
-    // Deactivate all tabs
-    document.querySelectorAll('.brain-vault-tab').forEach(tab => tab.classList.remove('active'))
-    document.querySelectorAll('.brain-vault-tab-content').forEach(c => c.classList.remove('active'))
-
-    // Create tab button
-    const tabBtn = document.createElement('button')
-    tabBtn.className = 'brain-vault-tab active'
-    tabBtn.dataset.tab = tabId
-    tabBtn.innerHTML = escapeHtml(label) + ' <span class="tab-close" data-tab="' + tabId + '">&#215;</span>'
-
-    // Create content div
-    const content = document.createElement('div')
-    content.className = 'brain-vault-tab-content active brain-vault-note-content'
-    content.dataset.tab = tabId
-    content.innerHTML = html
-
-    tabs.appendChild(tabBtn)
-    notesContainer.appendChild(content)
-
-    // Wire up wikilink clicks in this tab
-    content.querySelectorAll('.wiki-link').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault()
-        e.stopPropagation()
-        const targetFile = link.dataset.link + '.md'
-        synAPI.brainRead(targetFile).then(res => {
-          if (res.ok) {
-            const newTabId = 'note-' + targetFile
-            const h = renderNoteContent(targetFile, res.content)
-            createTab(newTabId, link.dataset.link, h, targetFile)
-          }
-        })
-      })
-    })
-  }
-
-  // Close a brain vault tab by tabId
-  function closeTab (tabId) {
-    const tabBtn = document.querySelector('.brain-vault-tab[data-tab="' + tabId + '"]')
-    const content = document.querySelector('.brain-vault-tab-content[data-tab="' + tabId + '"]')
-    if (tabBtn) tabBtn.remove()
-    if (content) content.remove()
-
-    // If we closed the active tab, switch to another one
-    const activeTab = document.querySelector('.brain-vault-tab.active')
-    if (!activeTab) {
-      const vaultTab = document.querySelector('.brain-vault-tab[data-tab="vault"]')
-      if (vaultTab) {
-        switchBrainVaultTab('vault')
-      } else {
-        const indexTab = document.querySelector('.brain-vault-tab[data-tab="index"]')
-        if (indexTab) {
-          switchBrainVaultTab('index')
-        }
-      }
-    }
-  }
-
-  function switchBrainVaultTab (tabId) {
-    document.querySelectorAll('.brain-vault-tab').forEach(tab => {
-      tab.classList.toggle('active', tab.dataset.tab === tabId)
-    })
-    document.querySelectorAll('.brain-vault-tab-content').forEach(content => {
-      content.classList.toggle('active', content.dataset.tab === tabId)
-    })
-    // Re-render graph when vault tab is shown (canvas needs visible size)
-    if (tabId === 'vault') {
-      const canvas = document.getElementById('brainGraphCanvas')
-      if (canvas) {
-        canvas.width = canvas.parentElement.clientWidth
-        canvas.height = canvas.parentElement.clientHeight
-      }
-    }
-  }
-
-  // Brain vault tab switching - use event delegation so dynamic tabs work
-  document.getElementById('brainVaultTabs').addEventListener('click', (e) => {
-    const closeBtn = e.target.closest('.tab-close')
-    if (closeBtn) {
-      e.stopPropagation()
-      const tabId = closeBtn.dataset.tab
-      closeTab(tabId)
-      return
-    }
-    const tab = e.target.closest('.brain-vault-tab')
-    if (!tab) return
-    e.stopPropagation()
-    switchBrainVaultTab(tab.dataset.tab)
-    // Load brain index content when index tab is selected
-    if (tab.dataset.tab === 'index') {
-      loadBrainIndexContent()
-    }
-  })
-
-  btnCloseBrainVault.addEventListener('click', (e) => {
-    e.stopPropagation()
-    brainVaultOpen = false
-    brainVaultPanel.style.display = 'none'
-  })
-
   btnRebuildIndex.addEventListener('click', async (e) => {
     e.preventDefault()
     e.stopPropagation()
     try {
       btnRebuildIndex.disabled = true
-      btnRebuildIndex.textContent = 'Rebuilding…'
+      btnRebuildIndex.textContent = 'Rebuildingâ€¦'
       dbHealthBadge.style.color = DB_HEALTH_COLORS.rebuilding
       const result = await synAPI.dbRebuild()
       if (result.status === 'rebuilt') {
@@ -693,11 +203,6 @@ const setup = () => {
       brainmaxxingOpen = false
       brainmaxxingPanel.style.display = 'none'
     }
-    // Close Brain vault panel when clicking outside
-    if (brainVaultOpen && !brainVaultPanel.contains(e.target) && e.target !== btnBrain) {
-      brainVaultOpen = false
-      brainVaultPanel.style.display = 'none'
-    }
     // Close context menu when clicking outside
     if (ctxMenu.style.display === 'block' && !ctxMenu.contains(e.target)) {
       ctxMenu.style.display = 'none'
@@ -720,10 +225,6 @@ const setup = () => {
         brainmaxxingOpen = false
         brainmaxxingPanel.style.display = 'none'
         btnBrainmaxxing.setAttribute('aria-expanded', 'false')
-      }
-      if (brainVaultOpen) {
-        brainVaultOpen = false
-        brainVaultPanel.style.display = 'none'
       }
       if (ctxMenu.style.display === 'block') {
         ctxMenu.style.display = 'none'
@@ -785,7 +286,7 @@ const setup = () => {
     }
   })
 
-  // ── Brainmaxxing commands ─────────────────────────────────────────────
+  // â”€â”€ Brainmaxxing commands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function showBrainResult (title, result) {
     const lines = [
       '<div style="padding:12px;background:#1a1a1a;border:1px solid #333;border-radius:8px;margin-top:12px;">',
@@ -901,7 +402,7 @@ const setup = () => {
     await synAPI.setConfig({ batchSize })
   })
 
-  // ── Terminal command input ────────────────────────────────────────────
+  // â”€â”€ Terminal command input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   terminalInput.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -947,13 +448,13 @@ const setup = () => {
     if (terminalVisible) {
       terminalColumn.style.display = 'flex'
       resizerTerminal.style.display = 'block'
-      btnCloseTerminal.textContent = '◀'
+      btnCloseTerminal.textContent = 'â—€'
       btnCloseTerminal.className = 'terminal-toggle open'
       updateTogglePosition()
     } else {
       terminalColumn.style.display = 'none'
       resizerTerminal.style.display = 'none'
-      btnCloseTerminal.textContent = '▶'
+      btnCloseTerminal.textContent = 'â–¶'
       btnCloseTerminal.className = 'terminal-toggle closed'
       updateTogglePosition()
     }
@@ -1020,21 +521,21 @@ const setup = () => {
           return
         }
         const result = await synAPI.brainReflect(sessionId)
-        appendTerminalLine(`/reflect → ${result.path || 'done'}`, 'ok')
+        appendTerminalLine(`/reflect â†’ ${result.path || 'done'}`, 'ok')
         appendTerminalLine(`Learnings: ${result.learningsCount || 0}`, 'ok')
         break
       }
 
       case '/meditate': {
         const result = await synAPI.brainMeditate()
-        appendTerminalLine(`/meditate → ${result.path || 'done'}`, 'ok')
+        appendTerminalLine(`/meditate â†’ ${result.path || 'done'}`, 'ok')
         appendTerminalLine(`Files audited: ${result.filesAudited || 0}, principles: ${result.principlesExtracted || 0}, stale: ${result.staleNotes ? result.staleNotes.length : 0}`, 'ok')
         break
       }
 
       case '/ruminate': {
         const result = await synAPI.brainRuminate()
-        appendTerminalLine(`/ruminate → ${result.path || 'done'}`, 'ok')
+        appendTerminalLine(`/ruminate â†’ ${result.path || 'done'}`, 'ok')
         appendTerminalLine(`Sessions scanned: ${result.sessionsScanned || 0}, patterns: ${result.patternsFound || 0}`, 'ok')
         break
       }
@@ -1046,7 +547,7 @@ const setup = () => {
           return
         }
         const result = await synAPI.brainPlan(task)
-        appendTerminalLine(`/plan → ${result.path || 'done'}`, 'ok')
+        appendTerminalLine(`/plan â†’ ${result.path || 'done'}`, 'ok')
         appendTerminalLine(`Task: ${result.task || task}`, 'ok')
         break
       }
@@ -1058,7 +559,7 @@ const setup = () => {
           return
         }
         const result = await synAPI.brainReview(content)
-        appendTerminalLine(`/review → ${result.path || 'done'}`, 'ok')
+        appendTerminalLine(`/review â†’ ${result.path || 'done'}`, 'ok')
         if (result.issues && result.issues.length) {
           result.issues.forEach((issue, i) => {
             appendTerminalLine(`  ${i + 1}. [${issue.severity}] ${issue.message}`, 'warn')
@@ -1077,7 +578,7 @@ const setup = () => {
           files.forEach(f => appendTerminalLine(`  [[${f}]]`, 'ok'))
         } else if (sub === 'index') {
           const result = await synAPI.brainIndex()
-          appendTerminalLine(`/brain index → ${result.files} files indexed`, 'ok')
+          appendTerminalLine(`/brain index â†’ ${result.files} files indexed`, 'ok')
         } else if (sub === 'read') {
           const path = args[1]
           if (!path) {
@@ -1099,7 +600,7 @@ const setup = () => {
             return
           }
           const result = await synAPI.brainWrite(path, content)
-          appendTerminalLine(`/brain write → ${result.path}`, 'ok')
+          appendTerminalLine(`/brain write â†’ ${result.path}`, 'ok')
         } else {
           appendTerminalLine('Usage: /brain <list|index|read <path>|write <path> <content>>', 'warn')
         }
@@ -1107,7 +608,7 @@ const setup = () => {
       }
 
       case '/syn': {
-        appendTerminalLine('/syn — Syn skill guidance', 'keyword')
+        appendTerminalLine('/syn â€” Syn skill guidance', 'keyword')
         appendTerminalLine('Use /locate <query> to search sessions and Memory Vault.', 'info')
         appendTerminalLine('Use /reflect, /meditate, /ruminate, /plan, /review for brainmaxxing.', 'info')
         appendTerminalLine('Use /brain <read|write|list|index> for Memory Vault file ops.', 'info')
@@ -1117,15 +618,15 @@ const setup = () => {
 
       case '/help': {
         appendTerminalLine('Available commands:', 'keyword')
-        appendTerminalLine('  /locate <query> [filters]  — search sessions + Memory Vault', 'string')
-        appendTerminalLine('  /reflect [sessionId]       — reflect on a session', 'string')
-        appendTerminalLine('  /meditate                  — audit brain vault', 'string')
-        appendTerminalLine('  /ruminate                  — mine session patterns', 'string')
-        appendTerminalLine('  /plan <task>               — create phased plan', 'string')
-        appendTerminalLine('  /review <content>          — review content against principles', 'string')
-        appendTerminalLine('  /brain <list|index|read|write>  — Memory Vault file ops', 'string')
-        appendTerminalLine('  /syn                       — skill guidance', 'string')
-        appendTerminalLine('  /help                      — this help', 'string')
+        appendTerminalLine('  /locate <query> [filters]  â€” search sessions + Memory Vault', 'string')
+        appendTerminalLine('  /reflect [sessionId]       â€” reflect on a session', 'string')
+        appendTerminalLine('  /meditate                  â€” audit brain vault', 'string')
+        appendTerminalLine('  /ruminate                  â€” mine session patterns', 'string')
+        appendTerminalLine('  /plan <task>               â€” create phased plan', 'string')
+        appendTerminalLine('  /review <content>          â€” review content against principles', 'string')
+        appendTerminalLine('  /brain <list|index|read|write>  â€” Memory Vault file ops', 'string')
+        appendTerminalLine('  /syn                       â€” skill guidance', 'string')
+        appendTerminalLine('  /help                      â€” this help', 'string')
         appendTerminalLine('Tip: click any search result to open the session.', 'hint')
         break
       }
@@ -1157,7 +658,7 @@ const setup = () => {
       const div = document.createElement('div')
       div.className = 'terminal-result'
       div.innerHTML = `
-        <div class="title"><span style="color:#ff69b4">▸</span> ${escapeHtml(r.title || '')} <span class="meta">[${escapeHtml(r.harness || '')}]</span></div>
+        <div class="title"><span style="color:#ff69b4">â–¸</span> ${escapeHtml(r.title || '')} <span class="meta">[${escapeHtml(r.harness || '')}]</span></div>
         ${r.snippet ? `<div class="meta" style="font-size:11px;color:#53C68B;margin-top:2px">${escapeHtml(r.snippet)}</div>` : ''}
       `
       div.style.cursor = 'pointer'
@@ -1170,7 +671,7 @@ const setup = () => {
     })
   }
 
-  // ── Search bar (top, search-only, no terminal features) ──
+  // â”€â”€ Search bar (top, search-only, no terminal features) â”€â”€
   searchInput.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -1291,8 +792,6 @@ const setup = () => {
       `
       item.addEventListener('click', () => {
         selectedSessionId = r.id
-        searchQuery = ''
-        searchInput.value = ''
         renderSessionList(allSessions)
         loadSessionContent(r)
       })
@@ -1463,7 +962,7 @@ const setup = () => {
 
         // Welcome message in terminal (matches UI Sketch terminal look)
         appendTerminalLine('syn@agent:~$', 'ok')
-        appendTerminalLine('  Syn — unified agent memory environment', 'normal')
+        appendTerminalLine('  Syn â€” unified agent memory environment', 'normal')
         appendTerminalLine('  Type /help for commands, or /locate <query> to search.', 'normal')
         appendTerminalLine('', 'normal')
       }
@@ -1592,6 +1091,13 @@ const setup = () => {
       `)
     })
     sessionContent.innerHTML = parts.join('')
+    // Auto-scroll to the first search match and keep the highlight while search state persists
+    if (searchQuery) {
+      const first = sessionContent.querySelector('.highlight')
+      if (first) {
+        first.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }
   }
 
   async function scanAndAutodetectHarnesses () {
@@ -1731,7 +1237,7 @@ const setup = () => {
   // Initialize
   init()
 
-  // ── Column resizing ─────────────────────────────────────────────────
+  // â”€â”€ Column resizing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const sidebar = document.querySelector('.sidebar')
   const panel = document.querySelector('.panel')
   const resizerSidebar = document.getElementById('resizerSidebar')

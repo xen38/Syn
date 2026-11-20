@@ -148,6 +148,109 @@ function brainList () {
 }
 
 /**
+ * Rename a brain/memory file in the vault.
+ * @param {string} oldPath - Current path relative to BRAIN_DIR
+ * @param {string} newPath - New path relative to BRAIN_DIR
+ * @returns {{ok:boolean, path?:string, error?:string}} Rename result
+ */
+function brainRename (oldPath, newPath) {
+  let oldFilePath
+  let newFilePath
+  try {
+    oldFilePath = containBrainPath(oldPath)
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+  try {
+    newFilePath = containBrainPath(newPath)
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+  if (!fs.existsSync(oldFilePath)) {
+    return { ok: false, error: `Brain file not found: ${oldPath}` }
+  }
+  if (fs.existsSync(newFilePath)) {
+    return { ok: false, error: `Brain file already exists: ${newPath}` }
+  }
+  ensureDir(path.dirname(newFilePath))
+  fs.renameSync(oldFilePath, newFilePath)
+  return { ok: true, path: newPath }
+}
+
+/**
+ * Delete a brain/memory file from the vault.
+ * @param {string} relativePath - Path relative to BRAIN_DIR
+ * @returns {{ok:boolean, error?:string}} Delete result
+ */
+function brainDelete (relativePath) {
+  let filePath
+  try {
+    filePath = containBrainPath(relativePath)
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+  if (!fs.existsSync(filePath)) {
+    return { ok: false, error: `Brain file not found: ${relativePath}` }
+  }
+  fs.unlinkSync(filePath)
+  return { ok: true }
+}
+
+/**
+ * Import .md files from a source path (file or folder) into the brain vault.
+ * @param {string} sourcePath - Absolute path to a .md file or folder
+ * @returns {{ok:boolean, imported:number, files:string[], errors:Array<{file:string,error:string}>>}
+ */
+function brainImport (sourcePath) {
+  const errors = []
+  const imported = []
+  let count = 0
+
+  function copyFile (src, relName) {
+    try {
+      const destPath = path.join(BRAIN_DIR, relName)
+      ensureDir(path.dirname(destPath))
+      const content = fs.readFileSync(src, 'utf8')
+      fs.writeFileSync(destPath, content, 'utf8')
+      imported.push(relName)
+      count++
+    } catch (e) {
+      errors.push({ file: src, error: e.message })
+    }
+  }
+
+  function walkDir (dir, prefix) {
+    const entries = fs.readdirSync(dir, { withFileTypes: true })
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name)
+      const rel = prefix ? `${prefix}/${entry.name}` : entry.name
+      if (entry.isDirectory()) {
+        if (entry.isSymbolicLink()) continue
+        walkDir(full, rel)
+      } else if (entry.isFile() && entry.name.endsWith('.md')) {
+        copyFile(full, rel)
+      }
+    }
+  }
+
+  try {
+    const stat = fs.statSync(sourcePath)
+    if (stat.isDirectory()) {
+      walkDir(sourcePath, '')
+    } else if (stat.isFile() && sourcePath.toLowerCase().endsWith('.md')) {
+      const relName = path.basename(sourcePath)
+      copyFile(sourcePath, relName)
+    } else {
+      return { ok: false, imported: 0, files: [], errors: [{ file: sourcePath, error: 'Not a .md file or directory' }] }
+    }
+  } catch (e) {
+    return { ok: false, imported: 0, files: [], errors: [{ file: sourcePath, error: e.message }] }
+  }
+
+  return { ok: true, imported: count, files: imported, errors }
+}
+
+/**
  * Rebuild brain/index.md from all vault files.
  * @returns {{ok:boolean, files:number}} Rebuild result with file count
  */
@@ -484,7 +587,10 @@ module.exports = {
   containBrainPath,
   brainRead,
   brainWrite,
+  brainRename,
+  brainDelete,
   brainList,
+  brainImport,
   rebuildIndex,
   readIndexMd,
   reflect,
