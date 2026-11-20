@@ -1,6 +1,6 @@
 # Syn
 
-![Syn](assets/syn-cat.png)
+![Syn](assets/idle.gif)
 
 A unified agent memory environment and searchable memory infrastructure for AI coding agents.
 
