@@ -222,6 +222,11 @@ if (synAPI && typeof synAPI.onBvWindowShown === 'function') {
   console.warn('synAPI not available — Brain Vault IPC features will be limited')
 }
 
+// Kick off loadBrainVault directly so the graph starts even if window.onload
+// or the bv:window-shown IPC races past before listeners are registered.
+// window.onload and onBvWindowShown remain as re-triggers for correctness.
+init()
+
 // ── Load brain vault ──
 async function loadBrainVault () {
   if (!synAPI) {
