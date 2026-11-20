@@ -1027,10 +1027,17 @@ class IndexingEngine {
   async indexAllSources (options = {}) {
     const sources = this.listSources()
     const results = []
+    let totalIndexed = 0
+    let totalSkipped = 0
+    let totalTotal = 0
+
     for (const source of sources) {
       try {
         const result = await this.indexSource(source.id, options)
         results.push(result)
+        totalIndexed += result.indexed || 0
+        totalSkipped += result.skipped || 0
+        totalTotal += result.total || 0
       } catch (e) {
         results.push({ sourceId: source.id, sourcePath: source.path, error: e.message })
       }
@@ -1038,7 +1045,12 @@ class IndexingEngine {
       await sleep()
     }
 
-    return results
+    return {
+      indexed: totalIndexed,
+      skipped: totalSkipped,
+      total: totalTotal,
+      sources: results
+    }
   }
 
   // ── Incremental indexing ─────────────────────────────────────────────
@@ -1222,6 +1234,20 @@ class IndexingEngine {
    * Returns an array of { sessionId, title, createdAt, messages, content, filePath }.
    * Falls back to static parsing if no adapter matches.
    */
+  /**
+   * Generate a unique session ID by combining a base ID with a short hash of the
+   * file path. Prevents session_id collisions across different directories that
+   * contain files with the same base name (e.g. test-session.jsonl in cline/ and
+   * gemini/ both producing session_id="test-session").
+   * @param {string} baseId - The original session ID from the file/adapter
+   * @param {string} filePath - Absolute path to the session file
+   * @returns {string} A unique session ID
+   */
+  static _uniqueSessionId (baseId, filePath) {
+    const hash = crypto.createHash('sha256').update(filePath).digest('hex').slice(0, 8)
+    return `${baseId}_${hash}`
+  }
+
   async _getFileSessions (filePath) {
     const ext = path.extname(filePath).toLowerCase()
     const adapter = this.registry.findAdapterForFile(filePath)
@@ -1237,7 +1263,7 @@ class IndexingEngine {
             })
             .join('\n')
           return {
-            sessionId: s.sessionId,
+            sessionId: IndexingEngine._uniqueSessionId(s.sessionId, filePath),
             title: s.title,
             createdAt: s.createdAt || '',
             messages: s.messages || [],
@@ -1251,7 +1277,7 @@ class IndexingEngine {
       if (parsed) {
         const text = adapter.extractText(filePath)
         return [{
-          sessionId: parsed.sessionId,
+          sessionId: IndexingEngine._uniqueSessionId(parsed.sessionId, filePath),
           title: parsed.title,
           createdAt: parsed.createdAt || '',
           messages: parsed.messages || [],
@@ -1293,7 +1319,7 @@ class IndexingEngine {
     }
 
     return [{
-      sessionId,
+      sessionId: IndexingEngine._uniqueSessionId(sessionId, filePath),
       title,
       createdAt,
       messages: await IndexingEngine.parseMessages(filePath, sessionId),
