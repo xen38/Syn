@@ -130,7 +130,7 @@ const setup = () => {
   btnBrain.addEventListener('click', (e) => {
     e.preventDefault()
     e.stopPropagation()
-    synAPI.openBrainVault()
+    synAPI.brainVaultOpen()
   })
 
   // â”€â”€ Database health (Gate G7) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
