@@ -32,9 +32,12 @@ window.addEventListener('unhandledrejection', (e) => {
   }
 })
 
-const synAPI = window.synAPI
+// _synAPI is exposed via contextBridge by preload.js; read it from window
+// (avoid `const _synAPI = window._synAPI` which conflicts with the global
+// _synAPI property already set by contextBridge in classic scripts).
+const _synAPI = window.synAPI
 
-// ── Startup diagnostic: show synAPI status on screen ──
+// ── Startup diagnostic: show _synAPI status on screen ──
 function showDiagnostic (msg) {
   const el = document.getElementById('bvGraphEmpty')
   if (el) {
@@ -155,9 +158,9 @@ function startResize (edge, e) {
   isResizing = true
   resizeEdge = edge
   resizeStart = { x: e.clientX, y: e.clientY }
-  if (synAPI && typeof synAPI.brainVaultWindowGetBounds === 'function') {
+  if (_synAPI && typeof _synAPI.brainVaultWindowGetBounds === 'function') {
     try {
-      const bounds = synAPI.brainVaultWindowGetBounds()
+      const bounds = _synAPI.brainVaultWindowGetBounds()
       if (bounds) resizeStartBounds = bounds
     } catch (err) {
       // ignore
@@ -191,8 +194,8 @@ function onResizeMove (e) {
   if (resizeEdge.includes('s')) {
     h = Math.max(minH, h + dy)
   }
-  if (synAPI && typeof synAPI.brainVaultWindowSetBounds === 'function') {
-    synAPI.brainVaultWindowSetBounds({ x, y, width: w, height: h }).catch(() => {})
+  if (_synAPI && typeof _synAPI.brainVaultWindowSetBounds === 'function') {
+    _synAPI.brainVaultWindowSetBounds({ x, y, width: w, height: h }).catch(() => {})
   }
   // Also resize canvas immediately for responsiveness
   resizeCanvas()
@@ -227,7 +230,7 @@ if (bvBtnClose) {
     e.stopPropagation()
     try {
       if (await checkUnsavedClose()) {
-        await synAPI.brainVaultWindowClose()
+        await _synAPI.brainVaultWindowClose()
       }
     } catch (err) {
       showDiagnostic('Close failed: ' + escapeHtml(err.message || String(err)))
@@ -237,7 +240,7 @@ if (bvBtnClose) {
 
 if (bvBtnMinimize) {
   bvBtnMinimize.addEventListener('click', () => {
-    try { synAPI.brainVaultWindowMinimize() } catch (err) {
+    try { _synAPI.brainVaultWindowMinimize() } catch (err) {
       showDiagnostic('Minimize failed: ' + escapeHtml(err.message || String(err)))
     }
   })
@@ -245,7 +248,7 @@ if (bvBtnMinimize) {
 
 if (bvBtnMaximize) {
   bvBtnMaximize.addEventListener('click', () => {
-    try { synAPI.brainVaultWindowMaximize() } catch (err) {
+    try { _synAPI.brainVaultWindowMaximize() } catch (err) {
       showDiagnostic('Maximize failed: ' + escapeHtml(err.message || String(err)))
     }
   })
@@ -295,15 +298,15 @@ window.addEventListener('load', () => {
 
 window.addEventListener('resize', resizeCanvas)
 
-// Only wire up the window-shown trigger if synAPI is available.
-// If synAPI is undefined (contextBridge not exposed), init() will still
+// Only wire up the window-shown trigger if _synAPI is available.
+// If _synAPI is undefined (contextBridge not exposed), init() will still
 // attempt loadBrainVault() on its own.
-if (synAPI && typeof synAPI.onBvWindowShown === 'function') {
-  synAPI.onBvWindowShown(() => {
+if (_synAPI && typeof _synAPI.onBvWindowShown === 'function') {
+  _synAPI.onBvWindowShown(() => {
     try { loadBrainVault() } catch (e) { console.error('Brain vault window-shown error:', e) }
   })
 } else {
-  console.warn('synAPI not available — Brain Vault IPC features will be limited')
+  console.warn('_synAPI not available — Brain Vault IPC features will be limited')
 }
 
 // Kick off loadBrainVault directly so the graph starts even if window.onload
@@ -321,8 +324,8 @@ async function loadBrainVault () {
   loadBrainVaultRunning = true
 
   try {
-    if (!synAPI) {
-      showDiagnostic('Brain Vault: synAPI bridge not available (contextBridge may not be exposed in this window).')
+    if (!_synAPI) {
+      showDiagnostic('Brain Vault: _synAPI bridge not available (contextBridge may not be exposed in this window).')
       loadBrainVaultRunning = false
       return
     }
@@ -334,16 +337,16 @@ async function loadBrainVault () {
 
     let files
     try {
-      files = await synAPI.brainList()
+      files = await _synAPI.brainList()
     } catch (e) {
       showDiagnostic('Brain Vault: brainList() failed — ' + escapeHtml(e.message))
       return
     }
     brainFiles = files || []
-    updateStatus('synAPI OK · ' + brainFiles.length + ' vault files')
+    updateStatus('_synAPI OK · ' + brainFiles.length + ' vault files')
 
     if (brainFiles.length === 0) {
-      showDiagnostic('Brain Vault: brainList() returned 0 files. Check that brain/ directory exists at ' + (await synAPI.brainDir ? (await synAPI.brainDir()).path : 'unknown'))
+      showDiagnostic('Brain Vault: brainList() returned 0 files. Check that brain/ directory exists at ' + (await _synAPI.brainDir ? (await _synAPI.brainDir()).path : 'unknown'))
       bvGraphCanvas.style.display = 'none'
       bvGraphEmpty.style.display = 'block'
       return
@@ -370,7 +373,7 @@ async function loadBrainVault () {
     for (const file of brainFiles) {
       let result
       try {
-        result = await synAPI.brainRead(file)
+        result = await _synAPI.brainRead(file)
       } catch (e) {
         console.error('Failed to read ' + file + ':', e)
         continue
@@ -457,7 +460,7 @@ async function loadBrainVault () {
 
     // Draw now so the graph appears even when loadBrainVault() runs after the
     // window has been shown (the canvas was 0x0 on the first hidden run).
-    updateStatus('synAPI OK · ' + brainFiles.length + ' files · ' + nodes.size + ' nodes · ' + edges.length + ' links · canvas ' + bvGraphCanvas.width + '×' + bvGraphCanvas.height)
+    updateStatus('_synAPI OK · ' + brainFiles.length + ' files · ' + nodes.size + ' nodes · ' + edges.length + ' links · canvas ' + bvGraphCanvas.width + '×' + bvGraphCanvas.height)
     render()
 
     // ── Idempotency: event listeners once ──
@@ -721,7 +724,7 @@ async function openNote (file) {
     return
   }
 
-  const result = await synAPI.brainRead(file)
+  const result = await _synAPI.brainRead(file)
   if (!result.ok) {
     alert('Failed to read ' + file + ': ' + result.error)
     return
@@ -876,7 +879,7 @@ async function saveNote (tabId, content) {
   const file = noteFileMap.get(tabId)
   if (!file) return
 
-  const result = await synAPI.brainWrite(file, content)
+  const result = await _synAPI.brainWrite(file, content)
   if (result.ok) {
     noteContentMap.set(tabId, content)
     noteDirty.set(tabId, false)
@@ -991,7 +994,7 @@ function startRename (tabId, oldFile, labelSpan) {
       return
     }
     const newFile = newName.endsWith('.md') ? newName : newName + '.md'
-    const result = await synAPI.brainRename(oldFile, newFile)
+    const result = await _synAPI.brainRename(oldFile, newFile)
     if (result.ok) {
       hideRename()
       // Update tab label
@@ -1044,7 +1047,7 @@ bvTabs.addEventListener('click', (e) => {
 // ── Load brain index content ──
 async function loadBrainIndexContent () {
   try {
-    const result = await synAPI.brainRead('index.md')
+    const result = await _synAPI.brainRead('index.md')
     if (result.ok) {
       bvBrainIndexContent.innerHTML = renderNoteContent('index.md', result.content)
       bvBrainIndexContent.querySelectorAll('.wiki-link').forEach(link => {
@@ -1055,7 +1058,7 @@ async function loadBrainIndexContent () {
         })
       })
     } else {
-      const idx = await synAPI.getBrainIndex()
+      const idx = await _synAPI.getBrainIndex()
       bvBrainIndexContent.textContent = idx.content || '(brain index empty — rebuild via /brain index)'
     }
   } catch (e) {
@@ -1067,7 +1070,7 @@ async function loadBrainIndexContent () {
 // ── Create note from session (drag-drop from Syn) ──
 async function createNoteFromSession (sessionId) {
   try {
-    const session = await synAPI.readSession(sessionId)
+    const session = await _synAPI.readSession(sessionId)
     if (!session) {
       alert('Session not found: ' + sessionId)
       return
@@ -1098,7 +1101,7 @@ async function createNoteFromSession (sessionId) {
     lines.push('', '---', '', 'Imported from Syn session via drag-and-drop.')
 
     const fileName = 'sessions/session-' + sessionId.replace(/[^a-z0-9]/gi, '-') + '.md'
-    const result = await synAPI.brainWrite(fileName, lines.join('\n') + '\n')
+    const result = await _synAPI.brainWrite(fileName, lines.join('\n') + '\n')
     if (result.ok) {
       await loadBrainVault()
       openNote(fileName)
@@ -1154,8 +1157,8 @@ document.getElementById('bvCtxOpenFolder').addEventListener('click', async (e) =
   e.stopPropagation()
   bvGraphCtxMenu.style.display = 'none'
   try {
-    const { path: brainPath } = await synAPI.brainDir()
-    await synAPI.showItemInFolder(brainPath)
+    const { path: brainPath } = await _synAPI.brainDir()
+    await _synAPI.showItemInFolder(brainPath)
   } catch (err) {
     alert('Could not open Brain folder: ' + err.message)
   }
@@ -1173,7 +1176,7 @@ document.getElementById('bvCtxNodeCopy').addEventListener('click', async (e) => 
   e.stopPropagation()
   bvNodeCtxMenu.style.display = 'none'
   if (ctxTargetNode) {
-    const result = await synAPI.brainRead(ctxTargetNode.id)
+    const result = await _synAPI.brainRead(ctxTargetNode.id)
     if (result.ok) {
       await navigator.clipboard.writeText(result.content)
     } else {
@@ -1189,7 +1192,7 @@ document.getElementById('bvCtxNodeDelete').addEventListener('click', async (e) =
   if (ctxTargetNode) {
     const confirmed = await confirmDelete(ctxTargetNode.id)
     if (confirmed) {
-      const result = await synAPI.brainDelete(ctxTargetNode.id)
+      const result = await _synAPI.brainDelete(ctxTargetNode.id)
       if (result.ok) {
         await loadBrainVault()
       } else {
@@ -1254,12 +1257,12 @@ async function showCreateGroup () {
 
   for (const idx of selected) {
     const file = files[idx - 1]
-    const result = await synAPI.brainRead(file)
+    const result = await _synAPI.brainRead(file)
     if (!result.ok) continue
     let content = result.content || ''
     if (!content.includes(linkTag)) {
       content = content.trim() + '\n\n' + linkTag + '\n'
-      await synAPI.brainWrite(file, content)
+      await _synAPI.brainWrite(file, content)
     }
   }
 
@@ -1277,10 +1280,10 @@ function showImport () {
 bvImportCancel.addEventListener('click', hideImport)
 bvImportFile.addEventListener('click', async () => {
   hideImport()
-  const files = await synAPI.openFileDialog()
+  const files = await _synAPI.openFileDialog()
   if (files) {
     for (const f of files) {
-      const result = await synAPI.brainImport(f)
+      const result = await _synAPI.brainImport(f)
       if (!result.ok) alert('Import failed: ' + (result.errors && result.errors[0] ? result.errors[0].error : result.error))
     }
     await loadBrainVault()
@@ -1288,9 +1291,9 @@ bvImportFile.addEventListener('click', async () => {
 })
 bvImportFolder.addEventListener('click', async () => {
   hideImport()
-  const folder = await synAPI.openFolderDialog()
+  const folder = await _synAPI.openFolderDialog()
   if (folder) {
-    const result = await synAPI.brainImport(folder)
+    const result = await _synAPI.brainImport(folder)
     alert('Imported ' + result.imported + ' file(s).' + (result.errors && result.errors.length ? ' Errors: ' + result.errors.length : ''))
     await loadBrainVault()
   }
@@ -1328,7 +1331,7 @@ bvCreateSave.addEventListener('click', async () => {
     return
   }
   const file = name.endsWith('.md') ? name : name + '.md'
-  const result = await synAPI.brainWrite(file, '# ' + name.replace(/\.md$/, '') + '\n\n')
+  const result = await _synAPI.brainWrite(file, '# ' + name.replace(/\.md$/, '') + '\n\n')
   if (result.ok) {
     hideCreate()
     await loadBrainVault()
@@ -1373,3 +1376,4 @@ function escapeCssId (id) {
 }
 
 // ── Start ──
+
