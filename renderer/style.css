@@ -12,8 +12,6 @@ html, body {
   font-size: 14px;
   line-height: 1.5;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
 a { color: #ffffff; }
@@ -518,7 +516,8 @@ a { color: #ffffff; }
 }
 
 .brain-vault-tab-content.active {
-  display: block;
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   box-sizing: border-box;
@@ -1453,6 +1452,13 @@ a { color: #ffffff; }
 
 /* ── Brain Vault standalone window styles ── */
 
+/* Body must be a flex container for the header/toolbar/content chain to resolve
+   (height:100% alone collapses the flex chain to 0x0). */
+.brain-vault-body {
+  display: flex;
+  flex-direction: column;
+}
+
 /* Window header (title bar) for the separate BrowserWindow */
 .brain-vault-window-header {
   display: flex;
@@ -1639,7 +1645,8 @@ a { color: #ffffff; }
 }
 
 .brain-vault-tab-content.active {
-  display: block;
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   box-sizing: border-box;
