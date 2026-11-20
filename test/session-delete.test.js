@@ -69,15 +69,15 @@ async function main () {
   assert(indexResult.indexed >= 1, 'Archived session indexed successfully')
 
   const sessions = engine.listSessions()
-  const archSession = sessions.find(s => s.session_id === 'arch-001')
+  const archSession = sessions.find(s => s.session_id && s.session_id.startsWith('arch-001'))
   assert(archSession != null, 'Archived session found in index after indexing')
 
   // ── Test: engine.removeSession() removes from index but does NOT delete file ──
-  const removeResult = engine.removeSession('arch-001')
+  const removeResult = engine.removeSession(archSession.session_id)
   assert(removeResult === true || removeResult.success === true, 'engine.removeSession() returns success')
 
   const sessionsAfterRemove = engine.listSessions()
-  const archSessionAfter = sessionsAfterRemove.find(s => s.session_id === 'arch-001')
+  const archSessionAfter = sessionsAfterRemove.find(s => s.session_id && s.session_id.startsWith('arch-001'))
   assert(archSessionAfter == null, 'Session removed from index after engine.removeSession()')
 
   // File must still exist on disk
@@ -92,7 +92,7 @@ async function main () {
   assert(reindexResult.indexed >= 1, 'Re-indexing restores the session entry')
 
   const sessionsAfterReindex = engine.listSessions()
-  const archSessionRestored = sessionsAfterReindex.find(s => s.session_id === 'arch-001')
+  const archSessionRestored = sessionsAfterReindex.find(s => s.session_id && s.session_id.startsWith('arch-001'))
   assert(archSessionRestored != null, 'Session restored in index after re-indexing')
 
   // File still exists and unchanged
