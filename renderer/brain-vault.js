@@ -95,16 +95,16 @@ let brainVaultInitialized = false
 bvBtnClose.addEventListener('click', async (e) => {
   e.stopPropagation()
   if (await checkUnsavedClose()) {
-    window.close()
+    await synAPI.brainVaultWindowClose()
   }
 })
 
 bvBtnMinimize.addEventListener('click', () => {
-  // minimize via IPC not yet exposed; window stays open
+  synAPI.brainVaultWindowMinimize()
 })
 
 bvBtnMaximize.addEventListener('click', () => {
-  // toggle maximize via IPC
+  synAPI.brainVaultWindowMaximize()
 })
 
 // ── Escape / click outside closes context menus ──
@@ -138,6 +138,12 @@ async function init () {
     bvGraphEmpty.style.display = 'block'
   }
 }
+
+// Re-run loadBrainVault once the BrowserWindow is visible so the graph
+// canvas gets a real size (it's 0x0 while the window is hidden).
+synAPI.onBvWindowShown(() => {
+  loadBrainVault()
+})
 
 // ── Load brain vault ──
 async function loadBrainVault () {
@@ -255,7 +261,7 @@ async function loadBrainVault () {
     }
 
     function getNodeAt (wx, wy) {
-      for (const n of nodeArr) {
+      for (const n of nodes.values()) {
         const dx = n.x - wx
         const dy = n.y - wy
         if (dx * dx + dy * dy < 40 * 40) return n
@@ -319,7 +325,7 @@ async function loadBrainVault () {
         if (a && b) drawEdge(ctx, a, b)
       }
 
-      for (const n of nodeArr) {
+      for (const n of Array.from(nodes.values())) {
         drawNode(ctx, n, n === hoveredNode, n === selectedNode)
       }
 
@@ -896,15 +902,10 @@ document.getElementById('bvCtxOpenFolder').addEventListener('click', async (e) =
   e.stopPropagation()
   bvGraphCtxMenu.style.display = 'none'
   try {
-    await synAPI.showItemInFolder(synAPI.BRAIN_DIR || require('electron').remote ? '' : '')
+    const { path: brainPath } = await synAPI.brainDir()
+    await synAPI.showItemInFolder(brainPath)
   } catch (err) {
-    // fallback: use main process shell
-    try {
-      const { ipcRenderer } = require('electron')
-      await ipcRenderer.invoke('shell:showItemInFolder', require('path').join(__dirname, '..', '..', 'brain'))
-    } catch (e2) {
-      alert('Could not open Brain folder: ' + e2.message)
-    }
+    alert('Could not open Brain folder: ' + err.message)
   }
 })
 

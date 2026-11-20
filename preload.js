@@ -44,6 +44,13 @@ const synAPI = {
 
   // Brain Vault window
   brainVaultOpen: () => ipcRenderer.invoke('brainVault:open'),
+  brainVaultWindowMinimize: () => ipcRenderer.invoke('brainVaultWindow:minimize'),
+  brainVaultWindowMaximize: () => ipcRenderer.invoke('brainVaultWindow:maximize'),
+  brainVaultWindowClose: () => ipcRenderer.invoke('brainVaultWindow:close'),
+    brainDir: () => ipcRenderer.invoke('brain:dir'),
+
+  // Brain Vault window shown notification (for canvas resize)
+  onBvWindowShown: (cb) => ipcRenderer.on('bv:window-shown', cb),
 
   // File dialogs
   openFileDialog: () => ipcRenderer.invoke('dialog:openFile'),

@@ -153,6 +153,7 @@ function createBrainVaultWindow () {
     minWidth: 600,
     minHeight: 400,
     icon: windowIcon,
+    frame: false, // custom title bar; window controls handled via IPC
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -165,6 +166,8 @@ function createBrainVaultWindow () {
 
   brainVaultWindow.loadFile(path.join(__dirname, 'renderer', 'brain-vault.html')).then(() => {
     brainVaultWindow.show()
+    // Notify renderer that window is visible so it can size the graph canvas correctly
+    brainVaultWindow.webContents.send('bv:window-shown')
   }).catch(e => {
     console.error('Failed to load brain-vault.html:', e)
   })
@@ -700,6 +703,28 @@ ipcMain.handle('brain:review', async (event, content) => {
 // ── Brain Vault window IPC ─────────────────────────────────────────────
 ipcMain.handle('brainVault:open', async () => {
   openBrainVaultWindow()
+  return { ok: true }
+})
+
+ipcMain.handle('brain:dir', async () => {
+  return { path: brainmaxxing.BRAIN_DIR }
+})
+
+ipcMain.handle('brainVaultWindow:minimize', async () => {
+  if (brainVaultWindow) brainVaultWindow.minimize()
+  return { ok: true }
+})
+
+ipcMain.handle('brainVaultWindow:maximize', async () => {
+  if (brainVaultWindow) {
+    if (brainVaultWindow.isMaximized()) brainVaultWindow.unmaximize()
+    else brainVaultWindow.maximize()
+  }
+  return { ok: true }
+})
+
+ipcMain.handle('brainVaultWindow:close', async () => {
+  if (brainVaultWindow) brainVaultWindow.close()
   return { ok: true }
 })
 

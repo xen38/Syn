@@ -1498,6 +1498,7 @@ a { color: #ffffff; }
   justify-content: center;
   padding: 0;
   line-height: 1;
+  -webkit-app-region: no-drag;
 }
 
 .brain-vault-window-btn:hover {
