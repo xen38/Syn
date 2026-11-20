@@ -739,17 +739,6 @@ ipcMain.handle('dialog:openFile', async () => {
   return null
 })
 
-ipcMain.handle('dialog:openFolder', async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openDirectory', 'createDirectory'],
-    title: 'Select folder to import .md files into Brain Vault'
-  })
-  if (!result.canceled && result.filePaths.length > 0) {
-    return result.filePaths[0]
-  }
-  return null
-})
-
 ipcMain.handle('shell:showItemInFolder', async (event, fullPath) => {
   const { shell } = require('electron')
   await shell.showItemInFolder(fullPath)
