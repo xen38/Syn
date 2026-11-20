@@ -139,8 +139,14 @@ async function init () {
   }
 }
 
-// Re-run loadBrainVault once the BrowserWindow is visible so the graph
-// canvas gets a real size (it's 0x0 while the window is hidden).
+// Re-run loadBrainVault once the BrowserWindow is actually shown so the graph
+// canvas gets a real size (it's 0x0 while the window is hidden). window.onload
+// fires after show(), so this is the reliable trigger; onBvWindowShown is a
+// secondary trigger in case the IPC lands first.
+window.addEventListener('load', () => {
+  loadBrainVault()
+})
+
 synAPI.onBvWindowShown(() => {
   loadBrainVault()
 })
