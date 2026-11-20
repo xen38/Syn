@@ -1376,7 +1376,7 @@ All 16 scenarios verified across phases 0-11 test suites:
 
 15. Corrupted file skipped gracefully — verified ?
 
-16. Secret redaction hides API keys — verified (security 14/14) ?
+16. Secret redaction hides API keys — verified (security 34/34) ?
 
 
 
@@ -1426,7 +1426,7 @@ Fixes applied in this phase (commit 0096035):
 
 
 
-Test results: lint 0 errors/0 warnings; security 14/14; search 13/13; search-quality 24/24; validator-precision 65/65; fixture-tests 47/47; indexing 25/25 (Test 10 incremental skip fixed via unique session IDs). Real-world-integration env-dependent.
+Test results: lint 0 errors/0 warnings; security 34/34; search 13/13; search-quality 24/24; validator-precision 65/65; fixture-tests 47/47; indexing 25/25 (Test 10 incremental skip fixed via unique session IDs). Real-world-integration env-dependent.
 
 
 
