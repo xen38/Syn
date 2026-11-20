@@ -11,6 +11,27 @@
  * - Node right-click: Open, Copy, Delete
  */
 
+// ── Global error handler: surface any renderer JS errors on screen ──
+window.addEventListener('error', (e) => {
+  const msg = 'Brain Vault renderer error: ' + (e.message || e.error || String(e))
+  console.error(msg)
+  const el = document.getElementById('bvGraphEmpty')
+  if (el) {
+    el.textContent = msg
+    el.style.display = 'block'
+  }
+})
+
+window.addEventListener('unhandledrejection', (e) => {
+  const msg = 'Brain Vault unhandled rejection: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason))
+  console.error(msg)
+  const el = document.getElementById('bvGraphEmpty')
+  if (el) {
+    el.textContent = msg
+    el.style.display = 'block'
+  }
+})
+
 const synAPI = window.synAPI
 
 // ── DOM elements ──

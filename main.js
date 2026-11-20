@@ -164,10 +164,20 @@ function createBrainVaultWindow () {
     show: false // don't show until loaded
   })
 
+  brainVaultWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.error('Brain Vault failed to load:', errorCode, errorDescription, validatedURL)
+  })
+
+  brainVaultWindow.webContents.on('render-process-gone', (event, details) => {
+    console.error('Brain Vault render process gone:', details)
+  })
+
   brainVaultWindow.loadFile(path.join(__dirname, 'renderer', 'brain-vault.html')).then(() => {
     brainVaultWindow.show()
     // Notify renderer that window is visible so it can size the graph canvas correctly
     brainVaultWindow.webContents.send('bv:window-shown')
+    // Open DevTools for debugging
+    brainVaultWindow.webContents.openDevTools()
   }).catch(e => {
     console.error('Failed to load brain-vault.html:', e)
   })
