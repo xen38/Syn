@@ -1949,19 +1949,19 @@ Syn/
 
 | Item | Change | Done |
 |------|--------|------|
-| 13.1 | Write Phase 13 plan into nextphase.md (this table) | in_progress |
-| 13.2 | Brain Vault as separate draggable/resizable BrowserWindow; btnBrain opens the window instead of toggling in-panel; same spawn aspect/position; title bar drag; move out of Syn window / to secondary monitor | pending |
-| 13.3 | Inline file editing: click to edit in note tabs; "Save" button appears beside doc name on change; unsaved-changes confirm dialog ("This document has been edited; are you sure you don't want to [proceed]?") with Yes/No on X close | pending |
-| 13.4 | Double-click note tab name to rename the document | pending |
-| 13.5 | Drag a session from session list → drop onto graph view canvas; copies session content (everything) into a new .md in brain vault; opens in new tab | pending |
-| 13.6 | Graph background right-click menu: "Create" (new .md in Brain folder, open in new tab), "Create Group" (select 2+ notes, auto-link with [[l#serialnumber]] serial #000001-#999999 at bottom of docs + visual link in graph), "Import" (file/folder picker, .md only, recursive folder scan, copy into Brain folder), "Open Brain folder" (OS file explorer to brain dir) | pending |
-| 13.7 | Node right-click menu: "Open" (open file in file viewer tab), "Copy" (copy content to clipboard without opening), "Delete" (delete file) | pending |
-| 13.8 | Search bar placeholder → "Search sessions/vault"; search across all sessions (names + content) AND all .md files in brain vault (names + content); keep search state while interacting with app/files; click a result → auto-drive to match location + highlight; search state does not reset | pending |
-| 13.9 | Refresh button icon → black & white (replace 🔄 with ↻ / ⮕) | pending |
+| 13.1 | Write Phase 13 plan into nextphase.md (this table) | done |
+| 13.2 | Brain Vault as separate draggable/resizable BrowserWindow; btnBrain opens the window instead of toggling in-panel; same spawn aspect/position; title bar drag; move out of Syn window / to secondary monitor | done |
+| 13.3 | Inline file editing: click to edit in note tabs; "Save" button appears beside doc name on change; unsaved-changes confirm dialog ("This document has been edited; are you sure you don't want to [proceed]?") with Yes/No on X close | done |
+| 13.4 | Double-click note tab name to rename the document | done |
+| 13.5 | Drag a session from session list → drop onto graph view canvas; copies session content (everything) into a new .md in brain vault; opens in new tab | done |
+| 13.6 | Graph background right-click menu: "Create" (new .md in Brain folder, open in new tab), "Create Group" (select 2+ notes, auto-link with [[l#serialnumber]] serial #000001-#999999 at bottom of docs + visual link in graph), "Import" (file/folder picker, .md only, recursive folder scan, copy into Brain folder), "Open Brain folder" (OS file explorer to brain dir) | done |
+| 13.7 | Node right-click menu: "Open" (open file in file viewer tab), "Copy" (copy content to clipboard without opening), "Delete" (delete file) | done |
+| 13.8 | Search bar placeholder → "Search sessions/vault"; search across all sessions (names + content) AND all .md files in brain vault (names + content); keep search state while interacting with app/files; click a result → auto-drive to match location + highlight; search state does not reset | done |
+| 13.9 | Refresh button icon → black & white (replace 🔄 with ↻ / ⮕) | done |
 | 13.10 | Rename HARNESSES.md → harnessindex.md via git mv; update all references (nextphase.md, .obsidian/workspace.json); verify nothing breaks | done |
 | 13.11 | Verify deleted files are not on .gitignore or otherwise excluded | done |
-| 13.12 | Run lint + tests (npm test, npx eslint . --ext .js --max-warnings 0) | pending |
-| 13.13 | Review, commit, and push all changes to origin/main | pending |
+| 13.12 | Run lint + tests (npm test, npx eslint . --ext .js --max-warnings 0) | done |
+| 13.13 | Review, commit, and push all changes to origin/main | done |
 
 **Why:** These are the remaining user-requested features before a trustworthy v1. The Brain Vault window gives Obsidian-like freedom; editing + rename make it a real note-taking surface; drag-drop and graph menus make it a knowledge workspace; unified search makes sessions + vault discoverable together.
 
