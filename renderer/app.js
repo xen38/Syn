@@ -737,14 +737,80 @@ const setup = () => {
     searchQuery = raw
     setStatusLoading()
     try {
-      const results = await synAPI.searchSessions(query, { batchSize, ...options })
-      renderSearchResultsList(results, raw)
+      const [sessionResults, vaultResults] = await Promise.all([
+        synAPI.searchSessions(query, { batchSize, ...options }),
+        searchBrainVault(raw)
+      ])
+      const allResults = [
+        ...sessionResults.map(r => ({ ...r, source: 'session' })),
+        ...vaultResults.map(r => ({ ...r, source: 'vault' }))
+      ]
+      renderSearchResultsList(allResults, raw)
     } catch (err) {
       console.error('Search failed:', err)
       sessionList.innerHTML = `<div style="padding:12px;color:#ff6666;font-size:13px">Search failed: ${escapeHtml(err.message)}</div>`
     } finally {
       setStatusIdle()
     }
+  }
+
+  // Search across all .md files in the Brain Vault (names + content).
+  // Returns results shaped like session results but with source:'vault' and a path field.
+  async function searchBrainVault (query) {
+    const files = await synAPI.brainList()
+    const results = []
+    const terms = query.toLowerCase().split(/\s+/).filter(t => t.length > 0)
+
+    for (const file of files) {
+      try {
+        const result = await synAPI.brainRead(file)
+        if (!result.ok) continue
+        const content = result.content || ''
+        const lowerContent = content.toLowerCase()
+        const lowerName = file.toLowerCase()
+
+        let matchScore = 0
+        let snippet = ''
+
+        // Filename match
+        const nameMatch = terms.some(t => lowerName.includes(t))
+        if (nameMatch) matchScore += 10
+
+        // Content match
+        const contentMatch = terms.some(t => lowerContent.includes(t))
+        if (contentMatch) matchScore += 5
+
+        if (nameMatch || contentMatch) {
+          // Build a snippet around the first content match
+          for (const term of terms) {
+            const idx = lowerContent.indexOf(term)
+            if (idx >= 0) {
+              const start = Math.max(0, idx - 60)
+              const end = Math.min(content.length, idx + 60 + term.length)
+              snippet = content.substring(start, end)
+              break
+            }
+          }
+          if (!snippet && nameMatch) {
+            snippet = '(filename match)'
+          }
+
+          results.push({
+            id: 'vault:' + file,
+            title: file,
+            harness: 'vault',
+            snippet: snippet,
+            source: 'vault',
+            path: file,
+            matchScore: matchScore
+          })
+        }
+      } catch (e) {
+        console.error('Failed to read vault file ' + file + ':', e)
+      }
+    }
+
+    return results.sort((a, b) => b.matchScore - a.matchScore)
   }
 
   function renderSearchResultsList (results, query) {
@@ -791,9 +857,15 @@ const setup = () => {
         ${snippetHtml}
       `
       item.addEventListener('click', () => {
-        selectedSessionId = r.id
-        renderSessionList(allSessions)
-        loadSessionContent(r)
+        if (r.source === 'vault') {
+          selectedSessionId = r.id
+          renderSessionList(allSessions)
+          loadVaultContent(r)
+        } else {
+          selectedSessionId = r.id
+          renderSessionList(allSessions)
+          loadSessionContent(r)
+        }
       })
       // Right-click context menu on search results
       item.addEventListener('contextmenu', (e) => {
@@ -1062,6 +1134,43 @@ const setup = () => {
       renderMessages(messages)
     } catch (e) {
       sessionContent.innerHTML = `<div style="color:#ff6666;padding:12px">Error loading session: ${escapeHtml(e.message)}</div>`
+    } finally {
+      setStatusIdle()
+    }
+  }
+
+  // Load a Brain Vault .md file into the session view with search highlighting.
+  async function loadVaultContent (result) {
+    emptyState.classList.add('hidden')
+    emptyState.style.display = 'none'
+    sessionView.classList.remove('hidden')
+    sessionView.style.display = 'flex'
+
+    metaHarness.textContent = 'vault'
+    metaSessionId.textContent = result.path
+    metaPath.textContent = result.path
+
+    setStatusLoading()
+    try {
+      const data = await synAPI.brainRead(result.path)
+      if (!data.ok) {
+        sessionContent.innerHTML = `<div style="color:#ff6666;padding:12px">Error reading vault file: ${escapeHtml(data.error || 'unknown')}</div>`
+        return
+      }
+      const content = data.content || ''
+      const highlighted = searchQuery ? highlightText(escapeHtml(content), searchQuery) : escapeHtml(content)
+      sessionContent.innerHTML = `
+        <div style="padding:12px;color:#e0e0e0;line-height:1.6;white-space:pre-wrap;font-size:14px">${highlighted}</div>
+      `
+      // Auto-scroll to the first search match and keep the highlight while search state persists
+      if (searchQuery) {
+        const first = sessionContent.querySelector('.highlight')
+        if (first) {
+          first.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }
+    } catch (e) {
+      sessionContent.innerHTML = `<div style="color:#ff6666;padding:12px">Error reading vault file: ${escapeHtml(e.message)}</div>`
     } finally {
       setStatusIdle()
     }
