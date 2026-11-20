@@ -69,6 +69,7 @@ let selectedNode = null
 let hoveredNode = null
 let ctxTargetNode = null
 
+let ctx // 2d context of the graph canvas
 let scale = 1
 let offsetX = 0
 let offsetY = 0
@@ -155,7 +156,7 @@ synAPI.onBvWindowShown(() => {
 async function loadBrainVault () {
   const files = await synAPI.brainList()
   brainFiles = files || []
-  const ctx = bvGraphCanvas.getContext('2d')
+  ctx = bvGraphCanvas.getContext('2d')
 
   if (!brainFiles || brainFiles.length === 0) {
     bvGraphCanvas.style.display = 'none'
@@ -254,90 +255,14 @@ async function loadBrainVault () {
 
   resizeCanvas()
 
+  // Draw now so the graph appears even when loadBrainVault() runs after the
+  // window has been shown (the canvas was 0x0 on the first hidden run).
+  render()
+
   // ── Idempotency: event listeners once ──
   if (!brainVaultInitialized) {
     brainVaultInitialized = true
     window.addEventListener('resize', resizeCanvas)
-
-    function worldToScreen (x, y) {
-      return { x: (x + offsetX) * scale, y: (y + offsetY) * scale }
-    }
-    function screenToWorld (x, y) {
-      return { x: x / scale - offsetX, y: y / scale - offsetY }
-    }
-
-    function getNodeAt (wx, wy) {
-      for (const n of nodes.values()) {
-        const dx = n.x - wx
-        const dy = n.y - wy
-        if (dx * dx + dy * dy < 40 * 40) return n
-      }
-      return null
-    }
-
-    function drawNode (ctx, n, isHover, isSelected) {
-      const s = worldToScreen(n.x, n.y)
-      const r = 14
-      ctx.beginPath()
-      ctx.arc(s.x, s.y, r, 0, Math.PI * 2)
-      ctx.fillStyle = isSelected ? '#53C68B' : (isHover ? '#1a1a1a' : '#111111')
-      ctx.fill()
-      ctx.strokeStyle = isSelected || isHover ? '#53C68B' : '#333333'
-      ctx.lineWidth = 2
-      ctx.stroke()
-      ctx.fillStyle = '#cccccc'
-      ctx.font = '11px system-ui, sans-serif'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText(n.label, s.x, s.y + r + 14)
-    }
-
-    function drawEdge (ctx, a, b) {
-      const sa = worldToScreen(a.x, a.y)
-      const sb = worldToScreen(b.x, b.y)
-      const gradient = ctx.createLinearGradient(sa.x, sa.y, sb.x, sb.y)
-      gradient.addColorStop(0, '#4f46e5')
-      gradient.addColorStop(1, '#7c3aed')
-      const cx = (sa.x + sb.x) / 2
-      const cy = (sa.y + sb.y) / 2
-      const dx = sb.x - sa.x
-      const dy = sb.y - sa.y
-      const dist = Math.sqrt(dx * dx + dy * dy) || 1
-      const perpX = -dy / dist
-      const perpY = dx / dist
-      const curve = Math.min(dist * 0.25, 60)
-      ctx.beginPath()
-      ctx.moveTo(sa.x, sa.y)
-      ctx.bezierCurveTo(
-        cx + perpX * curve, cy + perpY * curve,
-        cx + perpX * curve, cy + perpY * curve,
-        sb.x, sb.y
-      )
-      ctx.strokeStyle = gradient
-      ctx.lineWidth = 1.5
-      ctx.stroke()
-    }
-
-    function render () {
-      ctx.clearRect(0, 0, bvGraphCanvas.width, bvGraphCanvas.height)
-
-      const seenEdges = new Set()
-      for (const e of edges) {
-        const key = e.source + '->' + e.target
-        if (seenEdges.has(key)) continue
-        seenEdges.add(key)
-        const a = nodes.get(e.source)
-        const b = nodes.get(e.target)
-        if (a && b) drawEdge(ctx, a, b)
-      }
-
-      for (const n of Array.from(nodes.values())) {
-        drawNode(ctx, n, n === hoveredNode, n === selectedNode)
-      }
-
-      requestAnimationFrame(render)
-    }
-    render()
 
     // ── Mouse interactions ──
     bvGraphCanvas.addEventListener('mousedown', (e) => {
@@ -453,6 +378,86 @@ async function loadBrainVault () {
 function resizeCanvas () {
   bvGraphCanvas.width = bvGraphContainer.clientWidth
   bvGraphCanvas.height = bvGraphContainer.clientHeight
+}
+
+function worldToScreen (x, y) {
+  return { x: (x + offsetX) * scale, y: (y + offsetY) * scale }
+}
+function screenToWorld (x, y) {
+  return { x: x / scale - offsetX, y: y / scale - offsetY }
+}
+
+function getNodeAt (wx, wy) {
+  for (const n of nodes.values()) {
+    const dx = n.x - wx
+    const dy = n.y - wy
+    if (dx * dx + dy * dy < 40 * 40) return n
+  }
+  return null
+}
+
+function drawNode (ctx, n, isHover, isSelected) {
+  const s = worldToScreen(n.x, n.y)
+  const r = 14
+  ctx.beginPath()
+  ctx.arc(s.x, s.y, r, 0, Math.PI * 2)
+  ctx.fillStyle = isSelected ? '#53C68B' : (isHover ? '#1a1a1a' : '#111111')
+  ctx.fill()
+  ctx.strokeStyle = isSelected || isHover ? '#53C68B' : '#333333'
+  ctx.lineWidth = 2
+  ctx.stroke()
+  ctx.fillStyle = '#cccccc'
+  ctx.font = '11px system-ui, sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(n.label, s.x, s.y + r + 14)
+}
+
+function drawEdge (ctx, a, b) {
+  const sa = worldToScreen(a.x, a.y)
+  const sb = worldToScreen(b.x, b.y)
+  const gradient = ctx.createLinearGradient(sa.x, sa.y, sb.x, sb.y)
+  gradient.addColorStop(0, '#4f46e5')
+  gradient.addColorStop(1, '#7c3aed')
+  const cx = (sa.x + sb.x) / 2
+  const cy = (sa.y + sb.y) / 2
+  const dx = sb.x - sa.x
+  const dy = sb.y - sa.y
+  const dist = Math.sqrt(dx * dx + dy * dy) || 1
+  const perpX = -dy / dist
+  const perpY = dx / dist
+  const curve = Math.min(dist * 0.25, 60)
+  ctx.beginPath()
+  ctx.moveTo(sa.x, sa.y)
+  ctx.bezierCurveTo(
+    cx + perpX * curve, cy + perpY * curve,
+    cx + perpX * curve, cy + perpY * curve,
+    sb.x, sb.y
+  )
+  ctx.strokeStyle = gradient
+  ctx.lineWidth = 1.5
+  ctx.stroke()
+}
+
+function render () {
+  if (!ctx) return
+  ctx.clearRect(0, 0, bvGraphCanvas.width, bvGraphCanvas.height)
+
+  const seenEdges = new Set()
+  for (const e of edges) {
+    const key = e.source + '->' + e.target
+    if (seenEdges.has(key)) continue
+    seenEdges.add(key)
+    const a = nodes.get(e.source)
+    const b = nodes.get(e.target)
+    if (a && b) drawEdge(ctx, a, b)
+  }
+
+  for (const n of Array.from(nodes.values())) {
+    drawNode(ctx, n, n === hoveredNode, n === selectedNode)
+  }
+
+  requestAnimationFrame(render)
 }
 
 // ── Render note content ──
