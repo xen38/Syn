@@ -1458,6 +1458,7 @@ a { color: #ffffff; }
 .brain-vault-body {
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 /* Window header (title bar) for the separate BrowserWindow.
