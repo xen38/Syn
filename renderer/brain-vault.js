@@ -34,6 +34,21 @@ window.addEventListener('unhandledrejection', (e) => {
 
 const synAPI = window.synAPI
 
+// ── Startup diagnostic: show synAPI status on screen ──
+function showDiagnostic (msg) {
+  const el = document.getElementById('bvGraphEmpty')
+  if (el) {
+    el.textContent = msg
+    el.style.display = 'block'
+    el.style.color = '#ffaa00'
+    el.style.background = '#1a1a1a'
+    el.style.padding = '12px'
+    el.style.border = '1px solid #333333'
+    el.style.borderRadius = '6px'
+  }
+  console.error('[Brain Vault diagnostic]', msg)
+}
+
 // ── DOM elements ──
 const bvTabs = document.getElementById('bvTabs')
 const bvTabNotes = document.getElementById('bvTabNotes')
@@ -191,15 +206,12 @@ if (synAPI && typeof synAPI.onBvWindowShown === 'function') {
 // ── Load brain vault ──
 async function loadBrainVault () {
   if (!synAPI) {
-    bvGraphEmpty.textContent = 'Brain Vault error: synAPI bridge not available (contextBridge may not be exposed in this window).'
-    bvGraphEmpty.style.display = 'block'
-    bvGraphCanvas.style.display = 'none'
+    showDiagnostic('Brain Vault: synAPI bridge not available (contextBridge may not be exposed in this window).')
     return
   }
 
   if (!bvGraphCanvas || !bvGraphContainer || !bvGraphEmpty) {
-    bvGraphEmpty.textContent = 'Brain Vault error: required DOM elements missing.'
-    bvGraphEmpty.style.display = 'block'
+    showDiagnostic('Brain Vault: required DOM elements missing.')
     return
   }
 
@@ -207,12 +219,17 @@ async function loadBrainVault () {
   try {
     files = await synAPI.brainList()
   } catch (e) {
-    bvGraphEmpty.textContent = 'Brain Vault error: ' + escapeHtml(e.message)
-    bvGraphEmpty.style.display = 'block'
-    bvGraphCanvas.style.display = 'none'
+    showDiagnostic('Brain Vault: brainList() failed — ' + escapeHtml(e.message))
     return
   }
   brainFiles = files || []
+
+  if (brainFiles.length === 0) {
+    showDiagnostic('Brain Vault: brainList() returned 0 files. Check that brain/ directory exists at ' + (await synAPI.brainDir ? (await synAPI.brainDir()).path : 'unknown'))
+    bvGraphCanvas.style.display = 'none'
+    bvGraphEmpty.style.display = 'block'
+    return
+  }
   ctx = bvGraphCanvas.getContext('2d')
 
   if (!brainFiles || brainFiles.length === 0) {

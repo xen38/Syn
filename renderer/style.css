@@ -1459,7 +1459,9 @@ a { color: #ffffff; }
   flex-direction: column;
 }
 
-/* Window header (title bar) for the separate BrowserWindow */
+/* Window header (title bar) for the separate BrowserWindow.
+   Drag region is only on the title area, NOT the action buttons,
+   so clicking Minimize/Maximize/Close always fires click events. */
 .brain-vault-window-header {
   display: flex;
   align-items: center;
@@ -1469,13 +1471,14 @@ a { color: #ffffff; }
   background: #0d0d0d;
   border-bottom: 1px solid #333333;
   cursor: default;
-  -webkit-app-region: drag;
+  -webkit-app-region: no-drag;
 }
 
 .brain-vault-window-title-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
   -webkit-app-region: drag;
 }
 
@@ -1489,6 +1492,7 @@ a { color: #ffffff; }
 .brain-vault-window-actions {
   display: flex;
   gap: 4px;
+  flex-shrink: 0;
   -webkit-app-region: no-drag;
 }
 
