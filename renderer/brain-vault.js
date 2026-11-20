@@ -145,11 +145,13 @@ async function init () {
 // fires after show(), so this is the reliable trigger; onBvWindowShown is a
 // secondary trigger in case the IPC lands first.
 window.addEventListener('load', () => {
-  loadBrainVault()
+  try { loadBrainVault() } catch (e) { console.error('Brain vault onload error:', e) }
 })
 
+window.addEventListener('resize', resizeCanvas)
+
 synAPI.onBvWindowShown(() => {
-  loadBrainVault()
+  try { loadBrainVault() } catch (e) { console.error('Brain vault window-shown error:', e) }
 })
 
 // ── Load brain vault ──
@@ -192,10 +194,14 @@ async function loadBrainVault () {
     }
   }
 
+  // Resize canvas first so layout can fall back to canvas dimensions
+  // when the container hasn't laid out yet (0×0 client size).
+  resizeCanvas()
+
   // Force-directed layout
   const nodeArr = Array.from(nodes.values())
-  const centerX = bvGraphContainer.clientWidth / 2
-  const centerY = bvGraphContainer.clientHeight / 2
+  const centerX = (bvGraphContainer.clientWidth || bvGraphCanvas.width) / 2
+  const centerY = (bvGraphContainer.clientHeight || bvGraphCanvas.height) / 2
 
   nodeArr.forEach((n, i) => {
     const angle = (i / nodeArr.length) * 2 * Math.PI
@@ -253,8 +259,6 @@ async function loadBrainVault () {
     }
   }
 
-  resizeCanvas()
-
   // Draw now so the graph appears even when loadBrainVault() runs after the
   // window has been shown (the canvas was 0x0 on the first hidden run).
   render()
@@ -262,7 +266,6 @@ async function loadBrainVault () {
   // ── Idempotency: event listeners once ──
   if (!brainVaultInitialized) {
     brainVaultInitialized = true
-    window.addEventListener('resize', resizeCanvas)
 
     // ── Mouse interactions ──
     bvGraphCanvas.addEventListener('mousedown', (e) => {
@@ -376,8 +379,19 @@ async function loadBrainVault () {
 
 // ── Resize canvas ──
 function resizeCanvas () {
-  bvGraphCanvas.width = bvGraphContainer.clientWidth
-  bvGraphCanvas.height = bvGraphContainer.clientHeight
+  let w = bvGraphContainer.clientWidth
+  let h = bvGraphContainer.clientHeight
+  // Fallback to window dimensions when the flex chain hasn't laid out yet
+  // (body has height:100% but no display:flex, so container can report 0×0).
+  if (!w || !h) {
+    const rect = bvGraphContainer.getBoundingClientRect()
+    w = rect.width || window.innerWidth
+    h = rect.height || Math.max(window.innerHeight - 120, 400)
+  }
+  if (bvGraphCanvas.width !== w || bvGraphCanvas.height !== h) {
+    bvGraphCanvas.width = w
+    bvGraphCanvas.height = h
+  }
 }
 
 function worldToScreen (x, y) {
@@ -441,6 +455,9 @@ function drawEdge (ctx, a, b) {
 
 function render () {
   if (!ctx) return
+  // Ensure canvas is always sized correctly, even if loadBrainVault() ran
+  // while the container had 0×0 dimensions (flex chain not yet laid out).
+  resizeCanvas()
   ctx.clearRect(0, 0, bvGraphCanvas.width, bvGraphCanvas.height)
 
   const seenEdges = new Set()
