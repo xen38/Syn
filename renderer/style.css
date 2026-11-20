@@ -50,7 +50,7 @@ a { color: #ffffff; }
 }
 
 #searchInput {
-  width: 100%;
+  flex: 1;
   height: 40px;
   padding: 0 20px;
   background: #000000;
