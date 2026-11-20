@@ -58,7 +58,7 @@ class JsonlAdapter extends BaseAdapter {
       let index = 0
       for (const item of arr) {
         if (typeof item !== 'object' || item === null) continue
-        if (item.session_id && !sessionId) sessionId = item.session_id
+        if (item.session_id) sessionId = item.session_id
         if (item.title && !title) title = item.title
         if (item.timestamp && !createdAt) createdAt = item.timestamp
         messages.push({
@@ -86,7 +86,7 @@ class JsonlAdapter extends BaseAdapter {
       try {
         const obj = JSON.parse(chunk)
         if (typeof obj !== 'object' || obj === null) continue
-        if (obj.session_id && !sessionId) sessionId = obj.session_id
+        if (obj.session_id) sessionId = obj.session_id
         if (obj.title && !title) title = obj.title
         if (obj.timestamp && !createdAt) createdAt = obj.timestamp
         messages.push({
@@ -113,7 +113,7 @@ class JsonlAdapter extends BaseAdapter {
     for (const line of lines) {
       try {
         const obj = JSON.parse(line)
-        if (obj.session_id && !sessionId) sessionId = obj.session_id
+        if (obj.session_id) sessionId = obj.session_id
         if (obj.title && !title) title = obj.title
         if (obj.timestamp && !createdAt) createdAt = obj.timestamp
         messages.push({

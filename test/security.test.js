@@ -186,8 +186,8 @@ async function main () {
   const sourceId4b = engine4b.addSource(baseDir4, 'Cline')
   await engine4b.indexSource(sourceId4b)
   const sessions4b = engine4b.listSessions()
-  const clineSession = sessions4b.find(s => s.session_id === 'cline-001')
-  const backupSession = sessions4b.find(s => s.session_id === 'backup-001')
+  const clineSession = sessions4b.find(s => s.session_id && s.session_id.startsWith('cline-001'))
+  const backupSession = sessions4b.find(s => s.session_id && s.session_id.startsWith('backup-001'))
   assert(clineSession == null, 'Excluded .cline session not in index')
   assert(backupSession != null, 'Sibling .cline-backup session NOT wrongly excluded (no false positive)')
 
@@ -202,8 +202,8 @@ async function main () {
   await engine5.open()
 
   const baseDir5 = fs.mkdtempSync(path.join(os.tmpdir(), 'syn-sec-'))
-  const excludedDir5 = path.join(baseDir5, '.EXCLUDED')
-  const includedDir5 = path.join(baseDir5, '.included')
+  const excludedDir5 = path.join(baseDir5, '.cline-EXCLUDED')
+  const includedDir5 = path.join(baseDir5, '.cline-included')
   fs.mkdirSync(path.join(excludedDir5, 'sessions'), { recursive: true })
   fs.mkdirSync(path.join(includedDir5, 'sessions'), { recursive: true })
 
@@ -215,20 +215,19 @@ async function main () {
     session_id: 'in-001', title: 'Included', role: 'user', content: 'Should be indexed'
   }) + '\n')
 
-  // On case-insensitive platforms (Windows/macOS), exclusion path case should not matter
+  // Use a different case than the on-disk directory so POSIX (case-sensitive)
+  // does NOT match, while Windows/macOS (case-insensitive) DOES match.
   const engine5b = new IndexingEngine(TEST_DB5, {
     redactSecrets: false,
-    excludedPaths: [process.platform === 'win32' || process.platform === 'darwin'
-      ? path.join(baseDir5, '.excluded') // different case
-      : excludedDir5]
+    excludedPaths: [path.join(baseDir5, '.cline-excluded')]
   })
   await engine5b.open()
 
   const sourceId5b = engine5b.addSource(baseDir5, 'Cline')
   await engine5b.indexSource(sourceId5b)
   const sessions5b = engine5b.listSessions()
-  const exSession = sessions5b.find(s => s.session_id === 'ex-001')
-  const inSession = sessions5b.find(s => s.session_id === 'in-001')
+  const exSession = sessions5b.find(s => s.session_id && s.session_id.startsWith('ex-001'))
+  const inSession = sessions5b.find(s => s.session_id && s.session_id.startsWith('in-001'))
   if (process.platform === 'win32' || process.platform === 'darwin') {
     assert(exSession == null, 'Case-insensitive exclusion matched despite different case')
     assert(inSession != null, 'Non-excluded session still indexed')
@@ -248,8 +247,8 @@ async function main () {
   await engine6.open()
 
   const baseDir6 = fs.mkdtempSync(path.join(os.tmpdir(), 'syn-sec-'))
-  const exactDir = path.join(baseDir6, 'exact-exclude')
-  const siblingDir = path.join(baseDir6, 'exact-exclude-sibling')
+  const exactDir = path.join(baseDir6, '.cline-exact-exclude')
+  const siblingDir = path.join(baseDir6, '.cline-exact-exclude-sibling')
   fs.mkdirSync(path.join(exactDir, 'sessions'), { recursive: true })
   fs.mkdirSync(path.join(siblingDir, 'sessions'), { recursive: true })
 
@@ -271,8 +270,8 @@ async function main () {
   const sourceId6b = engine6b.addSource(baseDir6, 'Cline')
   await engine6b.indexSource(sourceId6b)
   const sessions6b = engine6b.listSessions()
-  const exactSession = sessions6b.find(s => s.session_id === 'exact-001')
-  const siblingSession = sessions6b.find(s => s.session_id === 'sibling-001')
+  const exactSession = sessions6b.find(s => s.session_id && s.session_id.startsWith('exact-001'))
+  const siblingSession = sessions6b.find(s => s.session_id && s.session_id.startsWith('sibling-001'))
   assert(exactSession == null, 'Exact-match excluded directory not indexed')
   assert(siblingSession != null, 'Sibling with similar prefix NOT wrongly excluded')
 
@@ -297,16 +296,16 @@ async function main () {
   const clineDir7 = path.join(baseDir7, '.cline', 'sessions')
   fs.mkdirSync(clineDir7, { recursive: true })
 
-  fs.writeFileSync(path.join(clineDir7, 'custom-token.jsonl'), JSON.stringify([
+  fs.writeFileSync(path.join(clineDir7, 'custom-token.jsonl'), [
     { session_id: 'ct-001', title: 'Custom Token', role: 'user', content: 'Key: syn_token_abcdefghijklmnopqrstuvwx' },
     { session_id: 'ct-001', title: 'Custom Token', role: 'assistant', content: 'Legacy: legacy_mysecretkey123456' },
     { session_id: 'ct-001', title: 'Custom Token', role: 'user', content: 'No secret here' }
-  ]).join('\n') + '\n')
+  ].map(l => JSON.stringify(l)).join('\n') + '\n')
 
   const sourceId7 = engine7.addSource(baseDir7, 'Cline')
   await engine7.indexSource(sourceId7)
   const sessions7 = engine7.listSessions()
-  const ctSession = sessions7.find(s => s.session_id === 'ct-001')
+  const ctSession = sessions7.find(s => s.session_id && s.session_id.startsWith('ct-001'))
   assert(ctSession != null, 'Custom token session indexed')
   if (ctSession) {
     const full7 = engine7.getSession(ctSession.session_id)

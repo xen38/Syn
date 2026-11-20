@@ -219,8 +219,25 @@ class IndexingEngine {
       return this
     }
 
-    this.db.exec('PRAGMA journal_mode = WAL')
-    this.db.exec('PRAGMA synchronous = NORMAL')
+    try {
+      this.db.exec('PRAGMA journal_mode = WAL')
+      this.db.exec('PRAGMA synchronous = NORMAL')
+    } catch (err) {
+      // DB appears valid but exec fails — treat as corrupt
+      this.dbHealth = 'corrupt'
+      const buffer2 = fs.readFileSync(this.dbPath)
+      if (buffer2 && buffer2.length > 0) {
+        const ts = new Date().toISOString().replace(/[:.]/g, '-')
+        const backupPath = this.dbPath + '.corrupt-' + ts + '.bak'
+        try {
+          fs.writeFileSync(backupPath, buffer2)
+        } catch (_) {}
+      }
+      try { this.db.close() } catch (_) {}
+      this.db = null
+      return this
+    }
+
     this._createSchema()
     // Persist initial empty DB to disk so the file exists after open()
     if (!fs.existsSync(this.dbPath)) {

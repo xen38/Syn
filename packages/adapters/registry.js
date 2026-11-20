@@ -63,8 +63,8 @@ function makeClineValidator () {
     const parts = filePath.split(/[\\/]/)
     // Cline sessions can be .json, .jsonl, .md, or .txt
     if (!['.json', '.jsonl', '.md', '.txt'].includes(ext)) return false
-    // Must be under a cline directory (e.g. .cline, cline)
-    if (!parts.some(p => p === '.cline' || p === 'cline')) return false
+    // Must be under a cline directory (e.g. .cline, cline, .cline-backup, cline-archive)
+    if (!parts.some(p => p === '.cline' || p === 'cline' || p.startsWith('.cline-') || p.startsWith('cline-'))) return false
     // Must be in a "sessions" directory
     if (!parts.includes('sessions')) return false
     // Exclude companion messages files (e.g. session_XXX.messages.json)
