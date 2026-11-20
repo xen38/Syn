@@ -1020,8 +1020,7 @@ a { color: #ffffff; }
   background: transparent;
   border: 1px solid #555555;
   border-radius: 4px;
-  color: #ffffff;
-  color: #ffffff;
+  color: #000000;
   font-size: 14px;
   cursor: pointer;
   display: flex;
@@ -1462,7 +1461,7 @@ a { color: #ffffff; }
 }
 
 /* Window header (title bar) for the separate BrowserWindow.
-   Drag region is only on the title area, NOT the action buttons,
+   The whole header is a drag region EXCEPT the action buttons,
    so clicking Minimize/Maximize/Close always fires click events. */
 .brain-vault-window-header {
   display: flex;
@@ -1473,7 +1472,7 @@ a { color: #ffffff; }
   background: #0d0d0d;
   border-bottom: 1px solid #333333;
   cursor: default;
-  -webkit-app-region: no-drag;
+  -webkit-app-region: drag;
 }
 
 .brain-vault-window-title-wrap {
@@ -1481,7 +1480,7 @@ a { color: #ffffff; }
   align-items: center;
   gap: 8px;
   flex: 1;
-  -webkit-app-region: drag;
+  /* inherits drag from header */
 }
 
 .brain-vault-window-title {
@@ -1528,6 +1527,27 @@ a { color: #ffffff; }
   background: #2a1a1a;
   border-color: #ff4444;
   color: #ff4444;
+}
+
+/* ── Resize handles for frameless Brain Vault window ── */
+.bv-resize {
+  position: fixed;
+  background: transparent;
+  z-index: 10;
+  -webkit-app-region: no-drag;
+}
+.bv-resize-n { top: 0; left: 12px; right: 12px; height: 8px; cursor: n-resize; }
+.bv-resize-s { bottom: 0; left: 12px; right: 12px; height: 8px; cursor: s-resize; }
+.bv-resize-e { top: 12px; bottom: 12px; right: 0; width: 8px; cursor: e-resize; }
+.bv-resize-w { top: 12px; bottom: 12px; left: 0; width: 8px; cursor: w-resize; }
+.bv-resize-nw { top: 0; left: 0; width: 12px; height: 12px; cursor: nw-resize; }
+.bv-resize-ne { top: 0; right: 0; width: 12px; height: 12px; cursor: ne-resize; }
+.bv-resize-sw { bottom: 0; left: 0; width: 12px; height: 12px; cursor: sw-resize; }
+.bv-resize-se { bottom: 0; right: 0; width: 12px; height: 12px; cursor: se-resize; }
+/* Make corner handles slightly visible so users know they exist */
+.bv-resize-nw, .bv-resize-ne, .bv-resize-sw, .bv-resize-se {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 /* Toolbar */

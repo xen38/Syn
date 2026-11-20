@@ -154,6 +154,7 @@ function createBrainVaultWindow () {
     minHeight: 400,
     icon: windowIcon,
     frame: false, // custom title bar; window controls handled via IPC
+    resizable: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -734,6 +735,29 @@ ipcMain.handle('brainVaultWindow:maximize', async () => {
 ipcMain.handle('brainVaultWindow:close', async () => {
   if (brainVaultWindow) brainVaultWindow.close()
   return { ok: true }
+})
+
+ipcMain.handle('brainVaultWindow:setBounds', async (event, bounds) => {
+  if (brainVaultWindow) {
+    try {
+      await brainVaultWindow.setBounds(bounds)
+      return { ok: true }
+    } catch (e) {
+      throw new Error(`Failed to set bounds: ${e.message}`)
+    }
+  }
+  return { ok: false }
+})
+
+ipcMain.handle('brainVaultWindow:getBounds', async () => {
+  if (brainVaultWindow) {
+    try {
+      return brainVaultWindow.getBounds()
+    } catch (e) {
+      throw new Error(`Failed to get bounds: ${e.message}`)
+    }
+  }
+  return null
 })
 
 ipcMain.handle('brain:rename', async (event, oldPath, newPath) => {

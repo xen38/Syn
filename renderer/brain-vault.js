@@ -139,6 +139,88 @@ let pendingCloseTabId = null // tabId waiting for confirm
 
 let brainVaultInitialized = false
 
+// ── Resize handles (frameless window borders) ──
+const resizeHandles = document.querySelectorAll('.bv-resize')
+
+// ── Resize state ──
+let isResizing = false
+let resizeEdge = ''
+let resizeStart = { x: 0, y: 0 }
+let resizeStartBounds = { x: 0, y: 0, width: 0, height: 0 }
+
+// ── Resize handle wiring ──
+function startResize (edge, e) {
+  e.preventDefault()
+  e.stopPropagation()
+  isResizing = true
+  resizeEdge = edge
+  resizeStart = { x: e.clientX, y: e.clientY }
+  if (synAPI && typeof synAPI.brainVaultWindowGetBounds === 'function') {
+    try {
+      const bounds = synAPI.brainVaultWindowGetBounds()
+      if (bounds) resizeStartBounds = bounds
+    } catch (err) {
+      // ignore
+    }
+  }
+  document.addEventListener('mousemove', onResizeMove)
+  document.addEventListener('mouseup', onResizeUp)
+}
+
+function onResizeMove (e) {
+  if (!isResizing) return
+  const dx = e.clientX - resizeStart.x
+  const dy = e.clientY - resizeStart.y
+  let w = resizeStartBounds.width
+  let h = resizeStartBounds.height
+  let x = resizeStartBounds.x
+  let y = resizeStartBounds.y
+  const minW = 600
+  const minH = 400
+  if (resizeEdge.includes('w')) {
+    w = Math.max(minW, w - dx)
+    x = resizeStartBounds.x + dx
+  }
+  if (resizeEdge.includes('e')) {
+    w = Math.max(minW, w + dx)
+  }
+  if (resizeEdge.includes('n')) {
+    h = Math.max(minH, h - dy)
+    y = resizeStartBounds.y + dy
+  }
+  if (resizeEdge.includes('s')) {
+    h = Math.max(minH, h + dy)
+  }
+  if (synAPI && typeof synAPI.brainVaultWindowSetBounds === 'function') {
+    synAPI.brainVaultWindowSetBounds({ x, y, width: w, height: h }).catch(() => {})
+  }
+  // Also resize canvas immediately for responsiveness
+  resizeCanvas()
+}
+
+function onResizeUp () {
+  isResizing = false
+  resizeEdge = ''
+  document.removeEventListener('mousemove', onResizeMove)
+  document.removeEventListener('mouseup', onResizeUp)
+}
+
+resizeHandles.forEach(handle => {
+  handle.addEventListener('mousedown', (e) => {
+    const cls = handle.classList
+    let edge = ''
+    if (cls.contains('bv-resize-nw')) edge = 'nw'
+    else if (cls.contains('bv-resize-ne')) edge = 'ne'
+    else if (cls.contains('bv-resize-sw')) edge = 'sw'
+    else if (cls.contains('bv-resize-se')) edge = 'se'
+    else if (cls.contains('bv-resize-n')) edge = 'n'
+    else if (cls.contains('bv-resize-s')) edge = 's'
+    else if (cls.contains('bv-resize-e')) edge = 'e'
+    else if (cls.contains('bv-resize-w')) edge = 'w'
+    startResize(edge, e)
+  })
+})
+
 // ── Window controls (native OS buttons via IPC) ──
 if (bvBtnClose) {
   bvBtnClose.addEventListener('click', async (e) => {
@@ -191,6 +273,8 @@ document.addEventListener('keydown', (e) => {
 })
 
 // ── Initialize ──
+let loadBrainVaultRunning = false
+
 async function init () {
   try {
     await loadBrainVault()
@@ -229,102 +313,128 @@ init()
 
 // ── Load brain vault ──
 async function loadBrainVault () {
-  if (!synAPI) {
-    showDiagnostic('Brain Vault: synAPI bridge not available (contextBridge may not be exposed in this window).')
+  // Guard against concurrent execution (init() + onload + onBvWindowShown can race)
+  if (loadBrainVaultRunning) {
+    console.log('[Brain Vault] loadBrainVault already running, skipping duplicate call')
     return
   }
+  loadBrainVaultRunning = true
 
-  if (!bvGraphCanvas || !bvGraphContainer || !bvGraphEmpty) {
-    showDiagnostic('Brain Vault: required DOM elements missing.')
-    return
-  }
-
-  let files
   try {
-    files = await synAPI.brainList()
-  } catch (e) {
-    showDiagnostic('Brain Vault: brainList() failed — ' + escapeHtml(e.message))
-    return
-  }
-  brainFiles = files || []
-  updateStatus('synAPI OK · ' + brainFiles.length + ' vault files')
-
-  if (brainFiles.length === 0) {
-    showDiagnostic('Brain Vault: brainList() returned 0 files. Check that brain/ directory exists at ' + (await synAPI.brainDir ? (await synAPI.brainDir()).path : 'unknown'))
-    bvGraphCanvas.style.display = 'none'
-    bvGraphEmpty.style.display = 'block'
-    return
-  }
-  ctx = bvGraphCanvas.getContext('2d')
-
-  if (!brainFiles || brainFiles.length === 0) {
-    bvGraphCanvas.style.display = 'none'
-    bvGraphEmpty.style.display = 'block'
-    return
-  }
-
-  bvGraphCanvas.style.display = 'block'
-  bvGraphEmpty.style.display = 'none'
-
-  // Read each file and extract [[wikilink]] references
-  nodes = new Map()
-  edges = []
-
-  for (const file of brainFiles) {
-    nodes.set(file, { id: file, label: file.replace(/\.md$/, ''), x: 0, y: 0, vx: 0, vy: 0, fixed: false })
-  }
-
-  for (const file of brainFiles) {
-    let result
-    try {
-      result = await synAPI.brainRead(file)
-    } catch (e) {
-      console.error('Failed to read ' + file + ':', e)
-      continue
+    if (!synAPI) {
+      showDiagnostic('Brain Vault: synAPI bridge not available (contextBridge may not be exposed in this window).')
+      loadBrainVaultRunning = false
+      return
     }
-    if (!result.ok) continue
-    const content = result.content || ''
-    const linkRe = /\[\[([^\]]+)\]\]/g
-    let match
-    while ((match = linkRe.exec(content)) !== null) {
-      const target = match[1].replace(/\.md$/, '')
-      const targetFile = nodes.has(target + '.md')
-        ? target + '.md'
-        : nodes.has(target) ? target : null
-      if (targetFile && targetFile !== file) {
-        edges.push({ source: file, target: targetFile })
+
+    if (!bvGraphCanvas || !bvGraphContainer || !bvGraphEmpty) {
+      showDiagnostic('Brain Vault: required DOM elements missing.')
+      return
+    }
+
+    let files
+    try {
+      files = await synAPI.brainList()
+    } catch (e) {
+      showDiagnostic('Brain Vault: brainList() failed — ' + escapeHtml(e.message))
+      return
+    }
+    brainFiles = files || []
+    updateStatus('synAPI OK · ' + brainFiles.length + ' vault files')
+
+    if (brainFiles.length === 0) {
+      showDiagnostic('Brain Vault: brainList() returned 0 files. Check that brain/ directory exists at ' + (await synAPI.brainDir ? (await synAPI.brainDir()).path : 'unknown'))
+      bvGraphCanvas.style.display = 'none'
+      bvGraphEmpty.style.display = 'block'
+      return
+    }
+    ctx = bvGraphCanvas.getContext('2d')
+
+    if (!brainFiles || brainFiles.length === 0) {
+      bvGraphCanvas.style.display = 'none'
+      bvGraphEmpty.style.display = 'block'
+      return
+    }
+
+    bvGraphCanvas.style.display = 'block'
+    bvGraphEmpty.style.display = 'none'
+
+    // Read each file and extract [[wikilink]] references
+    nodes = new Map()
+    edges = []
+
+    for (const file of brainFiles) {
+      nodes.set(file, { id: file, label: file.replace(/\.md$/, ''), x: 0, y: 0, vx: 0, vy: 0, fixed: false })
+    }
+
+    for (const file of brainFiles) {
+      let result
+      try {
+        result = await synAPI.brainRead(file)
+      } catch (e) {
+        console.error('Failed to read ' + file + ':', e)
+        continue
+      }
+      if (!result.ok) continue
+      const content = result.content || ''
+      const linkRe = /\[\[([^\]]+)\]\]/g
+      let match
+      while ((match = linkRe.exec(content)) !== null) {
+        const target = match[1].replace(/\.md$/, '')
+        const targetFile = nodes.has(target + '.md')
+          ? target + '.md'
+          : nodes.has(target) ? target : null
+        if (targetFile && targetFile !== file) {
+          edges.push({ source: file, target: targetFile })
+        }
       }
     }
-  }
 
-  // Resize canvas first so layout can fall back to canvas dimensions
-  // when the container hasn't laid out yet (0×0 client size).
-  resizeCanvas()
+    // Resize canvas first so layout can fall back to canvas dimensions
+    // when the container hasn't laid out yet (0×0 client size).
+    resizeCanvas()
 
-  // Force-directed layout
-  const nodeArr = Array.from(nodes.values())
-  const centerX = (bvGraphContainer.clientWidth || bvGraphCanvas.width) / 2
-  const centerY = (bvGraphContainer.clientHeight || bvGraphCanvas.height) / 2
+    // Force-directed layout
+    const nodeArr = Array.from(nodes.values())
+    const centerX = (bvGraphContainer.clientWidth || bvGraphCanvas.width) / 2
+    const centerY = (bvGraphContainer.clientHeight || bvGraphCanvas.height) / 2
 
-  nodeArr.forEach((n, i) => {
-    const angle = (i / nodeArr.length) * 2 * Math.PI
-    const r = Math.min(centerX, centerY) * 0.35 + Math.random() * 60
-    n.x = centerX + Math.cos(angle) * r
-    n.y = centerY + Math.sin(angle) * r
-    n.vx = 0
-    n.vy = 0
-  })
+    nodeArr.forEach((n, i) => {
+      const angle = (i / nodeArr.length) * 2 * Math.PI
+      const r = Math.min(centerX, centerY) * 0.35 + Math.random() * 60
+      n.x = centerX + Math.cos(angle) * r
+      n.y = centerY + Math.sin(angle) * r
+      n.vx = 0
+      n.vy = 0
+    })
 
-  for (let iter = 0; iter < ITERATIONS; iter++) {
-    for (let i = 0; i < nodeArr.length; i++) {
-      for (let j = i + 1; j < nodeArr.length; j++) {
-        const a = nodeArr[i]
-        const b = nodeArr[j]
-        const dx = a.x - b.x
-        const dy = a.y - b.y
-        const dist2 = dx * dx + dy * dy
-        const dist = Math.sqrt(dist2) || 1
-        const force = REPULSION / dist2
+    for (let iter = 0; iter < ITERATIONS; iter++) {
+      for (let i = 0; i < nodeArr.length; i++) {
+        for (let j = i + 1; j < nodeArr.length; j++) {
+          const a = nodeArr[i]
+          const b = nodeArr[j]
+          const dx = a.x - b.x
+          const dy = a.y - b.y
+          const dist2 = dx * dx + dy * dy
+          const dist = Math.sqrt(dist2) || 1
+          const force = REPULSION / dist2
+          const fx = (dx / dist) * force
+          const fy = (dy / dist) * force
+          a.vx += fx
+          a.vy += fy
+          b.vx -= fx
+          b.vy -= fy
+        }
+      }
+
+      for (const e of edges) {
+        const a = nodes.get(e.source)
+        const b = nodes.get(e.target)
+        if (!a || !b) continue
+        const dx = b.x - a.x
+        const dy = b.y - a.y
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1
+        const force = (dist - MIN_DIST) * ATTRACTION
         const fx = (dx / dist) * force
         const fy = (dy / dist) * force
         a.vx += fx
@@ -332,153 +442,139 @@ async function loadBrainVault () {
         b.vx -= fx
         b.vy -= fy
       }
+
+      for (const n of nodeArr) {
+        n.vx *= DAMPING
+        n.vy *= DAMPING
+        const dx = centerX - n.x
+        const dy = centerY - n.y
+        n.vx += dx * 0.005
+        n.vy += dy * 0.005
+        n.x += n.vx
+        n.y += n.vy
+      }
     }
 
-    for (const e of edges) {
-      const a = nodes.get(e.source)
-      const b = nodes.get(e.target)
-      if (!a || !b) continue
-      const dx = b.x - a.x
-      const dy = b.y - a.y
-      const dist = Math.sqrt(dx * dx + dy * dy) || 1
-      const force = (dist - MIN_DIST) * ATTRACTION
-      const fx = (dx / dist) * force
-      const fy = (dy / dist) * force
-      a.vx += fx
-      a.vy += fy
-      b.vx -= fx
-      b.vy -= fy
-    }
+    // Draw now so the graph appears even when loadBrainVault() runs after the
+    // window has been shown (the canvas was 0x0 on the first hidden run).
+    updateStatus('synAPI OK · ' + brainFiles.length + ' files · ' + nodes.size + ' nodes · ' + edges.length + ' links · canvas ' + bvGraphCanvas.width + '×' + bvGraphCanvas.height)
+    render()
 
-    for (const n of nodeArr) {
-      n.vx *= DAMPING
-      n.vy *= DAMPING
-      const dx = centerX - n.x
-      const dy = centerY - n.y
-      n.vx += dx * 0.005
-      n.vy += dy * 0.005
-      n.x += n.vx
-      n.y += n.vy
-    }
-  }
+    // ── Idempotency: event listeners once ──
+    if (!brainVaultInitialized) {
+      brainVaultInitialized = true
 
-  // Draw now so the graph appears even when loadBrainVault() runs after the
-  // window has been shown (the canvas was 0x0 on the first hidden run).
-  updateStatus('synAPI OK · ' + brainFiles.length + ' files · ' + nodes.size + ' nodes · ' + edges.length + ' links · canvas ' + bvGraphCanvas.width + '×' + bvGraphCanvas.height)
-  render()
-
-  // ── Idempotency: event listeners once ──
-  if (!brainVaultInitialized) {
-    brainVaultInitialized = true
-
-    // ── Mouse interactions ──
-    bvGraphCanvas.addEventListener('mousedown', (e) => {
+      // ── Mouse interactions ──
+      bvGraphCanvas.addEventListener('mousedown', (e) => {
       // Right-click opens background menu
-      if (e.button === 2) {
-        e.preventDefault()
+        if (e.button === 2) {
+          e.preventDefault()
+          const rect = bvGraphCanvas.getBoundingClientRect()
+          const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
+          const node = getNodeAt(world.x, world.y)
+          if (node) {
+          // Node right-click: show node menu
+            e.stopPropagation()
+            ctxTargetNode = node
+            showNodeMenu(e.clientX, e.clientY)
+          } else {
+          // Background right-click: show graph menu
+            e.stopPropagation()
+            showGraphMenu(e.clientX, e.clientY)
+          }
+          return
+        }
+
         const rect = bvGraphCanvas.getBoundingClientRect()
         const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
         const node = getNodeAt(world.x, world.y)
         if (node) {
-          // Node right-click: show node menu
+          e.preventDefault()
           e.stopPropagation()
-          ctxTargetNode = node
-          showNodeMenu(e.clientX, e.clientY)
+          selectedNode = node
+          openNote(node.id)
+          isDragging = false
         } else {
-          // Background right-click: show graph menu
-          e.stopPropagation()
-          showGraphMenu(e.clientX, e.clientY)
+          isDragging = true
+          dragStart = { x: e.clientX - rect.left, y: e.clientY - rect.top }
         }
-        return
-      }
+      })
 
-      const rect = bvGraphCanvas.getBoundingClientRect()
-      const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
-      const node = getNodeAt(world.x, world.y)
-      if (node) {
+      bvGraphCanvas.addEventListener('mousemove', (e) => {
+        const rect = bvGraphCanvas.getBoundingClientRect()
+        const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
+        const node = getNodeAt(world.x, world.y)
+        hoveredNode = node
+        bvGraphCanvas.style.cursor = node ? 'pointer' : 'grab'
+        if (node) {
+          const s = worldToScreen(node.x, node.y)
+          bvGraphTooltip.style.display = 'block'
+          bvGraphTooltip.style.left = (s.x + 18) + 'px'
+          bvGraphTooltip.style.top = (s.y - 28) + 'px'
+          bvGraphTooltip.textContent = node.label
+        } else {
+          bvGraphTooltip.style.display = 'none'
+        }
+        if (isDragging) {
+          offsetX += (e.clientX - rect.left - dragStart.x) / scale
+          offsetY += (e.clientY - rect.top - dragStart.y) / scale
+          dragStart = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+        }
+      })
+
+      bvGraphCanvas.addEventListener('mouseup', () => { isDragging = false })
+
+      bvGraphCanvas.addEventListener('wheel', (e) => {
         e.preventDefault()
-        e.stopPropagation()
-        selectedNode = node
-        openNote(node.id)
-        isDragging = false
-      } else {
-        isDragging = true
-        dragStart = { x: e.clientX - rect.left, y: e.clientY - rect.top }
-      }
-    })
+        const rect = bvGraphCanvas.getBoundingClientRect()
+        const worldBefore = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
+        const delta = -e.deltaY * 0.001
+        let newScale = scale * (1 + delta)
+        newScale = Math.min(Math.max(newScale, MIN_SCALE), MAX_SCALE)
+        const worldAfter = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
+        offsetX += worldBefore.x - worldAfter.x
+        offsetY += worldBefore.y - worldAfter.y
+        scale = newScale
+      }, { passive: false })
 
-    bvGraphCanvas.addEventListener('mousemove', (e) => {
-      const rect = bvGraphCanvas.getBoundingClientRect()
-      const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
-      const node = getNodeAt(world.x, world.y)
-      hoveredNode = node
-      bvGraphCanvas.style.cursor = node ? 'pointer' : 'grab'
-      if (node) {
-        const s = worldToScreen(node.x, node.y)
-        bvGraphTooltip.style.display = 'block'
-        bvGraphTooltip.style.left = (s.x + 18) + 'px'
-        bvGraphTooltip.style.top = (s.y - 28) + 'px'
-        bvGraphTooltip.textContent = node.label
-      } else {
-        bvGraphTooltip.style.display = 'none'
-      }
-      if (isDragging) {
-        offsetX += (e.clientX - rect.left - dragStart.x) / scale
-        offsetY += (e.clientY - rect.top - dragStart.y) / scale
-        dragStart = { x: e.clientX - rect.left, y: e.clientY - rect.top }
-      }
-    })
+      // ── Drag & Drop: accept session dragged from Syn main window ──
+      bvGraphContainer.addEventListener('dragover', (e) => {
+        e.preventDefault()
+        bvGraphContainer.classList.add('drag-over')
+      })
 
-    bvGraphCanvas.addEventListener('mouseup', () => { isDragging = false })
+      bvGraphContainer.addEventListener('dragleave', () => {
+        bvGraphContainer.classList.remove('drag-over')
+      })
 
-    bvGraphCanvas.addEventListener('wheel', (e) => {
-      e.preventDefault()
-      const rect = bvGraphCanvas.getBoundingClientRect()
-      const worldBefore = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
-      const delta = -e.deltaY * 0.001
-      let newScale = scale * (1 + delta)
-      newScale = Math.min(Math.max(newScale, MIN_SCALE), MAX_SCALE)
-      const worldAfter = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
-      offsetX += worldBefore.x - worldAfter.x
-      offsetY += worldBefore.y - worldAfter.y
-      scale = newScale
-    }, { passive: false })
+      bvGraphContainer.addEventListener('drop', async (e) => {
+        e.preventDefault()
+        bvGraphContainer.classList.remove('drag-over')
+        const sessionId = e.dataTransfer.getData('text/syn-session-id')
+        if (sessionId) {
+          await createNoteFromSession(sessionId)
+        }
+      })
 
-    // ── Drag & Drop: accept session dragged from Syn main window ──
-    bvGraphContainer.addEventListener('dragover', (e) => {
-      e.preventDefault()
-      bvGraphContainer.classList.add('drag-over')
-    })
-
-    bvGraphContainer.addEventListener('dragleave', () => {
-      bvGraphContainer.classList.remove('drag-over')
-    })
-
-    bvGraphContainer.addEventListener('drop', async (e) => {
-      e.preventDefault()
-      bvGraphContainer.classList.remove('drag-over')
-      const sessionId = e.dataTransfer.getData('text/syn-session-id')
-      if (sessionId) {
-        await createNoteFromSession(sessionId)
-      }
-    })
-
-    // Zoom controls
-    document.getElementById('bvGraphZoomIn').addEventListener('click', () => {
-      scale = Math.min(scale * 1.2, MAX_SCALE)
-      document.getElementById('bvGraphZoomVal').textContent = Math.round(scale * 100)
-    })
-    document.getElementById('bvGraphZoomOut').addEventListener('click', () => {
-      scale = Math.max(scale / 1.2, MIN_SCALE)
-      document.getElementById('bvGraphZoomVal').textContent = Math.round(scale * 100)
-    })
-    document.getElementById('bvGraphReset').addEventListener('click', () => {
-      scale = 1
-      offsetX = 0
-      offsetY = 0
-      document.getElementById('bvGraphZoomVal').textContent = '100'
-    })
-  } // end idempotency guard
+      // Zoom controls
+      document.getElementById('bvGraphZoomIn').addEventListener('click', () => {
+        scale = Math.min(scale * 1.2, MAX_SCALE)
+        document.getElementById('bvGraphZoomVal').textContent = Math.round(scale * 100)
+      })
+      document.getElementById('bvGraphZoomOut').addEventListener('click', () => {
+        scale = Math.max(scale / 1.2, MIN_SCALE)
+        document.getElementById('bvGraphZoomVal').textContent = Math.round(scale * 100)
+      })
+      document.getElementById('bvGraphReset').addEventListener('click', () => {
+        scale = 1
+        offsetX = 0
+        offsetY = 0
+        document.getElementById('bvGraphZoomVal').textContent = '100'
+      })
+    } // end idempotency guard
+  } finally {
+    loadBrainVaultRunning = false
+  }
 }
 
 // ── Resize canvas ──
@@ -1277,4 +1373,3 @@ function escapeCssId (id) {
 }
 
 // ── Start ──
-init()

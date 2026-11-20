@@ -47,7 +47,9 @@ const synAPI = {
   brainVaultWindowMinimize: () => ipcRenderer.invoke('brainVaultWindow:minimize'),
   brainVaultWindowMaximize: () => ipcRenderer.invoke('brainVaultWindow:maximize'),
   brainVaultWindowClose: () => ipcRenderer.invoke('brainVaultWindow:close'),
-    brainDir: () => ipcRenderer.invoke('brain:dir'),
+  brainVaultWindowSetBounds: (bounds) => ipcRenderer.invoke('brainVaultWindow:setBounds', bounds),
+  brainVaultWindowGetBounds: () => ipcRenderer.invoke('brainVaultWindow:getBounds'),
+  brainDir: () => ipcRenderer.invoke('brain:dir'),
 
   // Brain Vault window shown notification (for canvas resize)
   onBvWindowShown: (cb) => ipcRenderer.on('bv:window-shown', cb),
