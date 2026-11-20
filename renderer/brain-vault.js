@@ -114,39 +114,45 @@ let pendingCloseTabId = null // tabId waiting for confirm
 let brainVaultInitialized = false
 
 // ── Window controls (native OS buttons via IPC) ──
-bvBtnClose.addEventListener('click', async (e) => {
-  e.stopPropagation()
-  if (await checkUnsavedClose()) {
-    await synAPI.brainVaultWindowClose()
-  }
-})
+if (bvBtnClose) {
+  bvBtnClose.addEventListener('click', async (e) => {
+    e.stopPropagation()
+    if (await checkUnsavedClose()) {
+      await synAPI.brainVaultWindowClose()
+    }
+  })
+}
 
-bvBtnMinimize.addEventListener('click', () => {
-  synAPI.brainVaultWindowMinimize()
-})
+if (bvBtnMinimize) {
+  bvBtnMinimize.addEventListener('click', () => {
+    synAPI.brainVaultWindowMinimize()
+  })
+}
 
-bvBtnMaximize.addEventListener('click', () => {
-  synAPI.brainVaultWindowMaximize()
-})
+if (bvBtnMaximize) {
+  bvBtnMaximize.addEventListener('click', () => {
+    synAPI.brainVaultWindowMaximize()
+  })
+}
 
 // ── Escape / click outside closes context menus ──
 document.addEventListener('click', (e) => {
-  if (bvGraphCtxMenu.style.display === 'block' && !bvGraphCtxMenu.contains(e.target)) {
+  if (bvGraphCtxMenu && bvGraphCtxMenu.style.display === 'block' && !bvGraphCtxMenu.contains(e.target)) {
     bvGraphCtxMenu.style.display = 'none'
   }
-  if (bvNodeCtxMenu.style.display === 'block' && !bvNodeCtxMenu.contains(e.target)) {
+  if (bvNodeCtxMenu && bvNodeCtxMenu.style.display === 'block' && !bvNodeCtxMenu.contains(e.target)) {
     bvNodeCtxMenu.style.display = 'none'
   }
 })
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    bvGraphCtxMenu.style.display = 'none'
-    bvNodeCtxMenu.style.display = 'none'
-    if (bvConfirmOverlay.style.display === 'flex') hideConfirm()
-    if (bvRenameOverlay.style.display === 'flex' && !bvRenameOverlay.classList.contains('hidden')) hideRename()
-    if (bvCreateOverlay.style.display === 'flex' && !bvCreateOverlay.classList.contains('hidden')) hideCreate()
-    if (bvImportOverlay.style.display === 'flex' && !bvImportOverlay.classList.contains('hidden')) hideImport()
+    if (bvGraphCtxMenu) bvGraphCtxMenu.style.display = 'none'
+    if (bvNodeCtxMenu) bvNodeCtxMenu.style.display = 'none'
+    if (bvConfirmOverlay && bvConfirmOverlay.style.display === 'flex') hideConfirm()
+    if (bvRenameOverlay && bvRenameOverlay.style.display === 'flex' && !bvRenameOverlay.classList.contains('hidden')) hideRename()
+    if (bvCreateOverlay && bvCreateOverlay.style.display === 'flex' && !bvCreateOverlay.classList.contains('hidden')) hideCreate()
+    if (bvImportOverlay && bvImportOverlay.style.display === 'flex' && !bvImportOverlay.classList.contains('hidden')) hideImport()
   }
 })
 
@@ -171,13 +177,41 @@ window.addEventListener('load', () => {
 
 window.addEventListener('resize', resizeCanvas)
 
-synAPI.onBvWindowShown(() => {
-  try { loadBrainVault() } catch (e) { console.error('Brain vault window-shown error:', e) }
-})
+// Only wire up the window-shown trigger if synAPI is available.
+// If synAPI is undefined (contextBridge not exposed), init() will still
+// attempt loadBrainVault() on its own.
+if (synAPI && typeof synAPI.onBvWindowShown === 'function') {
+  synAPI.onBvWindowShown(() => {
+    try { loadBrainVault() } catch (e) { console.error('Brain vault window-shown error:', e) }
+  })
+} else {
+  console.warn('synAPI not available — Brain Vault IPC features will be limited')
+}
 
 // ── Load brain vault ──
 async function loadBrainVault () {
-  const files = await synAPI.brainList()
+  if (!synAPI) {
+    bvGraphEmpty.textContent = 'Brain Vault error: synAPI bridge not available (contextBridge may not be exposed in this window).'
+    bvGraphEmpty.style.display = 'block'
+    bvGraphCanvas.style.display = 'none'
+    return
+  }
+
+  if (!bvGraphCanvas || !bvGraphContainer || !bvGraphEmpty) {
+    bvGraphEmpty.textContent = 'Brain Vault error: required DOM elements missing.'
+    bvGraphEmpty.style.display = 'block'
+    return
+  }
+
+  let files
+  try {
+    files = await synAPI.brainList()
+  } catch (e) {
+    bvGraphEmpty.textContent = 'Brain Vault error: ' + escapeHtml(e.message)
+    bvGraphEmpty.style.display = 'block'
+    bvGraphCanvas.style.display = 'none'
+    return
+  }
   brainFiles = files || []
   ctx = bvGraphCanvas.getContext('2d')
 
@@ -199,7 +233,13 @@ async function loadBrainVault () {
   }
 
   for (const file of brainFiles) {
-    const result = await synAPI.brainRead(file)
+    let result
+    try {
+      result = await synAPI.brainRead(file)
+    } catch (e) {
+      console.error('Failed to read ' + file + ':', e)
+      continue
+    }
     if (!result.ok) continue
     const content = result.content || ''
     const linkRe = /\[\[([^\]]+)\]\]/g
@@ -406,9 +446,12 @@ function resizeCanvas () {
   // (body has height:100% but no display:flex, so container can report 0×0).
   if (!w || !h) {
     const rect = bvGraphContainer.getBoundingClientRect()
-    w = rect.width || window.innerWidth
+    w = rect.width || window.innerWidth || 900
     h = rect.height || Math.max(window.innerHeight - 120, 400)
   }
+  // Ensure minimum dimensions so the canvas is never 0x0
+  w = Math.max(w, 400)
+  h = Math.max(h, 300)
   if (bvGraphCanvas.width !== w || bvGraphCanvas.height !== h) {
     bvGraphCanvas.width = w
     bvGraphCanvas.height = h
@@ -436,9 +479,9 @@ function drawNode (ctx, n, isHover, isSelected) {
   const r = 14
   ctx.beginPath()
   ctx.arc(s.x, s.y, r, 0, Math.PI * 2)
-  ctx.fillStyle = isSelected ? '#53C68B' : (isHover ? '#1a1a1a' : '#111111')
+  ctx.fillStyle = isSelected ? '#53C68B' : (isHover ? '#4a90e2' : '#6b7280')
   ctx.fill()
-  ctx.strokeStyle = isSelected || isHover ? '#53C68B' : '#333333'
+  ctx.strokeStyle = isSelected || isHover ? '#53C68B' : '#9ca3af'
   ctx.lineWidth = 2
   ctx.stroke()
   ctx.fillStyle = '#cccccc'
