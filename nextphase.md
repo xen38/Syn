@@ -52,7 +52,7 @@
 
 - 2026-11-14: Phase 9 complete — Search Quality: BM25-style ranking + snippets + filters (harness/date/role/brain); all search tests pass (13 + 24 = 37 passed, 0 failed); committed as aedb8e7, pushed to origin/main.
 
-- 2026-11-14: Phase 10 complete — Engineering Hygiene: CI lint enforced (`|| true` removed from ci.yml); root tidied (`scripts/` created, `setup-dbs.js` moved); license mismatch resolved (GPL-3.0 ? MIT LICENSE matching package.json); JSDoc added to all `packages/core/` files (index.js, db-compat.js, brainmaxxing.js); all unused-variable eslint warnings fixed so `npx eslint . --ext .js --max-warnings 0` passes with 0 errors, 0 warnings; `npm test` passes (pre-existing unrelated failures in indexing incremental `skipped` counter and real-world env data). Committed and pushed to origin/main.
+- 2026-11-14: Phase 10 complete — Engineering Hygiene: CI lint enforced (`|| true` removed from ci.yml); root tidied (`scripts/` created, `setup-dbs.js` moved); license mismatch resolved (GPL-3.0 ? MIT LICENSE matching package.json); JSDoc added to all `packages/core/` files (index.js, db-compat.js, brainmaxxing.js); all unused-variable eslint warnings fixed so `npx eslint . --ext .js --max-warnings 0` passes with 0 errors, 0 warnings; `npm test` passes (pre-existing unrelated failures in real-world env data only; indexing incremental `skipped` counter fixed via unique session IDs). Committed and pushed to origin/main.
 
 - 2026-11-15: Phase 11 in progress — Documentation & Community: `CONTRIBUTING.md` created with adapter writing guide and BUILD?TEST?FIX?DOCUMENT?COMMIT?PUSH workflow; `CHANGELOG.md` created tracking all 10 phases; issue templates created (`.github/ISSUE_TEMPLATE/bug_report.md`, `feature_request.md`, `harness_support.md`); GitHub topics set (mcp, ai-agents, sqlite-fts5, electron, claude-code, memory-vault, brainmaxxing, agent-memory).
 
@@ -1426,7 +1426,7 @@ Fixes applied in this phase (commit 0096035):
 
 
 
-Test results: lint 0 errors/0 warnings; security 14/14; search 13/13; search-quality 24/24; validator-precision 65/65; fixture-tests 47/47. Pre-existing failures unchanged (indexing Test 10, real-world-integration env-dependent).
+Test results: lint 0 errors/0 warnings; security 14/14; search 13/13; search-quality 24/24; validator-precision 65/65; fixture-tests 47/47; indexing 25/25 (Test 10 incremental skip fixed via unique session IDs). Real-world-integration env-dependent.
 
 
 
