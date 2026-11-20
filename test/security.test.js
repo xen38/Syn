@@ -219,7 +219,7 @@ async function main () {
   const engine5b = new IndexingEngine(TEST_DB5, {
     redactSecrets: false,
     excludedPaths: [process.platform === 'win32' || process.platform === 'darwin'
-      ? path.join(baseDir5, '.excluded')  // different case
+      ? path.join(baseDir5, '.excluded') // different case
       : excludedDir5]
   })
   await engine5b.open()

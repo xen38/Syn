@@ -55,7 +55,6 @@ const setup = () => {
   const ctxMenu = document.getElementById('ctxMenu')
   const ctxCopySessionId = document.getElementById('ctxCopySessionId')
   const ctxDeleteEntry = document.getElementById('ctxDeleteEntry')
-  const ctxDeleteFile = document.getElementById('ctxDeleteFile')
   const ctxConfirmOverlay = document.getElementById('ctxConfirmOverlay')
   const ctxConfirmTitle = document.getElementById('ctxConfirmTitle')
   const ctxConfirmMessage = document.getElementById('ctxConfirmMessage')
@@ -68,8 +67,6 @@ const setup = () => {
   // Brain vault panel elements
   const brainVaultPanel = document.getElementById('brainVaultPanel')
   const btnCloseBrainVault = document.getElementById('btnCloseBrainVault')
-  const brainVaultTabs = document.querySelectorAll('.brain-vault-tab')
-  const brainVaultTabContents = document.querySelectorAll('.brain-vault-tab-content')
   const brainVaultIndexContent = document.getElementById('brainVaultIndexContent')
 
   // State
@@ -217,8 +214,9 @@ const setup = () => {
         let match
         while ((match = linkRe.exec(content)) !== null) {
           const target = match[1].replace(/\.md$/, '')
-          const targetFile = nodes.has(target + '.md') ? target + '.md' :
-            nodes.has(target) ? target : null
+          const targetFile = nodes.has(target + '.md')
+            ? target + '.md'
+            : nodes.has(target) ? target : null
           if (targetFile && targetFile !== file) {
             edges.push({ source: file, target: targetFile })
           }
@@ -307,7 +305,6 @@ const setup = () => {
       let hoveredNode = null
       let selectedNode = null
 
-      const ZOOM_STEP = 0.1
       const MIN_SCALE = 0.3
       const MAX_SCALE = 2.5
 
@@ -322,185 +319,184 @@ const setup = () => {
         brainVaultInitialized = true
         window.addEventListener('resize', resizeCanvas)
 
-      function worldToScreen (x, y) {
-        return { x: (x + offsetX) * scale, y: (y + offsetY) * scale }
-      }
-      function screenToWorld (x, y) {
-        return { x: x / scale - offsetX, y: y / scale - offsetY }
-      }
-
-      function getNodeAt (wx, wy) {
-        for (const n of nodeArr) {
-          const dx = n.x - wx
-          const dy = n.y - wy
-          if (dx * dx + dy * dy < 40 * 40) return n
+        function worldToScreen (x, y) {
+          return { x: (x + offsetX) * scale, y: (y + offsetY) * scale }
         }
-        return null
-      }
-
-      function drawNode (ctx, n, isHover, isSelected) {
-        const s = worldToScreen(n.x, n.y)
-        const r = 14
-        ctx.beginPath()
-        ctx.arc(s.x, s.y, r, 0, Math.PI * 2)
-        ctx.fillStyle = isSelected ? '#53C68B' : (isHover ? '#1a1a1a' : '#111111')
-        ctx.fill()
-        ctx.strokeStyle = isSelected || isHover ? '#53C68B' : '#333333'
-        ctx.lineWidth = 2
-        ctx.stroke()
-
-        // Label
-        ctx.fillStyle = '#cccccc'
-        ctx.font = '11px system-ui, sans-serif'
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText(n.label, s.x, s.y + r + 14)
-      }
-
-      function drawEdge (ctx, a, b) {
-        const sa = worldToScreen(a.x, a.y)
-        const sb = worldToScreen(b.x, b.y)
-        const gradient = ctx.createLinearGradient(sa.x, sa.y, sb.x, sb.y)
-        gradient.addColorStop(0, '#4f46e5')
-        gradient.addColorStop(1, '#7c3aed')
-        const cx = (sa.x + sb.x) / 2
-        const cy = (sa.y + sb.y) / 2
-        const dx = sb.x - sa.x
-        const dy = sb.y - sa.y
-        const dist = Math.sqrt(dx * dx + dy * dy) || 1
-        const perpX = -dy / dist
-        const perpY = dx / dist
-        const curve = Math.min(dist * 0.25, 60)
-        ctx.beginPath()
-        ctx.moveTo(sa.x, sa.y)
-        ctx.bezierCurveTo(
-          cx + perpX * curve, cy + perpY * curve,
-          cx + perpX * curve, cy + perpY * curve,
-          sb.x, sb.y
-        )
-        ctx.strokeStyle = gradient
-        ctx.lineWidth = 1.5
-        ctx.stroke()
-      }
-
-      function render () {
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-        // Draw edges first (behind nodes)
-        const seenEdges = new Set()
-        for (const e of edges) {
-          const key = e.source + '->' + e.target
-          if (seenEdges.has(key)) continue
-          seenEdges.add(key)
-          const a = nodes.get(e.source)
-          const b = nodes.get(e.target)
-          if (a && b) drawEdge(ctx, a, b)
+        function screenToWorld (x, y) {
+          return { x: x / scale - offsetX, y: y / scale - offsetY }
         }
 
-        // Draw nodes
-        for (const n of nodeArr) {
-          drawNode(ctx, n, n === hoveredNode, n === selectedNode)
+        function getNodeAt (wx, wy) {
+          for (const n of nodeArr) {
+            const dx = n.x - wx
+            const dy = n.y - wy
+            if (dx * dx + dy * dy < 40 * 40) return n
+          }
+          return null
         }
 
-        requestAnimationFrame(render)
-      }
-      render()
+        function drawNode (ctx, n, isHover, isSelected) {
+          const s = worldToScreen(n.x, n.y)
+          const r = 14
+          ctx.beginPath()
+          ctx.arc(s.x, s.y, r, 0, Math.PI * 2)
+          ctx.fillStyle = isSelected ? '#53C68B' : (isHover ? '#1a1a1a' : '#111111')
+          ctx.fill()
+          ctx.strokeStyle = isSelected || isHover ? '#53C68B' : '#333333'
+          ctx.lineWidth = 2
+          ctx.stroke()
+
+          // Label
+          ctx.fillStyle = '#cccccc'
+          ctx.font = '11px system-ui, sans-serif'
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.fillText(n.label, s.x, s.y + r + 14)
+        }
+
+        function drawEdge (ctx, a, b) {
+          const sa = worldToScreen(a.x, a.y)
+          const sb = worldToScreen(b.x, b.y)
+          const gradient = ctx.createLinearGradient(sa.x, sa.y, sb.x, sb.y)
+          gradient.addColorStop(0, '#4f46e5')
+          gradient.addColorStop(1, '#7c3aed')
+          const cx = (sa.x + sb.x) / 2
+          const cy = (sa.y + sb.y) / 2
+          const dx = sb.x - sa.x
+          const dy = sb.y - sa.y
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1
+          const perpX = -dy / dist
+          const perpY = dx / dist
+          const curve = Math.min(dist * 0.25, 60)
+          ctx.beginPath()
+          ctx.moveTo(sa.x, sa.y)
+          ctx.bezierCurveTo(
+            cx + perpX * curve, cy + perpY * curve,
+            cx + perpX * curve, cy + perpY * curve,
+            sb.x, sb.y
+          )
+          ctx.strokeStyle = gradient
+          ctx.lineWidth = 1.5
+          ctx.stroke()
+        }
+
+        function render () {
+          ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+          // Draw edges first (behind nodes)
+          const seenEdges = new Set()
+          for (const e of edges) {
+            const key = e.source + '->' + e.target
+            if (seenEdges.has(key)) continue
+            seenEdges.add(key)
+            const a = nodes.get(e.source)
+            const b = nodes.get(e.target)
+            if (a && b) drawEdge(ctx, a, b)
+          }
+
+          // Draw nodes
+          for (const n of nodeArr) {
+            drawNode(ctx, n, n === hoveredNode, n === selectedNode)
+          }
+
+          requestAnimationFrame(render)
+        }
+        render()
 
         // ── Mouse interactions ──
-      canvas.addEventListener('mousedown', (e) => {
-        const rect = canvas.getBoundingClientRect()
-        const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
-        const node = getNodeAt(world.x, world.y)
-        if (node) {
-          e.preventDefault()
-          e.stopPropagation()
-          selectedNode = node
-          // Open node content in a new tab next to Brain index
-          synAPI.brainRead(node.id).then(result => {
-            if (result.ok) {
-              const html = renderNoteContent(node.id, result.content)
-              createTab(`note-${node.id}`, node.label, html, node.id)
-              // Wire up wikilink clicks in this tab
-              const contentEl = document.querySelector(`.brain-vault-tab-content[data-tab="note-${node.id}"]`)
-              if (contentEl) {
-                contentEl.querySelectorAll('.wiki-link').forEach(link => {
-                  link.addEventListener('click', (e) => {
-                    e.preventDefault()
-                    const targetFile = link.dataset.link + '.md'
-                    synAPI.brainRead(targetFile).then(res => {
-                      if (res.ok) {
-                        const tabId = `note-${targetFile}`
-                        const h = renderNoteContent(targetFile, res.content)
-                        createTab(tabId, link.dataset.link, h, targetFile)
-                      }
+        canvas.addEventListener('mousedown', (e) => {
+          const rect = canvas.getBoundingClientRect()
+          const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
+          const node = getNodeAt(world.x, world.y)
+          if (node) {
+            e.preventDefault()
+            e.stopPropagation()
+            selectedNode = node
+            // Open node content in a new tab next to Brain index
+            synAPI.brainRead(node.id).then(result => {
+              if (result.ok) {
+                const html = renderNoteContent(node.id, result.content)
+                createTab(`note-${node.id}`, node.label, html, node.id)
+                // Wire up wikilink clicks in this tab
+                const contentEl = document.querySelector(`.brain-vault-tab-content[data-tab="note-${node.id}"]`)
+                if (contentEl) {
+                  contentEl.querySelectorAll('.wiki-link').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                      e.preventDefault()
+                      const targetFile = link.dataset.link + '.md'
+                      synAPI.brainRead(targetFile).then(res => {
+                        if (res.ok) {
+                          const tabId = `note-${targetFile}`
+                          const h = renderNoteContent(targetFile, res.content)
+                          createTab(tabId, link.dataset.link, h, targetFile)
+                        }
+                      })
                     })
                   })
-                })
+                }
               }
-            }
-          })
-          isDragging = false
-        } else {
-          isDragging = true
-          dragStart = { x: e.clientX - rect.left, y: e.clientY - rect.top }
-        }
-      })
+            })
+            isDragging = false
+          } else {
+            isDragging = true
+            dragStart = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+          }
+        })
 
-      canvas.addEventListener('mousemove', (e) => {
-        const rect = canvas.getBoundingClientRect()
-        const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
-        const node = getNodeAt(world.x, world.y)
-        hoveredNode = node
-        canvas.style.cursor = node ? 'pointer' : 'grab'
-        if (node) {
-          const s = worldToScreen(node.x, node.y)
-          const tip = document.getElementById('graphTooltip')
-          tip.style.display = 'block'
-          tip.style.left = (s.x + 18) + 'px'
-          tip.style.top = (s.y - 28) + 'px'
-          tip.textContent = node.label
-        } else {
-          document.getElementById('graphTooltip').style.display = 'none'
-        }
-        if (isDragging) {
-          offsetX += (e.clientX - rect.left - dragStart.x) / scale
-          offsetY += (e.clientY - rect.top - dragStart.y) / scale
-          dragStart = { x: e.clientX - rect.left, y: e.clientY - rect.top }
-        }
-      })
+        canvas.addEventListener('mousemove', (e) => {
+          const rect = canvas.getBoundingClientRect()
+          const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
+          const node = getNodeAt(world.x, world.y)
+          hoveredNode = node
+          canvas.style.cursor = node ? 'pointer' : 'grab'
+          if (node) {
+            const s = worldToScreen(node.x, node.y)
+            const tip = document.getElementById('graphTooltip')
+            tip.style.display = 'block'
+            tip.style.left = (s.x + 18) + 'px'
+            tip.style.top = (s.y - 28) + 'px'
+            tip.textContent = node.label
+          } else {
+            document.getElementById('graphTooltip').style.display = 'none'
+          }
+          if (isDragging) {
+            offsetX += (e.clientX - rect.left - dragStart.x) / scale
+            offsetY += (e.clientY - rect.top - dragStart.y) / scale
+            dragStart = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+          }
+        })
 
-      canvas.addEventListener('mouseup', () => { isDragging = false })
+        canvas.addEventListener('mouseup', () => { isDragging = false })
 
-      canvas.addEventListener('wheel', (e) => {
-        e.preventDefault()
-        const rect = canvas.getBoundingClientRect()
-        const worldBefore = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
-        const delta = -e.deltaY * 0.001
-        let newScale = scale * (1 + delta)
-        newScale = Math.min(Math.max(newScale, MIN_SCALE), MAX_SCALE)
-        const worldAfter = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
-        offsetX += worldBefore.x - worldAfter.x
-        offsetY += worldBefore.y - worldAfter.y
-        scale = newScale
-      }, { passive: false })
+        canvas.addEventListener('wheel', (e) => {
+          e.preventDefault()
+          const rect = canvas.getBoundingClientRect()
+          const worldBefore = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
+          const delta = -e.deltaY * 0.001
+          let newScale = scale * (1 + delta)
+          newScale = Math.min(Math.max(newScale, MIN_SCALE), MAX_SCALE)
+          const worldAfter = screenToWorld(e.clientX - rect.left, e.clientY - rect.top)
+          offsetX += worldBefore.x - worldAfter.x
+          offsetY += worldBefore.y - worldAfter.y
+          scale = newScale
+        }, { passive: false })
 
-      // Zoom controls
-      document.getElementById('graphZoomIn').addEventListener('click', () => {
-        scale = Math.min(scale * 1.2, MAX_SCALE)
-        document.getElementById('graphZoomVal').textContent = Math.round(scale * 100)
-      })
-      document.getElementById('graphZoomOut').addEventListener('click', () => {
-        scale = Math.max(scale / 1.2, MIN_SCALE)
-        document.getElementById('graphZoomVal').textContent = Math.round(scale * 100)
-      })
-      document.getElementById('graphReset').addEventListener('click', () => {
-        scale = 1
-        offsetX = 0
-        offsetY = 0
-        document.getElementById('graphZoomVal').textContent = '100'
-      })
+        // Zoom controls
+        document.getElementById('graphZoomIn').addEventListener('click', () => {
+          scale = Math.min(scale * 1.2, MAX_SCALE)
+          document.getElementById('graphZoomVal').textContent = Math.round(scale * 100)
+        })
+        document.getElementById('graphZoomOut').addEventListener('click', () => {
+          scale = Math.max(scale / 1.2, MIN_SCALE)
+          document.getElementById('graphZoomVal').textContent = Math.round(scale * 100)
+        })
+        document.getElementById('graphReset').addEventListener('click', () => {
+          scale = 1
+          offsetX = 0
+          offsetY = 0
+          document.getElementById('graphZoomVal').textContent = '100'
+        })
       } // end idempotency guard
-
     } catch (e) {
       console.error('Failed to load brain vault:', e)
       document.getElementById('graphEmpty').textContent = 'Failed to load brain vault: ' + escapeHtml(e.message)
@@ -536,11 +532,6 @@ const setup = () => {
       console.error('Failed to load brain index:', e)
       brainVaultIndexContent.textContent = '(brain index unavailable)'
     }
-  }
-
-  // Escape a string for safe use in a CSS selector
-  function escapeCss (selector) {
-    return selector.replace(/[!"#$%&'()*+,.\/:;<=>?@\[\\\]^`{|}~]/g, '\\$&')
   }
 
   // Render note content: escape HTML, convert [[wikilink]] to clickable spans
