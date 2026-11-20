@@ -27,3 +27,7 @@ jobs:
 
       - name: Run tests
         run: npm test
+        # Required suites: search, search-quality, validator-precision,
+        # fixture-tests, indexing, security, brainmaxxing, MCP.
+        # Real-world integration test skips with explicit message when
+        # harness data is not present (opt-in, never a CI failure).

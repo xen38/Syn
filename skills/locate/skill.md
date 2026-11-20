@@ -47,7 +47,7 @@ Syn's terminal (right-hand column) accepts commands in the form:
 **Behavior:**
 1. The agent checks Syn availability (via MCP tool `syn_status`)
 2. The agent invokes `syn_search` with the query
-3. The Syn search engine scans all indexed archived sessions across all configured harnesses using SQLite FTS5 full-text search
+3. The Syn search engine scans all indexed archived sessions across all configured harnesses using BM25-style ranking over LIKE candidates (sql.js has no native FTS5).
 4. Results are returned ranked by relevance (title matches score higher than content matches)
 5. Each result includes: session ID, title, harness, source path, file path, timestamp, rank, and a context excerpt
 6. The agent can then retrieve full session content via `syn_get_session` or surrounding context via `syn_get_context`

@@ -8,13 +8,20 @@
 </head>
 <body>
   <header class="header">
-    <div class="app-title">Syn</div>
+      <div class="app-title-wrap">
+        <div class="app-title">Syn</div>
+        <div id="dbHealthBadge" class="db-health-badge" role="status" aria-label="Index database health" aria-live="polite">●</div>
+      </div>
     <div class="search-wrap">
-      <input type="text" id="searchInput" placeholder="Search sessions..." autocomplete="off">
+      <input type="text" id="searchInput" placeholder="Search sessions..." autocomplete="off" aria-label="Search sessions" role="searchbox">
+        <button id="btnBrain" class="btn-brain" aria-label="Brain" title="Brain" type="button">
+          <img src="../assets/iconBrain.png" alt="Brain icon" class="brain-icon">
+        </button>
     </div>
     <div class="header-actions">
-      <button id="btnBrainmaxxing" class="menu-btn" title="Brainmaxxing">B</button>
-      <button id="menuBtn" class="menu-btn" title="Menu">&#9776;</button>
+      <button id="btnRebuildIndex" class="menu-btn" aria-label="Rebuild index database from sources" aria-controls="dbHealthBadge">Rebuild</button>
+      <button id="btnBrainmaxxing" class="menu-btn" aria-label="Brainmaxxing commands">B</button>
+      <button id="menuBtn" class="menu-btn" aria-label="Toggle settings menu" aria-expanded="false" aria-controls="menuPanel">&#9776;</button>
     </div>
   </header>
 
@@ -23,8 +30,8 @@
       <div class="menu-section-title">Harnesses</div>
       <div id="harnessList" class="harness-list"></div>
       <div class="menu-actions">
-        <button id="btnScanHarnesses" class="menu-btn-action">Scan</button>
-        <button id="btnAddFolder" class="menu-btn-action">Browse folder…</button>
+        <button id="btnScanHarnesses" class="menu-btn-action" aria-label="Scan for harnesses">Scan</button>
+          <button id="btnAddFolder" class="menu-btn-action" aria-label="Add folder">Browse folder…</button>
       </div>
     </div>
     <div class="menu-section">
@@ -56,13 +63,49 @@
     <div class="menu-section">
       <div class="menu-section-title">Brainmaxxing</div>
       <div class="menu-actions">
-        <button id="btnBrainReflect" class="menu-btn-action" title="Reflect on selected session">/reflect</button>
-        <button id="btnBrainMeditate" class="menu-btn-action" title="Audit brain vault">/meditate</button>
-        <button id="btnBrainRuminate" class="menu-btn-action" title="Mine session patterns">/ruminate</button>
-        <button id="btnBrainPlan" class="menu-btn-action" title="Create a plan">/plan</button>
-        <button id="btnBrainReview" class="menu-btn-action" title="Review content">/review</button>
-        <button id="btnBrainIndex" class="menu-btn-action" title="Rebuild brain index">/index</button>
+        <button id="btnBrainReflect" class="menu-btn-action" aria-label="Reflect on selected session" title="Reflect on selected session">/reflect</button>
+        <button id="btnBrainMeditate" class="menu-btn-action" aria-label="Audit brain vault" title="Audit brain vault">/meditate</button>
+        <button id="btnBrainRuminate" class="menu-btn-action" aria-label="Mine session patterns" title="Mine session patterns">/ruminate</button>
+        <button id="btnBrainPlan" class="menu-btn-action" aria-label="Create a plan" title="Create a plan">/plan</button>
+        <button id="btnBrainReview" class="menu-btn-action" aria-label="Review content" title="Review content">/review</button>
+        <button id="btnBrainIndex" class="menu-btn-action" aria-label="Rebuild brain index" title="Rebuild brain index">/index</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Brain vault panel (Obsidian-style) - opens in middle column -->
+  <div id="brainVaultPanel" class="brain-vault-panel hidden">
+    <div class="brain-vault-header">
+      <div class="brain-vault-title">Brain</div>
+      <div class="brain-vault-tabs" id="brainVaultTabs">
+        <button class="brain-vault-tab active" data-tab="vault">Vault</button>
+        <button class="brain-vault-tab" data-tab="index">Brain index</button>
+      </div>
+      <button id="btnCloseBrainVault" class="brain-vault-close" aria-label="Close brain vault">&#215;</button>
+    </div>
+    <div class="brain-vault-content">
+      <!-- Vault tab: Obsidian-style graph view -->
+      <div id="brainVaultTabVault" class="brain-vault-tab-content active" data-tab="vault">
+        <div class="brain-vault-graph-wrap">
+          <div class="brain-vault-graph-controls">
+            <span class="graph-zoom-label">Zoom: <span id="graphZoomVal">100</span>%</span>
+            <button id="graphZoomIn" class="graph-btn" title="Zoom in">+</button>
+            <button id="graphZoomOut" class="graph-btn" title="Zoom out">-</button>
+            <button id="graphReset" class="graph-btn" title="Reset view">↺</button>
+          </div>
+          <div id="brainVaultGraphContainer" class="brain-vault-graph-container">
+            <canvas id="brainGraphCanvas" class="brain-graph-canvas"></canvas>
+            <div id="graphEmpty" class="graph-empty">Loading brain vault graph…</div>
+          </div>
+          <div id="graphTooltip" class="graph-tooltip"></div>
+        </div>
+      </div>
+      <!-- Brain index tab: plain text -->
+      <div id="brainVaultTabIndex" class="brain-vault-tab-content hidden" data-tab="index">
+        <div id="brainVaultIndexContent" class="brain-vault-index-content"></div>
+      </div>
+      <!-- Dynamic note tabs container (added by JS when opening a note) -->
+      <div id="brainVaultTabNotes" class="brain-vault-tab-notes"></div>
     </div>
   </div>
 
@@ -70,7 +113,7 @@
     <aside class="sidebar">
       <div class="sidebar-header">
         <span>Sessions</span>
-        <button id="btnRefreshSessions" class="refresh-btn" title="Refresh sessions">&#x1F504;</button>
+        <button id="btnRefreshSessions" class="refresh-btn" aria-label="Refresh sessions" title="Refresh sessions">&#x1F504;</button>
       </div>
       <div id="sessionList" class="session-list"></div>
     </aside>
@@ -85,7 +128,7 @@
         <div class="empty-desc">Click a session on the left to read its contents.</div>
       </div>
       <div id="sessionView" class="session-view hidden">
-        <button id="btnCloseSession" class="close-btn" title="Close session">&#215;</button>
+        <button id="btnCloseSession" class="close-btn" aria-label="Close session" title="Close session">&#215;</button>
         <div class="session-meta">
           <span id="metaHarness" class="meta-harness"></span>
           <span id="metaSessionId" class="meta-session-id"></span>
@@ -103,7 +146,7 @@
       <div class="terminal-wrap">
         <div class="terminal-input-row">
           <span class="prompt">$</span>
-          <input type="text" id="terminalInput" placeholder="/locate <query>, /reflect, /meditate, /ruminate, /plan, /review, /help" autocomplete="off" autofocus>
+          <input type="text" id="terminalInput" placeholder="/locate <query>, /reflect, /meditate, /ruminate, /plan, /review, /help" autocomplete="off" autofocus aria-label="Terminal command input" role="textbox">
         </div>
         <div id="terminalOutput" class="terminal-output"></div>
       </div>
@@ -115,21 +158,19 @@
 
   <script src="app.js"></script>
 
-  <!-- Context menu for session items -->
-  <div id="ctxMenu" class="ctx-menu">
-      <div class="ctx-menu-item" id="ctxCopySessionId">Copy Session ID</div>
-    <div class="ctx-menu-item" id="ctxDeleteEntry">Delete Entry</div>
-    <div class="ctx-menu-item ctx-menu-item-delete" id="ctxDeleteFile">Delete Session File</div>
+  <div id="ctxMenu" class="ctx-menu" role="menu" aria-label="Session context menu">
+      <div class="ctx-menu-item" id="ctxCopySessionId" role="menuitem">Copy Session ID</div>
+    <div class="ctx-menu-item" id="ctxDeleteEntry" role="menuitem">Delete Entry</div>
   </div>
 
   <!-- Confirmation overlay for destructive actions -->
-  <div id="ctxConfirmOverlay" class="ctx-confirm-overlay">
+  <div id="ctxConfirmOverlay" class="ctx-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="ctxConfirmTitle" aria-describedby="ctxConfirmMessage">
     <div class="ctx-confirm-card">
       <div class="ctx-confirm-title" id="ctxConfirmTitle">Confirm</div>
       <div class="ctx-confirm-message" id="ctxConfirmMessage"></div>
       <div class="ctx-confirm-actions">
-        <button id="ctxConfirmCancel" class="ctx-confirm-btn ctx-confirm-cancel">Cancel</button>
-        <button id="ctxConfirmDelete" class="ctx-confirm-btn ctx-confirm-delete">Delete</button>
+        <button id="ctxConfirmCancel" class="ctx-confirm-btn ctx-confirm-cancel" aria-label="Cancel">Cancel</button>
+        <button id="ctxConfirmDelete" class="ctx-confirm-btn ctx-confirm-delete" aria-label="Delete">Delete</button>
       </div>
     </div>
   </div>

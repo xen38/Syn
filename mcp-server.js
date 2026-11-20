@@ -5,7 +5,7 @@
  * Exposes the Locate search engine as MCP tools so AI assistants can search
  * archived sessions without reading interface or wasting tokens.
  *
- * Uses the core IndexingEngine (SQLite FTS5) for all search and retrieval.
+ * Uses the core IndexingEngine (BM25-style ranking over LIKE candidates) for all search and retrieval.
  *
  * Usage: node mcp-server.js
  * Transport: stdio (JSON-RPC 2.0)
@@ -18,11 +18,14 @@ const { IndexingEngine } = require('./packages/core/index')
 const bm = require('./packages/core/brainmaxxing')
 
 // ── Configuration ──────────────────────────────────────────────────────────
-
+// Shared configuration file — same file the desktop app (main.js) writes to,
+// so harness registration is a single source of truth shared by desktop and MCP.
+// Both live in the syn/ user-data directory; main.js uses app.getPath('userData'),
+// this module falls back to APPDATA/HOME/homedir (same directory on Windows).
 const CONFIG_FILE = path.join(
   process.env.APPDATA || process.env.HOME || os.homedir(),
   'syn',
-  'syn-mcp-config.json'
+  'config.json'
 )
 
 // Shared index database path — same location used by the desktop app so both
@@ -51,6 +54,16 @@ function loadConfig () {
     }
   } catch (e) {
     console.error('[syn-mcp] Failed to load config:', e.message)
+  }
+}
+
+function saveConfig () {
+  try {
+    const dir = path.dirname(CONFIG_FILE)
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8')
+  } catch (e) {
+    console.error('[syn-mcp] Failed to save config:', e.message)
   }
 }
 
@@ -84,7 +97,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: 'syn_search',
-        description: 'Search across all indexed archived sessions using full-text search (FTS5). Returns ranked results with excerpts, session metadata, and source references.',
+        description: 'Search across all indexed archived sessions using BM25-style ranking over LIKE candidates. Returns ranked results with excerpts, session metadata, and source references.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -99,6 +112,27 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             role: {
               type: 'string',
               description: 'Optional message role filter (e.g. "user", "assistant")'
+            },
+            project: {
+              type: 'string',
+              description: 'Optional source/file path filter'
+            },
+            brain: {
+              type: 'boolean',
+              description: 'Optional: restrict results to brain/vault paths only'
+            },
+            dateFrom: {
+              type: 'string',
+              description: 'Optional date range start (YYYY-MM-DD)'
+            },
+            dateTo: {
+              type: 'string',
+              description: 'Optional date range end (YYYY-MM-DD)'
+            },
+            enabledHarnesses: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Optional list of harness names to include'
             },
             limit: {
               type: 'number',
@@ -207,7 +241,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'syn_index_source',
-        description: 'Index a specific registered harness directory. Scans session files and adds them to the FTS5 search index.',
+        description: 'Index a specific registered harness directory. Scans session files and adds them to the search index.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -335,10 +369,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (name) {
     case 'syn_search': {
       const results = engine.search(args.query, {
-        harness: args.harness || undefined,
-        role: args.role || undefined,
-        limit: args.limit || 50,
-        excerptLength: args.excerptLength || 200
+        harness: args.harness ? String(args.harness) : undefined,
+        role: args.role ? String(args.role) : undefined,
+        project: args.project ? String(args.project) : undefined,
+        brain: args.brain === true || args.brain === 'true',
+        dateFrom: args.dateFrom ? String(args.dateFrom) : undefined,
+        dateTo: args.dateTo ? String(args.dateTo) : undefined,
+        enabledHarnesses: Array.isArray(args.enabledHarnesses)
+          ? args.enabledHarnesses.map(String)
+          : undefined,
+        limit: Number.isFinite(Number(args.limit)) ? Number(args.limit) : 50,
+        excerptLength: Number.isFinite(Number(args.excerptLength)) ? Number(args.excerptLength) : 200
       })
       return {
         content: [
@@ -480,6 +521,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     case 'syn_add_harness': {
       try {
         const sourceId = engine.addSource(args.dirPath, args.harness || undefined)
+        const normalized = path.resolve(args.dirPath)
+        if (!config.harnessDirectories.includes(normalized)) {
+          config.harnessDirectories.push(normalized)
+          saveConfig()
+        }
         return {
           content: [
             {
@@ -487,9 +533,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               text: JSON.stringify(
                 {
                   sourceId,
-                  path: path.resolve(args.dirPath),
+                  path: normalized,
                   added: args.dirPath,
                   status: 'pending',
+                  harnesses: config.harnessDirectories,
                   note: 'Source registered. Call syn_index_source or syn_index_all to index sessions.'
                 },
                 null,

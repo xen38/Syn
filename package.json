@@ -8,7 +8,7 @@
     "dev": "electron .",
     "build": "electron-builder",
     "lint": "eslint . --ext .js --max-warnings 0",
-    "test": "node test/search.test.js && node test/search-quality.test.js && node test/validator-precision.test.js && node test/fixture-tests.js && node test/indexing.test.js && node test/security.test.js && node test/real-world-integration.test.js"
+    "test": "node test/search.test.js && node test/search-quality.test.js && node test/validator-precision.test.js && node test/fixture-tests.js && node test/indexing.test.js && node test/security.test.js && node test/brainmaxxing.test.js && node test/session-delete.test.js && node test/g3-filter-forwarding.test.js && node test/mcp.test.js && node test/real-world-integration.test.js"
   },
   "keywords": [
     "sessions",
@@ -25,7 +25,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/xen38/Syn.git"
+    "url": "git+https://github.com/xen38/Syn.git"
   },
   "bugs": {
     "url": "https://github.com/xen38/Syn/issues"
@@ -60,6 +60,12 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
     "better-sqlite3": "^13.2.0",
-    "sql.js": "^1.10.0"
-  }
+    "sql.js": "^1.10.0",
+    "ws": "^8.23.0"
+  },
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "type": "commonjs"
 }

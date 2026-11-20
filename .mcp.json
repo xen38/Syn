@@ -2,7 +2,7 @@
   "servers": {
     "syn": {
       "command": "node",
-      "args": ["K:\\Repos\\Syn\\mcp-server.js"],
+      "args": ["K:\\Repos\\locate\\mcp-server.js"],
       "transport": "stdio",
       "description": "Syn app MCP server - search archived coding sessions across all harnesses"
     }

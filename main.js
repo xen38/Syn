@@ -135,11 +135,17 @@ function createWindow () {
 }
 
 // ── Session-start hook: inject brain/index.md ────────────────────────────
+// Reads brain/index.md (rebuilt by watchBrainIndex) and exposes it via
+// synAPI.getBrainIndex() so the renderer can present the vault at launch.
+let brainIndexMd = ''
+
 function injectBrainIndex () {
   try {
-    console.log('[syn] Brain index injected at session start')
+    brainIndexMd = brainmaxxing.readIndexMd()
+    console.log(`[syn] Brain index injected at session start (${brainIndexMd.length} chars)`)
   } catch (e) {
     console.error('[syn] Failed to read brain index:', e.message)
+    brainIndexMd = ''
   }
 }
 
@@ -165,7 +171,14 @@ function watchBrainIndex () {
 app.whenReady().then(async () => {
   try {
     await engine.open()
-    console.log('Index engine opened successfully')
+    if (engine.dbHealth === 'healthy') {
+      console.log('Index engine opened successfully')
+    } else if (engine.dbHealth === 'corrupt') {
+      console.error('Index engine: corrupt DB detected at ' + INDEX_DB_PATH +
+        '. Original preserved, backup created. Use "Rebuild index" to recover.')
+    } else {
+      console.error('Index engine: unknown health state: ' + engine.dbHealth)
+    }
   } catch (e) {
     console.error('Failed to open index engine:', e)
   }
@@ -201,6 +214,24 @@ app.on('window-all-closed', () => {
 // IPC: Get configuration
 ipcMain.handle('config:get', async () => {
   return config
+})
+
+// IPC: Get database health status (Gate G7)
+ipcMain.handle('db:health', async () => {
+  return {
+    health: engine.dbHealth,
+    dbPath: INDEX_DB_PATH,
+    initialized: engine.initialized
+  }
+})
+
+// IPC: Rebuild index database from source archives (Gate G7)
+ipcMain.handle('db:rebuild', async (event, preserveCorrupt = true) => {
+  if (engine.dbHealth === 'healthy') {
+    return { status: 'no-rebuild-needed', health: engine.dbHealth }
+  }
+  const result = await engine.rebuild(preserveCorrupt)
+  return { status: 'rebuilt', health: engine.dbHealth, ...result }
 })
 
 // IPC: Update configuration
@@ -469,12 +500,29 @@ ipcMain.handle('source:incrementalIndex', async (event, options = {}) => {
 // Synchronous search — no worker needed since FTS5 queries are fast.
 ipcMain.handle('session:search', async (event, query, options = {}) => {
   try {
+    // Coerce and validate search filter types before handing to the engine.
+    const limit = Number.isFinite(Number(options.limit)) ? Number(options.limit) : 50
+    const excerptLength = Number.isFinite(Number(options.excerptLength)) ? Number(options.excerptLength) : 200
+    const harness = options.harness ? String(options.harness) : undefined
+    const role = options.role ? String(options.role) : undefined
+    const project = options.project ? String(options.project) : undefined
+    const brain = options.brain === true || options.brain === 'true'
+    const dateFrom = options.dateFrom ? String(options.dateFrom) : undefined
+    const dateTo = options.dateTo ? String(options.dateTo) : undefined
+    const enabledHarnesses = Array.isArray(options.enabledHarnesses)
+      ? options.enabledHarnesses.map(String)
+      : getEnabledHarnesses()
+
     const results = engine.search(query, {
-      harness: options.harness || undefined,
-      role: options.role || undefined,
-      enabledHarnesses: getEnabledHarnesses(),
-      limit: options.limit || 50,
-      excerptLength: options.excerptLength || 200
+      harness,
+      role,
+      project,
+      brain,
+      dateFrom,
+      dateTo,
+      enabledHarnesses,
+      limit,
+      excerptLength
     })
     return results.map(r => ({
       id: r.session_id,
@@ -513,26 +561,20 @@ ipcMain.handle('session:delete', async (event, sessionId) => {
   }
 })
 
-// IPC: Delete the actual session file from disk (not undoable)
+// IPC: Archive deletion is disabled by default (G2 — preserve source archives).
+// Returns an unsupported error; no filesystem deletion is performed.
+// Keep index-only `session:delete` for reversible removal from the search index.
 ipcMain.handle('session:deleteFile', async (event, sessionId) => {
-  try {
-    const session = engine.getSession(sessionId)
-    if (!session) {
-      throw new Error(`Session not found: ${sessionId}`)
-    }
-    const filePath = session.file_path
-    if (filePath && fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath)
-    }
-    // Also remove from index
-    engine.removeSession(sessionId)
-    return { success: true, deletedPath: filePath }
-  } catch (e) {
-    throw new Error(`Failed to delete session file: ${e.message}`)
-  }
+  throw new Error(`Archive deletion is not supported: session:deleteFile is disabled (session ${sessionId}). Use session:delete for index-only removal.`)
 })
 
 // ── Brainmaxxing IPC handlers ───────────────────────────────────────────
+// IPC: Get brain index (session-start injected content)
+ipcMain.handle('brain:getIndex', async () => {
+  return { ok: true, content: brainIndexMd }
+})
+
+// IPC: Rebuild brain index on demand
 ipcMain.handle('brain:index', async (event) => {
   try {
     return brainmaxxing.rebuildIndex()

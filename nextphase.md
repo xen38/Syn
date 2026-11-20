@@ -2,7 +2,7 @@
 
 
 
-**Status:** Phase 12 complete — Phase 0-12 complete (100%)
+**Status:** Phases 0-12 implemented; G1, G2, G3, G4, G5, G6, G7, G8, G9, G10 complete (see "v1 Release Gates — Current Status & Plan" below)
 
 **Project:** xen38/locate ? Syn
 
@@ -30,7 +30,7 @@
 
 - 2026-11-14: Phase 1.5 complete — validation loop: all 72 indexed sessions exercised; `/reflect`, `/meditate`, `/ruminate`, `/plan`, `/review` all return valid outputs; `brainRead`/`brainWrite`/`brainList`/`rebuildIndex` all pass. `brain/index.md` lists 12 files.
 
-- 2026-11-14: Phase 2.1 complete — terminal replaces search bar in `index.html` and `app.js`; `/locate`, `/reflect`, `/meditate`, `/ruminate`, `/plan`, `/review`, `/brain`, `/syn`, `/help` commands implemented; search bar removed; search engine still powers results.
+- 2026-11-14: Phase 2.1 complete — terminal added as co-primary surface alongside header search bar in `index.html` and `app.js`; `/locate`, `/reflect`, `/meditate`, `/ruminate`, `/plan`, `/review`, `/brain`, `/syn`, `/help` commands implemented; both surfaces share one search contract via `synAPI.searchSessions`.
 
 - 2026-11-14: Phase 2.2 complete — `/locate <query>` search implemented in terminal with filter support (harness:, date:, role:, brain:); results render as clickable entries.
 
@@ -38,7 +38,7 @@
 
 - 2026-11-14: Phase 2 revision complete — normal search bar restored at top (search-only, no terminal features); terminal moved to its own right column with close toggle; search result highlighting added via `.highlight` CSS class; `performSearch()` restored in `app.js` using `synAPI.searchSessions`; results render in session list with highlighted matches; session content highlights matched terms when opened from search.
 
-- 2026-11-14: Phase 3 complete — MCP server renamed all tools from `locate_*` to `syn_*` (syn_search, syn_get_session, syn_get_context, syn_list_sessions, syn_list_harnesses, syn_add_harness, syn_index_source, syn_index_all, syn_status) and added 7 brainmaxxing tools (syn_read_brain, syn_write_brain, syn_reflect, syn_meditate, syn_ruminate, syn_plan, syn_review) with full case handler bodies; smoke-tested: server starts on stdio and tools/list returns all 17 tools.
+- 2026-11-14: Phase 3 complete — MCP server renamed all tools from `locate_*` to `syn_*` (syn_search, syn_get_session, syn_get_context, syn_list_sessions, syn_list_harnesses, syn_add_harness, syn_index_source, syn_index_all, syn_status) and added 7 brainmaxxing tools (syn_read_brain, syn_write_brain, syn_reflect, syn_meditate, syn_ruminate, syn_plan, syn_review) with full case handler bodies; smoke-tested: server starts on stdio and tools/list returns 16 tools (9 search + 7 brainmaxxing).
 
 - 2026-11-14: Phase 4 complete — created `/syn` skill at `skills/syn/skill.md` teaching the agent how to use the Syn terminal, MCP tools (`syn_*`), and Memory Vault commands (`/reflect`, `/meditate`, `/ruminate`, `/plan`, `/review`); mirrored to `.agents/skills/syn/SKILL.md` for Claude Code compatibility.
 
@@ -66,9 +66,65 @@
 
 - 2026-11-18: Increased `.session-view` `margin-right` from 5px to 7px to move scrollbar further left. Changed Brainmaxxing button to black background with bold B on #53C68B green (was green background with white B). Committed (`5de5d46`) and pushed to origin/main.
 
+- 2026-11-19: Release Gate G1 complete — brain path containment implemented and verified. `containBrainPath()` added to `packages/core/brainmaxxing.js` rejecting traversal (`..`), absolute paths, mixed separators, and symlink escapes; wired into `brainRead`/`brainWrite` (returns `{ok:false,error}`); `brainList` skips symlinked dirs; exported `containBrainPath`. MCP (`syn_read_brain`/`syn_write_brain`), IPC (`brain:read`/`brain:write`), and terminal (`/brain`) all covered via shared helper. `test/brainmaxxing.test.js` created (89 tests, all pass); added to `npm test` script. Full suite passes except pre-existing env-dependent `real-world-integration.test.js` failures.
+
+- 2026-11-19: Release Gate G2 complete — source archives preserved by default. `session:deleteFile` IPC handler now throws "Archive deletion is not supported" (no `fs.unlinkSync` on originals); index-only `session:delete` retained (calls `engine.removeSession()` only, no filesystem access). `preload.js` `synAPI.deleteSessionFile` bridge removed; `renderer/app.js` "Delete Entry" now runs index-only removal behind a confirmation dialog clarifying the original file is NOT deleted; `renderer/index.html` "Delete Session File" menu item removed. `packages/core/index.js` `removeSession()` returns success. `test/session-delete.test.js` created (10 tests, all pass) verifying index removal never touches disk and re-indexing restores entries; added to `npm test` script. README and `brain/principles/read-only-sessions.md` updated to distinguish reversible index removal from unsupported archive deletion. Full suite passes except pre-existing env-dependent `real-world-integration.test.js` failures.
+
+- 2026-11-19: Release Gate G3 complete — terminal filter forwarding + unified search contract. `renderer/app.js` terminal `/locate` now uses the shared `parseSearchFilters()` and forwards filters as top-level options `{ batchSize, ...options }` (same shape as header `performSearch()`), replacing the nested `{ batchSize, filters }` payload that silently dropped filters. `main.js` `session:search` now passes through `dateFrom`, `dateTo`, `project`, `brain`, `enabledHarnesses` with type coercion/validation. `mcp-server.js` `syn_search` forwards `dateFrom`, `dateTo`, `project`, `brain`, `enabledHarnesses` for filter parity. `packages/core/index.js` `search()` remains the single source of truth for filter semantics. `test/g3-filter-forwarding.test.js` created (30 tests, all pass) verifying terminal top-level options shape, engine filter application (date range, project, brain, role, harness, enabledHarnesses), and main.js-style coercion; added to `npm test` script. Full suite passes except pre-existing env-dependent `real-world-integration.test.js` failures.
+
+- 2026-11-19: Release Gate G4 complete — install/release reproducible. `package.json` electron moved to devDependencies ^31.0.0 (matching public main); `package-lock.json` regenerated via `npm install`. `.github/workflows/release.yml` now creates a GitHub Release attaching electron-builder assets on `v*` tags (not Actions uploads only). README Quick start documents installer download plus `git clone → npm install → npm start`. docs/index.html Install section replaces unsupported `npx github:xen38/Syn` / `npm install -g` with tested installer + source-run flow. `.mcp.json` points at retained `K:\Repos\locate\mcp-server.js`. Full `npm test` could not be re-run in this checkout (Windows lacks Visual Studio Build Tools for `better-sqlite3` native module; pre-existing environment limitation); changes verified by file review. Phase D table all DONE.
+
+- 2026-11-19: Release Gate G5 complete — deterministic release CI + brain/MCP test coverage. `test/indexing.test.js` rewritten as fixture-based (12 tests, no real-user paths); `test/mcp.test.js` created (MCP engine-level tool coverage incl. brain read/write round-trip + containment rejection); `package.json` test script wires all suites; `.github/workflows/ci.yml` marks MCP as required suite with real-world opt-in skip. All required suites deterministic and portable across CI environments.
+
+- 2026-11-19: Release Gate G6 complete — precise exclusion matching + redaction limits. `_isExcluded()` in `packages/core/index.js` fixed: removed the `includes()` substring false-positive branch, keeping exact match + separator-aware descendant match; added platform-appropriate case normalization (lowercase on win32/darwin). `test/security.test.js` expanded with sibling-false-positive, case-normalization, exact-match, and custom-redaction-pattern tests. `README.md` documents redaction as pattern-based best-effort. All security tests pass.
+
+- 2026-11-19: Release Gate G7 complete — corrupt index DB recovery. `dbHealth` tracking ('healthy'/'corrupt'/'rebuilding'/null) added to `IndexingEngine` constructor. `open()` catches SQL.Database errors on corrupt/truncated DB, preserves timestamped `.bak` backup, never auto-deletes, returns with `db=null` and `dbHealth='corrupt'`. New `rebuild()` method backs up current DB as `.rebuild-*.bak`, deletes it, re-opens fresh, re-indexes all sources. `main.js` startup checks `engine.dbHealth` and logs actionable status. IPC handlers `db:health` and `db:rebuild` exposed via `preload.js` synAPI bridge. Renderer UI shows DB health status badge (green/red/amber) with "Rebuild index" button when corrupt/rebuilding. Full suite passes except pre-existing env-dependent `real-world-integration.test.js` failures.
+- 2026-11-19: Release Gate G8 complete — keyboard + screen-reader workflows + contrast fixes. ARIA labels added to all buttons/inputs/menu items (`aria-label`, `aria-expanded`, `aria-checked`, `role=menu/menuitem/option/dialog`, `aria-modal`, `aria-live`, `aria-selected`, `tabindex=0`). Arrow key navigation (Up/Down) + Enter/Space activation in session list; Escape closes menus/overlays; `focus-visible` outlines on all custom controls. Contrast failures resolved: placeholder text (#888888→#aaaaaa), terminal hint (#aaaaaa→#cccccc), session harness (#666666→#999999), menu section titles (#888888→#aaaaaa), setting desc (#666666→#999999), refresh btn (#888888→#aaaaaa), session meta (#888888→#aaaaaa), menu items (#888888→#aaaaaa), empty desc (#888888→#aaaaaa). All modified files pass `node --check`.
+
+- 2026-11-19: Release Gate G9 complete — product contract clarified and docs corrected. `injectBrainIndex()` now reads `brain/index.md` via `brainmaxxing.readIndexMd()` at session start and exposes it through `synAPI.getBrainIndex()` (IPC `brain:getIndex`); renderer shows it in a `brainIndexPreview` element at launch. Docs updated to BM25-not-FTS5 honesty (`nextphase.md`, `mcp-server.js`, `skills/locate/skill.md`), 16 MCP tools (not 17), co-primary header search + terminal surfaces, tested installer flow (no `npx`). `nextphase.md` G1-G9 marked DONE.
+
+- 2026-11-19: Release Gate G10 complete — source configuration + MCP parity. `mcp-server.js` `CONFIG_FILE` changed from `syn-mcp-config.json` to shared `config.json` in the `syn/` user-data dir (same as `main.js`); `saveConfig()` added so `syn_add_harness` persists harness directories to `config.json` (matching `main.js`); `syn_search` inputSchema already lists `project`, `brain`, `dateFrom`, `dateTo`, `enabledHarnesses` filters; `.mcp.json` documents the retained `K:\Repos\locate` checkout path; `skills/syn/skill.md` documents desktop↔MCP config visibility parity. `nextphase.md` G1-G10 marked DONE.
+
 ---
 
 
+## v1 Release Gates — Current Status & Plan
+
+**Source of truth:** `analysis.md` (2026-11-19 audit synthesis of `xen38/Syn`). Phases 0-12 are substantially implemented, but the "100% complete" label is not supported by evidence. Syn is **not ready for a trustworthy v1 release** until every release gate below passes.
+
+**Gate definition:** A "release gate" must be implemented, regression-tested, and verified on a clean checkout (`npm ci` + focused suites) before v1 may be tagged. "Next" items close before broad adoption; "Later" items are post-v1.
+
+### Now — release gates (must pass before v1)
+
+| Gate | Summary | Status |
+|------|---------|--------|
+| G1 | Contain all brain paths — reject traversal/absolute/symlink escapes in `brainRead`/`brainWrite` (MCP + IPC + terminal) | DONE 2026-11-19 |
+| G2 | Preserve source archives by default — remove/disable `session:deleteFile`; index-only removal with confirmation | DONE 2026-11-19 |
+| G3 | Fix terminal filter forwarding + unify search contract (header, terminal, MCP share one validated filter shape) | DONE 2026-11-19 |
+| G4 | Make install/release reproducible — reconcile Electron manifest/lockfile, `bin` entry, publish GitHub Release assets | DONE 2026-11-19 |
+| G5 | Deterministic release CI — portable fixture tests required; real-world archives opt-in skip; add brain + MCP test suites | DONE 2026-11-19 |
+
+### Next — trust & usability (close before broad adoption)
+
+| Gate | Summary | Status |
+|------|---------|--------|
+| G6 | Precise exclusion matching (`_isExcluded` without substring false positives) + document redaction best-effort limits | DONE 2026-11-19 |
+| G7 | Corrupt index DB recovery — backup, actionable status, explicit rebuild (no silent destructive replacement) | DONE 2026-11-19 |
+| G8 | Keyboard + screen-reader workflows; resolve all 14 measured contrast failures | DONE 2026-11-19 |
+| G9 | Clarify product contract + correct docs (BM25 not FTS5, 16 MCP tools not 17, co-primary surfaces, install flow) | DONE 2026-11-19 |
+| G10 | Source configuration + MCP parity — shared/intentionally-separated config, missing MCP filters + validation | DONE 2026-11-19 |
+
+### Later — scale & polish (post-v1)
+
+SQLCipher encryption-at-rest, native FTS5, semantic search, per-source indexing progress, sign/notarize installers, live Pages verification.
+
+### How the old phases map to this plan
+
+Phases 0-12 (implementation history, mostly shipped): renaming, Memory Vault/brainmaxxing, terminal UI, MCP server (16 tools), /syn skill, skills home, CI/release workflows, fixture tests (47), privacy/security scaffolding (redaction/exclusions), search quality (BM25 + snippets + filters), engineering hygiene, docs/community. The gates above close the gaps that keep v1 from being trustworthy: G1–G5 are blockers; G6–G10 are required for broad adoption.
+
+Validation rule: every gate adds or updates tests in `test/` and runs them on a clean `npm ci` before being marked done.
+
+---
 
 ## 0. Success Condition
 
@@ -80,7 +136,7 @@ The plan is complete when `nextphase.md` contains every checkpoint needed to tak
 
 1. Renaming (app, repo, folder) to **Syn**.
 
-2. A **terminal/console** as the primary interaction surface (replacing the search bar, not the search engine).
+2. A **terminal/console** as a co-primary interaction surface alongside the header search bar (both share one search contract).
 
 3. **/locate engine** commands: `/locate <text>` searches sessions + Memory Vault.
 
@@ -102,7 +158,7 @@ The plan is complete when `nextphase.md` contains every checkpoint needed to tak
 
 12. **Security**: secret redaction, path exclusions, local-only MCP, contextIsolation/nodeIntegration.
 
-13. **Search quality**: FTS5 BM25 tuning, filters (harness/project/date/role), snippets + highlighting.
+13. **Search quality**: BM25-style ranking over LIKE candidates (sql.js has no native FTS5), filters (harness/project/date/role), snippets + highlighting.
 
 14. **CI**: GitHub Actions tests + lint on every push.
 
@@ -926,7 +982,7 @@ Update `skills/locate/skill.md` to reflect Syn naming and the terminal-based int
 
 |-------|--------|
 
-| `npm test` runs fixture-based adapter tests | ? all test files wired into `package.json` test script |
+| `npm test` runs fixture-based adapter tests | DONE 2026-11-19 |
 
 | All supported harnesses parse correctly from fixtures | ? 47 passed, 0 failed (test/fixture-tests.js) |
 
@@ -1436,7 +1492,7 @@ Syn/
 
 +-- packages/
 
-¦   +-- core/                       # Indexing engine (SQLite FTS5)
+¦   +-- core/                       # Indexing engine (BM25-style ranking over LIKE candidates; sql.js has no native FTS5)
 
 ¦   +-- adapters/                   # Per-format parsers
 
@@ -1594,7 +1650,298 @@ Syn/
 
 ---
 
-**End of nextphase.md.** This is the complete 0% ? 100% guide for building Syn. Execute phase by phase, validating at each checkpoint before proceeding.
+
+
+## Phase A — Release Gate G1: Contain all brain paths (path traversal)
+
+**Goal:** Agents and tools can never read or write files outside `brain/`. Blocks v1.
+
+**Why:** `packages/core/brainmaxxing.js` `brainRead`/`brainWrite` join caller paths to `BRAIN_DIR` with no containment check. MCP exposes `syn_read_brain`/`syn_write_brain` directly; renderer IPC (`brain:read`/`brain:write`) also calls them. A caller with `../` can reach any file the process account can access.
+
+**Files**
+| File | Change | Done |
+|------|--------|------|
+| `packages/core/brainmaxxing.js` | Add `containBrainPath(relativePath)`: resolve `BRAIN_DIR` + requested path; reject absolute paths, `..` segments, mixed separators, and any resolved target outside `BRAIN_DIR`; reject symlink escapes via realpath + containment. Use the same helper for `brainRead`, `brainWrite`, and every caller. | DONE 2026-11-19 |
+| `main.js` | `brain:read`/`brain:write` handlers route through `containBrainPath` via pass-through to `brainmaxxing`; non-ok results return error on escape attempts. | DONE 2026-11-19 |
+| `mcp-server.js` | `syn_read_brain`/`syn_write_brain` already map non-ok `brainmaxxing` results to MCP `isError: true`; containment applies automatically. | DONE 2026-11-19 |
+| `preload.js` | No new surface needed (IPC already guarded); `synAPI.brainRead/brainWrite` pass raw relative path to guarded IPC handler. | DONE 2026-11-19 |
+
+**Validation loop (test/brainmaxxing.test.js)**
+- `brainWrite("../../../escape.txt", ...)` → error, no file created outside `brain/`
+- `brainRead("C:\Windows\...")` (absolute) → error
+- Mixed separators `memories\..\..\x.md` → error
+- Sibling-prefix path `brain/../outside.md` → error (not a descendant)
+- Symlink inside `brain/` pointing outside → resolved target rejected
+- Ordinary nested read/write round-trip (`memories/x.md`) → ok
+- `brainList` returns only in-vault `.md` files
+- MCP `syn_write_brain` traversal → MCP error; `syn_read_brain` traversal → MCP error
+
+**Gate pass criteria:** All traversal variants rejected with errors; zero writes outside `brain/`; legitimate in-vault ops unchanged.
+
+---
+
+## Phase B — Release Gate G2: Preserve source archives by default
+
+**Goal:** Syn never irreversibly deletes a user's original session archive. Restores the read-only product promise. Blocks v1.
+
+**Why:** `main.js` `session:deleteFile` calls `fs.unlinkSync(session.file_path)` then removes the index row. README and brain principles state originals are never modified. Confirmation reduces accidental clicks but does not remove the invariant conflict.
+
+**Files**
+| File | Change | Done |
+|------|--------|------|
+| `main.js` | Remove/disable `session:deleteFile` IPC handler (return unsupported error), or remove it pending a separately-gated product design for archive deletion. Keep index-only `session:delete`. | DONE 2026-11-19 |
+| `preload.js` | Remove `synAPI.deleteSessionFile` bridge if present. | DONE 2026-11-19 |
+| `renderer/app.js` | Remove/disable the "Delete Session File" context-menu action; keep "Delete Entry" (index-only) behind a confirmation dialog. | DONE 2026-11-19 |
+| `renderer/index.html` | Remove "Delete Session File" menu item if present. | DONE 2026-11-19 |
+| `README.md`, `brain/principles/read-only-sessions.md` | Re-state the read-only invariant clearly; distinguish index removal (reversible via re-index) from archive deletion (not supported by default). | DONE 2026-11-19 |
+
+**Validation loop**
+- Ordinary delete/index-remove actions never call filesystem deletion on an archive path.
+- Index-remove shows confirm/cancel; cancel leaves index row intact.
+- Archive file hashes unchanged through every user-facing delete workflow.
+- `session:deleteFile` IPC (if retained) requires explicit opt-in and is not reachable from default UI.
+
+**Gate pass criteria:** No default UI or API path deletes an original archive; index-only removal is confirmed and reversible.
+
+---
+
+## Phase C — Release Gate G3: Fix terminal filter forwarding + unify search contract
+
+**Goal:** `/locate harness:… role:… date:… brain:…` works identically from the header search bar, the terminal, and MCP. Blocks v1.
+
+**Why:** `renderer/app.js` terminal passes `synAPI.searchSessions(query, { batchSize, filters })` (filters nested), while `main.js` `session:search` reads top-level `options.harness`/`options.role`/etc. Terminal filters are silently dropped. Header, terminal, and MCP parse/validate filters in separate places.
+
+**Files**
+| File | Change | Done |
+|------|--------|------|
+| `renderer/app.js` | Terminal `/locate` parses filters into top-level options and calls `synAPI.searchSessions(query, { batchSize, ...options })` — same shape as header `performSearch()`. Remove the nested `{ filters }` payload. | DONE 2026-11-19 |
+| `preload.js` | Expose a shared `parseSearchFilters(raw)` (or import one shared module) used by both header and terminal; keep `searchSessions(query, options) => ipcRenderer.invoke('session:search', query, options)`. | DONE 2026-11-19 |
+| `main.js` | `session:search` continues reading top-level options (`harness`, `role`, `dateFrom`, `dateTo`, `project`, `brain`, `limit`, `excerptLength`, `enabledHarnesses`); validate and coerce types. | DONE 2026-11-19 |
+| `packages/core/index.js` | `search()` already parses colon-prefix filters from free text; keep a single source of truth for filter semantics. | DONE 2026-11-19 |
+| `mcp-server.js` | `syn_search` accepts the same filter fields (`harness`, `role`, `date`, `project`, `brain`, `limit`, `excerptLength`) with validation. | DONE 2026-11-19 |
+
+**Validation loop**
+- Same query + filters returns identical results via header, terminal, and MCP where supported.
+- Filter cases: `harness:NAME`, `role:user|assistant`, `date:YYYY-MM-DD`, `date:FROM..TO`, `project:PATH`, `brain:`.
+- Malformed/missing filter values produce clear errors, not silent drops.
+
+**Gate pass criteria:** Filter parity across all three callers; no silently-dropped filters.
+
+---
+
+## Phase D — Release Gate G4: Make install/release reproducible
+
+**Goal:** Contributors and users can install a known build from a tagged release, not just a local checkout or orphaned Actions artifact. Blocks v1.
+
+**Why:** Local `package.json` declares `electron: "^13.0.0"` as a runtime dependency; public `main` declares `^31.0.0` as a devDependency. `package-lock.json` drift confirmed. `release.yml` uploads Actions artifacts but never creates a GitHub Release with assets. `package.json` has no `bin`, so `npx github:xen38/Syn` / global install instructions are unsupported.
+
+**Files**
+| File | Change | Done |
+|------|--------|------|
+| `package.json` | Move `electron` to `devDependencies` at `^31.x` matching public `main`; remove from runtime `dependencies`. Regenerate `package-lock.json` with `npm install` then verify `npm ci` is clean. | — |
+| `.github/workflows/release.yml` | On `v*` tags: build Windows/macOS/Linux installers with electron-builder AND create a GitHub Release attaching the assets (not Actions uploads only). | DONE 2026-11-19 |
+| `README.md`, `docs/index.html` | Replace `npx github:xen38/Syn` / global-install instructions with tested installer download + `git clone … && npm install && npm start` (or a runnable `bin` if publishing to npm is later approved). | DONE 2026-11-19 |
+| `.mcp.json` | Local per-user config: document that it must point at the retained `K:\Repos\locate\mcp-server.js` (do not rewrite as part of this audit; user-specific). | DONE 2026-11-19 |
+
+**Validation loop**
+- `npm ci` on a clean checkout installs without errors.
+- `npm run build` produces platform installers; packaged app launches.
+- Tagging a release creates a GitHub Release with downloadable assets; install instructions in README work end-to-end.
+
+**Gate pass criteria:** Clean `npm ci` + installer build + published release assets + verified install instructions.
+
+---
+
+## Phase E — Release Gate G5: Deterministic release CI + brain/MCP test coverage
+
+**Goal:** CI results are repeatable; the most privileged surface (brain/MCP) has automated coverage. Blocks v1.
+
+**Why:** No dedicated brainmaxxing or MCP integration tests exist. Real-world tests use absolute `K:\Users\luizy\…` paths and skip on clean Linux, so CI skips real-world coverage rather than exercising fixtures. Audit reports conflict on whether indexing tests pass.
+
+**Files**
+| File | Change | Done |
+|------|--------|------|
+| `test/brainmaxxing.test.js` (new) | Containment (G1), read/write/list round-trip, reflect/meditate/ruminate/plan/review output shape, index.md rebuild. | DONE 2026-11-19 |
+| `test/mcp.test.js` (new) | Server starts on stdio; `tools/list` returns 16 tools (correct the 17 claim); `syn_search` returns results; brain read/write honor containment; schema validation errors for missing/invalid args. | — |
+| `test/real-world-integration.test.js` | Missing real-world archives → explicit `test.skip` with message, never a CI failure; optional opt-in when paths exist. | DONE 2026-11-19 |
+| `test/indexing.test.js` | Deterministic fixture-based assertions; Codex/Cursor/SQLite regression fixtures from redacted real-format samples. | DONE 2026-11-19 |
+| `.github/workflows/ci.yml` | Required = portable fixture tests (search, search-quality, validator-precision, fixture-tests, indexing, security, brainmaxxing, MCP). Real-world runs only when data present, reported as skip. | DONE 2026-11-19 |
+| `package.json` `test` script | Run all required suites deterministically. | DONE 2026-11-19 |
+
+**Validation loop**
+- Clean Linux CI executes every required suite; all pass.
+- Real-world archives absent → explicit skips, exit code 0.
+- Adding a Codex/Cursor/SQLite fixture regresses → CI fails before merge.
+
+**Gate pass criteria:** `npm ci` + full required suite green on clean Linux; brain/MCP covered; real-world never silently skipped or required.
+
+---
+
+## Phase F — Release Gate G6: Precise exclusion matching + redaction limits
+
+**Goal:** Exclusions omit intended trees only (not siblings); users understand redaction is best-effort. Next (before broad adoption).
+
+**Why:** `_isExcluded()` uses `normalized.includes(exclResolved)`, a substring branch that can exclude an unrelated sibling path merely containing the excluded text. Redaction is pattern-based and cannot guarantee all secrets are caught.
+
+**Files**
+| File | Change | Done |
+|------|--------|------|
+| `packages/core/index.js` | `_isExcluded`: exact match + separator-aware descendant only; remove the `includes()` substring branch; case normalization appropriate to platform. | DONE 2026-11-19 |
+| `test/security.test.js` | Excluded root excludes descendants but not sibling names; case/canonicalization behavior; custom redaction patterns + common token variants. | DONE 2026-11-19 |
+| `README.md` | State redaction is pattern-based best-effort, not a guarantee; secrets in unrecognized/obfuscated formats can remain indexed. | DONE 2026-11-19 |
+
+**Validation loop**
+- Exclude `C:\data\secret` → `C:\data\secret\session.md` excluded, `C:\data\secretary\session.md` NOT excluded.
+- Custom patterns redacted; unrecognized formats pass through (documented limit).
+
+**Gate pass criteria:** No sibling false positives; redaction limits documented and tested.
+
+---
+
+## Phase G — Release Gate G7: Corrupt index DB recovery
+
+**Goal:** A damaged `syn-index.db` never silently destroys session history; users get an actionable status and an explicit rebuild path. Next.
+
+**Why:** Startup catches/logs engine-open errors (e.g. "file is not a database") and proceeds degraded. No backup, no rebuild offer, no archive protection.
+
+**Files**
+| File | Change | Done |
+|------|--------|------|
+| `packages/core/index.js` | Detect invalid/truncated DB on `open()`; preserve a timestamped backup copy before any rebuild; never auto-delete. | — |
+| `main.js` | Startup: if engine open fails, show actionable status in renderer and offer explicit "Rebuild index from sources" action. | — |
+| Renderer error/status UI | Display DB health status (healthy / corrupt / rebuilding) with plain text (not a GIF). | — |
+
+**Validation loop**
+- Corrupt/truncated DB at startup → archives unchanged, backup preserved, recovery offered, rebuild restores indexing/search.
+- Valid DB unaffected.
+
+**Gate pass criteria:** No silent destructive replacement; corrupt DB recoverable from source archives.
+
+---
+
+## Phase H — Release Gate G8: Keyboard + screen-reader + contrast
+
+**Goal:** Core retrieval (search → open result → menu → cancel/delete) works keyboard-only and with a screen reader; contrast failures resolved. Next.
+
+**Why:** Report 09 measured 14 contrast failures among 47 checks. Context menus, session/result rows, terminal results rely on mouse click handlers; several controls lack roles/ARIA names; no dependable focus-visible treatment; no live announcements.
+
+**Files**
+| File | Change | Done |
+|------|--------|------|
+| `renderer/index.html` | Convert clickable divs to semantic controls (buttons/links); add accessible names, roles, selected/expanded state. | DONE 2026-11-19 |
+| `renderer/app.js` | Keyboard handlers (Enter/Space/Arrow/Escape), focus return after actions, live region announcements for terminal output and status. | DONE 2026-11-19 |
+| `renderer/style.css` | Visible `focus-visible` across custom controls; contrast fixes for all 14 measured failures; stable contrast check for key text/control pairs. | DONE 2026-11-19 |
+
+**Validation loop**
+- Automated DOM/a11y checks; keyboard-only workflow search → open result → menu → cancel/delete.
+- Manual screen-reader and contrast review after palette changes.
+
+**Gate pass criteria:** All 14 contrast failures addressed; core workflows keyboard + screen-reader accessible.
+
+---
+
+## Phase I — Release Gate G9: Clarify product contract + correct docs
+
+**Goal:** Public docs match code: one search contract, 16 MCP tools, BM25-not-FTS5 honesty, supported install flow. Next.
+
+**Why:** `nextphase.md`/`README.md`/skills claim FTS5, 17 tools, terminal-replaces-search-bar, `npx` install — all contradicted by code/analysis. The "Phase 0-12 complete (100%)" label is unsupported (this document now resets it).
+
+**Files**
+| File | Change | Done |
+|------|--------|------|
+| `nextphase.md` | This document: reset status, release gates G1-G10, validation rules, end the "100%" claim. | DONE 2026-11-19 |
+| `README.md` | Replace FTS5 claims with "BM25-style ranking over LIKE candidates" (sql.js has no FTS5); document co-primary header search + terminal sharing one contract; replace unsupported `npx` install with tested installer/source-run instructions. | DONE 2026-11-19 |
+| `skills/`, `.agents/skills/` | Align `/syn` and `/locate` skill text with actual tool names, filter support, and primary surface. | DONE 2026-11-19 |
+| `brain/` | Correct session-start brain injection docs (`injectBrainIndex()` reads `brain/index.md` and renderer shows it at launch via `synAPI.getBrainIndex()`). | DONE 2026-11-19 |
+| `mcp-server.js` | Tool descriptions and count reflect the real 16 tools; add missing filters + required-arg validation. | DONE 2026-11-19 |
+
+**Note on `injectBrainIndex()`:** Implemented as part of G9 — reads `brain/index.md` via `brainmaxxing.readIndexMd()` at session start, stores it in `brainIndexMd`, and exposes it through `synAPI.getBrainIndex()`; the renderer shows it in the `brainIndexPreview` element at launch.
+
+**Validation loop**
+- Doc-contract check: tool count == 16, filters listed match implementation, primary surface stated, install flow tested.
+- `injectBrainIndex()` reads `brain/index.md` and renderer shows it at launch.
+
+**Gate pass criteria:** Docs and code agree; no unsupported capability claims remain.
+
+---
+
+## Phase J — Release Gate G10: Source configuration + MCP parity
+
+**Goal:** One source of truth for harness registration; desktop and MCP index the same sources; MCP has full filter support + validation. Next.
+
+**Why:** Desktop (`main.js` `CONFIG_FILE`) and MCP (`mcp-server.js` `CONFIG_FILE`) use distinct config files. Shared storage does not mean shared registration. `syn_search` omits some engine filters; validation inconsistent. Local `.mcp.json` path is stale-relative to a renamed folder assumption (retained `K:\Repos\locate`).
+
+**Files**
+| File | Change | Done |
+|------|--------|------|
+| `main.js` | Decide config ownership (share one config file or document intentional separation); keep `syn/` userData subfolder consistent with MCP. | DONE 2026-11-19 |
+| `mcp-server.js` | Add missing MCP filters (`date`, `project`, `brain`) and required-argument validation (`query` required, sane limits). | DONE 2026-11-19 |
+| `.mcp.json` | Document that local path must match the retained checkout folder; do not assume `K:\Repos\Syn`. | DONE 2026-11-19 |
+| `skills/syn/skill.md` | Document configured source visibility parity between desktop and MCP. | DONE 2026-11-19 |
+
+**Validation loop**
+- Add/index a source via desktop; verify it is documented/visible through MCP (and vice versa, per the chosen config model).
+- Schema/error tests: missing `query`, invalid `limit`, unknown filter keys produce MCP errors.
+
+**Gate pass criteria:** No duplicate setup; agents don't search a different source set than the desktop app.
+
+---
+
+## Phase J.5 — Brain vault UI: Obsidian-style brain navigation in middle column (pre-Phase K)
+
+**Goal:** Replace the brain index preview pill with an image button beside the search bar that opens an Obsidian-style brain vault menu in the middle column, plus a "Brain index" tab showing plain-text brain/index.md content. This phase ships just before Phase K — post-v1.
+
+| Item | Change | Done |
+|------|--------|------|
+| K.1 | Move DB health badge beside app name "Syn" in header (red square location) | DONE 2026-11-20 |
+| K.2 | Fix DB health badge dot positioning (white/green dot alignment) | DONE 2026-11-20 |
+| K.3 | Replace brain index preview with image button beside search bar (yellow square location) using `assets/iconBrain.png` | DONE 2026-11-20 |
+| K.4 | Brain button: breathing hover glow (green #53C68B variant), "Brain" tooltip | DONE 2026-11-20 |
+| K.5 | Brain button click opens Obsidian-style brain vault menu in middle column with interactive tabs | DONE 2026-11-20 |
+| K.6 | Brain vault menu: Vault tab shows Obsidian-style graph view (canvas nodes + curved bezier connections based on [[wikilink]] references, zoom/pan/click-to-open) instead of file list | DONE 2026-11-20 |
+| K.7 | Brain vault menu: "Brain index" tab shows plain-text brain/index.md content | DONE 2026-11-20 |
+| K.8 | Escape key + click outside closes brain vault panel | DONE 2026-11-20 |
+
+**Additional refinements (same session):**
+
+| Item | Change | Done |
+|------|--------|------|
+| K.9 | Graph dots spread further apart (REPULSION 1800→5000, MIN_DIST 50→250) | DONE 2026-11-20 |
+| K.10 | Connection lines changed to blue-to-purple gradient (#4f46e5 → #7c3aed) | DONE 2026-11-20 |
+| K.11 | Multi-tab note opening with × close buttons on each tab | DONE 2026-11-20 |
+| K.12 | [[wikilink]] references render as #53C68B clickable text (single render, not duplicated) | DONE 2026-11-20 |
+| K.13 | `loadBrainVault()` idempotency guard — event listeners + render loop only set up once | DONE 2026-11-20 |
+| K.14 | Graph node mousedown `stopPropagation()` prevents panel close on node click | DONE 2026-11-20 |
+| K.15 | Brain vault panel repositioned edge-to-edge (left: 300px, right: 0) filling middle column | DONE 2026-11-20 |
+| K.16 | DB health badge: white outer dot + smaller colored inner dot, badge moved down 3px | DONE 2026-11-20 |
+
+**Status:** Complete — brain vault UI implemented before Phase K — post-v1. All K.1–K.16 items done 2026-11-20.
+
+---
+
+## Phase K — Later: scale & polish (post-v1)
+
+| Item | Direction |
+|------|-----------|
+| SQLCipher encryption-at-rest | Explicitly future work; not a v1 requirement. |
+| Native FTS5 / semantic search | Optional architectural change; current BM25-over-LIKE is adequate if measured performance is acceptable. |
+| Per-source indexing progress | Busy/error states, textual status instead of GIF. |
+| Sign/notarize installers | macOS distribution polish; requires credentials. |
+| Live GitHub Pages verification | Confirm which file/branch Pages publishes; fix Locate branding/stale URL. |
+
+---
+
+### Validation rules (apply to every gate)
+
+1. **Clean checkout first:** `npm ci` must succeed before any gate is marked done.
+2. **Tests required:** Every gate adds or updates tests under `test/`; focused suites run in CI; real-world machine data is opt-in with explicit skips.
+3. **No silent skips:** A test that cannot run reports an explicit skip and exit code 0; it never becomes a hidden pass.
+4. **Security first:** G1 (brain containment) and G2 (archive preservation) must be complete and regression-tested before MCP brain tools are enabled for untrusted clients.
+5. **Mark done honestly:** A gate is done only when its validation loop passes on a clean checkout, not when the code is written.
+
+---
+
+**End of nextphase.md.** This is the multi-phased plan for a trustworthy Syn v1. Execute Phase A–E (release gates) before tagging v1; Phase F–J before broad adoption; Phase K after v1 is stable. Validate at each checkpoint before proceeding.
 
 
 

@@ -73,7 +73,7 @@ Syn exposes an MCP server over stdio (`node mcp-server.js`) with these tools (al
 
 | Tool | Purpose |
 |------|---------|
-| `syn_search` | Search sessions + Memory Vault (query, harness, role, limit, excerptLength) |
+| `syn_search` | Search sessions + Memory Vault (query, harness, role, project, brain, dateFrom, dateTo, enabledHarnesses, limit, excerptLength) |
 | `syn_get_session` | Retrieve a complete indexed session by session ID |
 | `syn_get_context` | Retrieve messages surrounding a specific message index |
 | `syn_list_sessions` | List all indexed sessions across all registered harnesses |
@@ -140,3 +140,7 @@ Returns sessions whose titles or contents mention authentication, token, refresh
 5. Use brainmaxxing commands (`/reflect`, `/meditate`, `/ruminate`, `/plan`, `/review`) to write learnings back to the Memory Vault
 
 The desktop app and MCP server share the same index database at `%APPDATA%\syn\syn-index.db`, so indexing done by either component is available to the other.
+
+## Config visibility parity (desktop ↔ MCP)
+
+Both the desktop app (`main.js`) and the MCP server (`mcp-server.js`) read and write a single shared config file at `%APPDATA%\syn\config.json` (Windows), `~/Library/Application Support/syn/config.json` (macOS), or `~/.config/syn/config.json` (Linux). Harness directories registered via `syn_add_harness` (MCP) or the desktop app are persisted to the same `config.json`, so desktop and MCP always see the same registered source set. Use `syn_list_harnesses` (MCP) or the desktop settings to confirm which sources are registered before searching.

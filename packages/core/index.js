@@ -175,12 +175,20 @@ class IndexingEngine {
     this.redactSecrets = options.redactSecrets !== false // default: enabled
     this.secretPatterns = options.secretPatterns || DEFAULT_SECRET_PATTERNS
     this.excludedPaths = options.excludedPaths || [] // array of path substrings/patterns
+    // Gate G7: database health tracking
+    this.dbHealth = null
   }
 
-  // ── Initialization ────────────────────────────────────────────────────
+  // ── Database health tracking (Gate G7) ─────────────────────────────────
+  // 'healthy'   — DB opened and schema verified
+  // 'corrupt'   — DB file exists but is invalid/truncated; backup preserved
+  // 'rebuilding'— rebuild in progress from source archives
+  // null        — not yet opened
 
   /**
    * Open the database, create schema, persist empty DB if new.
+   * Detects invalid/truncated DB files, preserves a timestamped backup,
+   * and never auto-deletes or silently replaces a corrupt DB.
    * @returns {Promise<IndexingEngine>} this instance
    */
   async open () {
@@ -192,7 +200,25 @@ class IndexingEngine {
     if (fs.existsSync(this.dbPath)) {
       buffer = fs.readFileSync(this.dbPath)
     }
-    this.db = wrapDb(new SQL.Database(buffer))
+
+    try {
+      this.db = wrapDb(new SQL.Database(buffer))
+    } catch (err) {
+      // Corrupt or truncated DB — preserve a timestamped backup, never auto-delete
+      this.dbHealth = 'corrupt'
+      if (buffer && buffer.length > 0) {
+        const ts = new Date().toISOString().replace(/[:.]/g, '-')
+        const backupPath = this.dbPath + '.corrupt-' + ts + '.bak'
+        try {
+          fs.writeFileSync(backupPath, buffer)
+        } catch (bakErr) {
+          // Backup failure is non-fatal; we still must not auto-delete the original
+        }
+      }
+      // Leave this.db null so callers can check dbHealth and decide to rebuild
+      return this
+    }
+
     this.db.exec('PRAGMA journal_mode = WAL')
     this.db.exec('PRAGMA synchronous = NORMAL')
     this._createSchema()
@@ -200,8 +226,52 @@ class IndexingEngine {
     if (!fs.existsSync(this.dbPath)) {
       fs.writeFileSync(this.dbPath, this.db.export())
     }
+    this.dbHealth = 'healthy'
     this.initialized = true
     return this
+  }
+
+  /**
+   * Rebuild the database from scratch: remove the current (possibly corrupt)
+   * DB file after preserving a backup, create a fresh empty DB, and re-index
+   * all registered sources. Caller must have registered sources before calling.
+   * @param {boolean} [preserveCorrupt=true] — if true, keep the corrupt DB as a .bak file
+   * @returns {Promise<{indexed: number, skipped: number, total: number}>} indexAllSources result
+   */
+  async rebuild (preserveCorrupt = true) {
+    if (this.db) {
+      try { this.db.close() } catch (_) {}
+      this.db = null
+    }
+    this.dbHealth = 'rebuilding'
+
+    if (fs.existsSync(this.dbPath)) {
+      if (preserveCorrupt) {
+        const ts = new Date().toISOString().replace(/[:.]/g, '-')
+        fs.copyFileSync(this.dbPath, this.dbPath + '.rebuild-' + ts + '.bak')
+      }
+      try { fs.unlinkSync(this.dbPath) } catch (_) {}
+      for (const ext of ['-wal', '-shm']) {
+        try { fs.unlinkSync(this.dbPath + ext) } catch (_) {}
+      }
+    }
+
+    // Re-open to create a fresh empty DB
+    await this.open()
+
+    // Re-index all registered sources
+    const sources = this.listSources()
+    let indexed = 0
+    let skipped = 0
+    let total = 0
+    for (const source of sources) {
+      const result = await this.indexSource(source.id)
+      indexed += result.indexed
+      skipped += result.skipped
+      total += result.total
+    }
+    this.dbHealth = 'healthy'
+    return { indexed, skipped, total }
   }
 
   _createSchema () {
@@ -287,16 +357,27 @@ class IndexingEngine {
   }
 
   // Phase 8: Check if a file path matches any exclusion pattern
+  // Uses exact match or separator-aware descendant match only — never a raw
+  // substring (includes) check, which can exclude unrelated sibling paths
+  // that merely contain the excluded text (e.g. excluding ".cline" would
+  // also match ".cline-backup").
   _isExcluded (filePath) {
     if (!this.excludedPaths || this.excludedPaths.length === 0) return false
-    const normalized = path.resolve(filePath)
+    const normalized = this._normalizePath(path.resolve(filePath))
     return this.excludedPaths.some(excl => {
-      const exclResolved = path.resolve(excl)
-      // Match if the excluded path is a prefix of the file path, or exact match
+      const exclResolved = this._normalizePath(path.resolve(excl))
+      // Exact match, or filePath is a descendant of exclResolved
       return normalized === exclResolved ||
-             normalized.startsWith(exclResolved + path.sep) ||
-             normalized.includes(exclResolved)
+             normalized.startsWith(exclResolved + path.sep)
     })
+  }
+
+  // Normalize path case according to platform semantics.
+  // Windows/macOS are case-insensitive; POSIX is case-sensitive.
+  _normalizePath (p) {
+    return process.platform === 'win32' || process.platform === 'darwin'
+      ? p.toLowerCase()
+      : p
   }
 
   // ── Text extraction (read-only) ──────────────────────────────────────
@@ -701,6 +782,7 @@ class IndexingEngine {
     const safeId = String(sessionId).replace(/'/g, '\'\'')
     this.db.exec(`DELETE FROM messages WHERE session_id = '${safeId}'`)
     this.db.exec(`DELETE FROM sessions WHERE session_id = '${safeId}'`)
+    return true
   }
 
   _detectHarness (dirPath) {

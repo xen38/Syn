@@ -169,20 +169,20 @@
 <section class="install" id="install">
   <div class="container">
     <h2>Install</h2>
-    <p>Install Syn directly from GitHub:</p>
-    <pre><code># Run the MCP server directly
-npx github:xen38/Syn
+    <p>Install Syn from a prebuilt installer (recommended) or run from source:</p>
+    <pre><code># Option 1: Prebuilt installer
+# Download from https://github.com/xen38/Syn/releases
+# Run the installer for your platform (.exe, .dmg, or AppImage)
 
-# Or install globally
-npm install -g github:xen38/Syn
-
-# Clone and run the desktop app
+# Option 2: Run from source
 git clone https://github.com/xen38/Syn.git
 cd Syn
 npm install
 npm start</code></pre>
     <p>Then register and index your harness directories via MCP tools:</p>
-    <pre><code>syn_add_harness &lt;directory&gt;
+    <pre><code>node mcp-server.js
+
+syn_add_harness &lt;directory&gt;
 syn_index_all
 syn_search &lt;query&gt;</code></pre>
   </div>

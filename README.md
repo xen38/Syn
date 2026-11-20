@@ -41,7 +41,21 @@ The desktop app and MCP server share the same index database at `%APPDATA%\Syn\S
 
 ## Critical constraint
 
-**NEVER COPY, MOVE, MODIFY, OR DUPLICATE ORIGINAL SESSION FILES.** Syn only reads original files read-only. It maintains its own lightweight metadata database and search index, which never modify or duplicate the original session archives.
+**NEVER COPY, MOVE, MODIFY, DUPLICATE, OR DELETE ORIGINAL SESSION FILES.** Syn only reads original files read-only. It maintains its own lightweight metadata database and search index, which never modify, duplicate, or delete the original session archives. Index removal (via "Delete Entry") only removes the entry from the search index; the original archive file on disk is never touched and can be restored by re-indexing.
+
+## Security & privacy
+
+### Secret redaction (best-effort)
+
+Syn can optionally redact common secret patterns (GitHub tokens, AWS keys, and user-configured custom patterns) at index time. Redaction is **pattern-based and best-effort**, not a guarantee:
+
+- Secrets in unrecognized, obfuscated, or split-across-lines formats can remain indexed.
+- Custom patterns can be added via the `secretPatterns` engine option.
+- Original files on disk are **never modified** — redaction applies only to the indexed copy in Syn's database.
+
+### Path exclusions
+
+Syn supports excluding directories from indexing via the `excludedPaths` engine option. Exclusion uses exact path match or separator-aware descendant match — a sibling path that merely contains the excluded text (e.g. `.cline` vs `.cline-backup`) is **not** excluded. Exclusion is applied at index time only; already-indexed entries are not retroactively removed.
 
 ## Supported adapters
 
@@ -58,7 +72,18 @@ File extensions → adapter:
 
 ### Desktop app
 
+Option 1 — download a prebuilt installer (recommended):
+
+1. Go to https://github.com/xen38/Syn/releases and download the latest installer for your platform (Windows `.exe`, macOS `.dmg`, or Linux AppImage).
+2. Run the installer and launch Syn.
+
+Option 2 — run from source:
+
 ```bash
+# Clone the repository
+git clone https://github.com/xen38/Syn.git
+cd Syn
+
 # Install dependencies
 npm install
 

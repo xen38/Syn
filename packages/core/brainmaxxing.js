@@ -39,6 +39,50 @@ function slugify (text) {
     .slice(0, 80)
 }
 
+// ── Brain Vault path containment (G1) ────────────────────────────────
+
+/**
+ * Contain a caller-supplied path inside the brain vault.
+ * Resolves BRAIN_DIR + relativePath and rejects absolute paths, traversal
+ * (`..`) segments, mixed separators, and any resolved target outside BRAIN_DIR
+ * — including symlink escapes via realpath.
+ * @param {string} relativePath - Path relative to BRAIN_DIR
+ * @returns {string} Resolved absolute path inside BRAIN_DIR
+ * @throws {Error} If the path cannot be contained
+ */
+function containBrainPath (relativePath) {
+  if (typeof relativePath !== 'string' || relativePath.trim() === '') {
+    throw new Error(`Invalid brain path: ${JSON.stringify(relativePath)}`)
+  }
+  if (path.isAbsolute(relativePath)) {
+    throw new Error(`Absolute brain paths are not allowed: ${relativePath}`)
+  }
+  if (relativePath.includes('/') && relativePath.includes('\\')) {
+    throw new Error(`Mixed path separators are not allowed: ${relativePath}`)
+  }
+  const segments = relativePath.split(/[\\/]+/)
+  if (segments.includes('..')) {
+    throw new Error(`Path traversal ("..") is not allowed in brain paths: ${relativePath}`)
+  }
+  const resolved = path.resolve(BRAIN_DIR, relativePath)
+  if (resolved !== BRAIN_DIR && !resolved.startsWith(BRAIN_DIR + path.sep)) {
+    throw new Error(`Brain path escapes vault: ${relativePath}`)
+  }
+  const brainDirReal = fs.realpathSync(BRAIN_DIR)
+  let targetReal
+  try {
+    targetReal = fs.realpathSync(resolved)
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e
+    // New files: fall back to the already-lexically-contained resolved path
+    targetReal = resolved
+  }
+  if (targetReal !== brainDirReal && !targetReal.startsWith(brainDirReal + path.sep)) {
+    throw new Error(`Brain path escapes vault via symlink: ${relativePath}`)
+  }
+  return resolved
+}
+
 // ── Brain Vault helpers ──────────────────────────────────────────────────
 
 /**
@@ -47,7 +91,12 @@ function slugify (text) {
  * @returns {{ok:boolean, path?:string, content?:string, error?:string}} Read result
  */
 function brainRead (relativePath) {
-  const filePath = path.join(BRAIN_DIR, relativePath)
+  let filePath
+  try {
+    filePath = containBrainPath(relativePath)
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
   if (!fs.existsSync(filePath)) {
     return { ok: false, error: `Brain file not found: ${relativePath}` }
   }
@@ -59,11 +108,16 @@ function brainRead (relativePath) {
  * Write a brain/memory file to the vault.
  * @param {string} relativePath - Path relative to BRAIN_DIR
  * @param {string} content - File content
- * @returns {{ok:boolean, path:string}} Write result
+ * @returns {{ok:boolean, path?:string, error?:string}} Write result
  */
 function brainWrite (relativePath, content) {
+  let filePath
+  try {
+    filePath = containBrainPath(relativePath)
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
   ensureDir(BRAIN_DIR)
-  const filePath = path.join(BRAIN_DIR, relativePath)
   fs.mkdirSync(path.dirname(filePath), { recursive: true })
   fs.writeFileSync(filePath, content, 'utf8')
   return { ok: true, path: relativePath }
@@ -82,6 +136,7 @@ function brainList () {
       const full = path.join(dir, entry.name)
       const rel = prefix ? `${prefix}/${entry.name}` : entry.name
       if (entry.isDirectory()) {
+        if (entry.isSymbolicLink()) continue
         walk(full, rel)
       } else if (entry.isFile() && entry.name.endsWith('.md')) {
         files.push(rel)
@@ -426,6 +481,7 @@ async function review (content, engine) {
 
 module.exports = {
   BRAIN_DIR,
+  containBrainPath,
   brainRead,
   brainWrite,
   brainList,
