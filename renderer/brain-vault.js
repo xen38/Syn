@@ -140,6 +140,7 @@ const MIN_DIST = 320
 const noteDirty = new Map() // tabId -> true if unsaved changes
 const noteContentMap = new Map() // tabId -> current content string
 const noteFileMap = new Map() // tabId -> file path (relative to BRAIN_DIR)
+const notesOpening = new Set() // files currently being opened (prevents duplicate tabs)
 let pendingCloseTabId = null // tabId waiting for confirm
 
 let brainVaultInitialized = false
@@ -720,34 +721,40 @@ function renderNoteContent (file, content) {
 
 // ── Open a note in a new tab ──
 async function openNote (file) {
-  const tabId = 'note-' + escapeCssId(file)
-
   // If already open, switch to it
+  const tabId = 'note-' + escapeCssId(file)
   const existingTab = document.querySelector('.brain-vault-tab[data-tab="' + tabId + '"]')
   if (existingTab) {
     switchBvTab(tabId)
     return
   }
 
-  const result = await _synAPI.brainRead(file)
-  if (!result.ok) {
-    alert('Failed to read ' + file + ': ' + result.error)
-    return
-  }
+  // Prevent duplicate concurrent opens of the same file
+  if (notesOpening.has(file)) return
+  notesOpening.add(file)
+  try {
+    const result = await _synAPI.brainRead(file)
+    if (!result.ok) {
+      alert('Failed to read ' + file + ': ' + result.error)
+      return
+    }
 
-  // Check again after async read — another call may have created the tab while we waited
-  const existingTab2 = document.querySelector('.brain-vault-tab[data-tab="' + tabId + '"]')
-  if (existingTab2) {
+    // Check again after async read — another call may have created the tab while we waited
+    const existingTab2 = document.querySelector('.brain-vault-tab[data-tab="' + tabId + '"]')
+    if (existingTab2) {
+      switchBvTab(tabId)
+      return
+    }
+
+    const content = result.content || ''
+    const label = file.replace(/\.md$/, '')
+    const html = renderNoteContent(file, content)
+
+    createBvTab(tabId, label, html, file, content)
     switchBvTab(tabId)
-    return
+  } finally {
+    notesOpening.delete(file)
   }
-
-  const content = result.content || ''
-  const label = file.replace(/\.md$/, '')
-  const html = renderNoteContent(file, content)
-
-  createBvTab(tabId, label, html, file, content)
-  switchBvTab(tabId)
 }
 
 // ── Create a brain vault tab ──
@@ -822,6 +829,9 @@ function createBvTab (tabId, label, html, file, content) {
 // ── Start inline edit mode ──
 function startEditMode (contentDiv, tabId, file) {
   if (noteDirty.get(tabId)) return // already editing
+
+  // Mark dirty immediately (synchronously) to prevent re-entering edit mode on the same tab
+  noteDirty.set(tabId, true)
 
   const currentContent = noteContentMap.get(tabId) || ''
   const textarea = document.createElement('textarea')
