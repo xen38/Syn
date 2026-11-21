@@ -1529,26 +1529,21 @@ a { color: #ffffff; }
   color: #ff4444;
 }
 
-/* ── Resize handles for frameless Brain Vault window ── */
+/* ── Resize handles for frameless Brain Vault window ──
+     Corner handles removed; edge handles are thin and subtle. */
 .bv-resize {
   position: fixed;
   background: transparent;
   z-index: 10;
   -webkit-app-region: no-drag;
+  opacity: 0;
+  transition: opacity 0.15s;
 }
-.bv-resize-n { top: 0; left: 12px; right: 12px; height: 8px; cursor: n-resize; }
-.bv-resize-s { bottom: 0; left: 12px; right: 12px; height: 8px; cursor: s-resize; }
-.bv-resize-e { top: 12px; bottom: 12px; right: 0; width: 8px; cursor: e-resize; }
-.bv-resize-w { top: 12px; bottom: 12px; left: 0; width: 8px; cursor: w-resize; }
-.bv-resize-nw { top: 0; left: 0; width: 12px; height: 12px; cursor: nw-resize; }
-.bv-resize-ne { top: 0; right: 0; width: 12px; height: 12px; cursor: ne-resize; }
-.bv-resize-sw { bottom: 0; left: 0; width: 12px; height: 12px; cursor: sw-resize; }
-.bv-resize-se { bottom: 0; right: 0; width: 12px; height: 12px; cursor: se-resize; }
-/* Make corner handles slightly visible so users know they exist */
-.bv-resize-nw, .bv-resize-ne, .bv-resize-sw, .bv-resize-se {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-}
+.bv-resize:hover { opacity: 0.6; }
+.bv-resize-n { top: 0; left: 12px; right: 12px; height: 6px; cursor: n-resize; }
+.bv-resize-s { bottom: 0; left: 12px; right: 12px; height: 6px; cursor: s-resize; }
+.bv-resize-e { top: 12px; bottom: 12px; right: 0; width: 6px; cursor: e-resize; }
+.bv-resize-w { top: 12px; bottom: 12px; left: 0; width: 6px; cursor: w-resize; }
 
 /* Toolbar */
 .brain-vault-toolbar {

@@ -24,7 +24,18 @@ const path = require('path')
 const fs = require('fs')
 
 // Brain vault lives at the repo root: <repo>/brain
-const BRAIN_DIR = path.join(__dirname, '..', '..', 'brain')
+// Can be overridden at runtime via setBrainDir() (used by settings menu)
+let BRAIN_DIR = path.join(__dirname, '..', '..', 'brain')
+
+/**
+ * Override the Brain Vault directory at runtime.
+ * @param {string} newDir - Absolute path to the new brain vault directory
+ */
+function setBrainDir (newDir) {
+  if (!path.isAbsolute(newDir)) throw new Error('Brain dir must be absolute')
+  BRAIN_DIR = newDir
+  ensureDir(BRAIN_DIR)
+}
 
 function ensureDir (dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
@@ -585,6 +596,7 @@ async function review (content, engine) {
 module.exports = {
   BRAIN_DIR,
   containBrainPath,
+  setBrainDir,
   brainRead,
   brainWrite,
   brainRename,

@@ -18,15 +18,12 @@
     </div>
   </header>
 
-  <!-- ── Resize handles (frameless window borders) ── -->
+  <!-- ── Resize handles (frameless window borders) ──
+       Corner handles removed per user request; edge handles remain thin/invisible. -->
   <div class="bv-resize bv-resize-n"></div>
   <div class="bv-resize bv-resize-s"></div>
   <div class="bv-resize bv-resize-e"></div>
   <div class="bv-resize bv-resize-w"></div>
-  <div class="bv-resize bv-resize-nw"></div>
-  <div class="bv-resize bv-resize-ne"></div>
-  <div class="bv-resize bv-resize-sw"></div>
-  <div class="bv-resize bv-resize-se"></div>
 
   <div class="brain-vault-toolbar">
     <div class="brain-vault-tabs" id="bvTabs">
@@ -35,6 +32,7 @@
     </div>
     <div class="brain-vault-toolbar-right">
       <button id="bvBtnCreateNote" class="bv-btn-action" title="Create new note">+ Note</button>
+      <button id="bvBtnSettings" class="bv-btn-action" title="Brain Vault settings">⚙</button>
       <button id="bvBtnGraphMenu" class="bv-btn-action" title="Graph actions (right-click graph for menu)">⋮</button>
     </div>
   </div>
@@ -83,6 +81,16 @@
       <div class="bv-ctx-item" id="bvCtxNodeCopy">Copy</div>
       <div class="bv-ctx-separator"></div>
       <div class="bv-ctx-item bv-ctx-danger" id="bvCtxNodeDelete">Delete</div>
+    </div>
+  </div>
+
+  <!-- ── Brain Vault settings menu ── -->
+  <div id="bvSettingsCtxMenu" class="bv-ctx-menu bv-settings-ctx-menu" role="menu" aria-label="Brain Vault settings">
+    <div class="bv-ctx-section">
+      <div class="bv-ctx-item" id="bvCtxSettingsChangeDir">Change Brain Vault directory</div>
+      <div class="bv-ctx-item" id="bvCtxSettingsRebuildIndex">Rebuild brain index</div>
+      <div class="bv-ctx-separator"></div>
+      <div class="bv-ctx-item" id="bvCtxSettingsClose">Close settings</div>
     </div>
   </div>
 

@@ -81,10 +81,12 @@ const bvBtnMaximize = document.getElementById('bvBtnMaximize')
 
 // Action buttons
 const bvBtnCreateNote = document.getElementById('bvBtnCreateNote')
+const bvBtnSettings = document.getElementById('bvBtnSettings')
 
 // Context menus
 const bvGraphCtxMenu = document.getElementById('bvGraphCtxMenu')
 const bvNodeCtxMenu = document.getElementById('bvNodeCtxMenu')
+const bvSettingsCtxMenu = document.getElementById('bvSettingsCtxMenu')
 
 // Overlays
 const bvConfirmOverlay = document.getElementById('bvConfirmOverlay')
@@ -128,11 +130,11 @@ let dragStart = { x: 0, y: 0 }
 
 const MIN_SCALE = 0.3
 const MAX_SCALE = 2.5
-const ITERATIONS = 120
-const REPULSION = 5000
-const ATTRACTION = 0.06
+const ITERATIONS = 200
+const REPULSION = 9000
+const ATTRACTION = 0.04
 const DAMPING = 0.85
-const MIN_DIST = 250
+const MIN_DIST = 320
 
 // Note editing state
 const noteDirty = new Map() // tabId -> true if unsaved changes
@@ -212,15 +214,11 @@ resizeHandles.forEach(handle => {
   handle.addEventListener('mousedown', (e) => {
     const cls = handle.classList
     let edge = ''
-    if (cls.contains('bv-resize-nw')) edge = 'nw'
-    else if (cls.contains('bv-resize-ne')) edge = 'ne'
-    else if (cls.contains('bv-resize-sw')) edge = 'sw'
-    else if (cls.contains('bv-resize-se')) edge = 'se'
-    else if (cls.contains('bv-resize-n')) edge = 'n'
+    if (cls.contains('bv-resize-n')) edge = 'n'
     else if (cls.contains('bv-resize-s')) edge = 's'
     else if (cls.contains('bv-resize-e')) edge = 'e'
     else if (cls.contains('bv-resize-w')) edge = 'w'
-    startResize(edge, e)
+    if (edge) startResize(edge, e)
   })
 })
 
@@ -403,8 +401,11 @@ async function loadBrainVault () {
     const centerY = (bvGraphContainer.clientHeight || bvGraphCanvas.height) / 2
 
     nodeArr.forEach((n, i) => {
-      const angle = (i / nodeArr.length) * 2 * Math.PI
-      const r = Math.min(centerX, centerY) * 0.35 + Math.random() * 60
+          // Place nodes inside a round form, not just on the perimeter.
+          // Vary radius so it's not a perfect circle; place some nodes inside.
+          const angle = (i / nodeArr.length) * 2 * Math.PI + (Math.random() - 0.5) * 0.8
+          const baseR = Math.min(centerX, centerY) * 0.3
+          const r = baseR * (0.45 + Math.random() * 0.55) // 45%–100% of base radius
       n.x = centerX + Math.cos(angle) * r
       n.y = centerY + Math.sin(angle) * r
       n.vx = 0
@@ -540,39 +541,23 @@ async function loadBrainVault () {
         scale = newScale
       }, { passive: false })
 
-      // ── Drag & Drop: accept session dragged from Syn main window ──
-      bvGraphContainer.addEventListener('dragover', (e) => {
-        e.preventDefault()
-        bvGraphContainer.classList.add('drag-over')
-      })
-
-      bvGraphContainer.addEventListener('dragleave', () => {
-        bvGraphContainer.classList.remove('drag-over')
-      })
-
-      bvGraphContainer.addEventListener('drop', async (e) => {
-        e.preventDefault()
-        bvGraphContainer.classList.remove('drag-over')
-        const sessionId = e.dataTransfer.getData('text/syn-session-id')
-        if (sessionId) {
-          await createNoteFromSession(sessionId)
-        }
-      })
-
       // Zoom controls
       document.getElementById('bvGraphZoomIn').addEventListener('click', () => {
         scale = Math.min(scale * 1.2, MAX_SCALE)
         document.getElementById('bvGraphZoomVal').textContent = Math.round(scale * 100)
+              updateStatusBarCanvasDims()
       })
       document.getElementById('bvGraphZoomOut').addEventListener('click', () => {
         scale = Math.max(scale / 1.2, MIN_SCALE)
         document.getElementById('bvGraphZoomVal').textContent = Math.round(scale * 100)
+              updateStatusBarCanvasDims()
       })
       document.getElementById('bvGraphReset').addEventListener('click', () => {
         scale = 1
         offsetX = 0
         offsetY = 0
         document.getElementById('bvGraphZoomVal').textContent = '100'
+              updateStatusBarCanvasDims()
       })
     } // end idempotency guard
   } finally {
@@ -597,7 +582,25 @@ function resizeCanvas () {
   if (bvGraphCanvas.width !== w || bvGraphCanvas.height !== h) {
     bvGraphCanvas.width = w
     bvGraphCanvas.height = h
+    // Update canvas dimension text in status bar
+    if (bvStatusText) {
+      const zoomPct = document.getElementById('bvGraphZoomVal')
+      const zoom = zoomPct ? zoomPct.textContent : '100'
+      bvStatusText.textContent = 'canvas ' + w + '×' + h + ' · zoom ' + zoom + '%'
+    }
   }
+}
+
+// ── Update canvas dims portion of status bar ──
+function updateStatusBarCanvasDims () {
+  if (!bvStatusText) return
+  const zoomPct = document.getElementById('bvGraphZoomVal')
+  const zoom = zoomPct ? zoomPct.textContent : '100'
+  // Preserve existing brain vault status text, just refresh canvas dims
+  const current = bvStatusText.textContent
+  // Remove any previous canvas dims segment
+  const cleaned = current.replace(/ · canvas \d+×\d+ · zoom \d+%/, '')
+  bvStatusText.textContent = cleaned + ' · canvas ' + bvGraphCanvas.width + '×' + bvGraphCanvas.height + ' · zoom ' + zoom + '%'
 }
 
 function worldToScreen (x, y) {
@@ -745,12 +748,13 @@ function createBvTab (tabId, label, html, file, content) {
   document.querySelectorAll('.brain-vault-tab').forEach(tab => tab.classList.remove('active'))
   document.querySelectorAll('.brain-vault-tab-content').forEach(c => c.classList.remove('active'))
 
-  // Create tab button with label + close X
+  // Create tab button with label + Edit button + close X
   const tabBtn = document.createElement('button')
   tabBtn.className = 'brain-vault-tab active'
   tabBtn.dataset.tab = tabId
   tabBtn.innerHTML =
     '<span class="bv-tab-label">' + escapeHtml(label) + '</span>' +
+    ' <button class="bv-edit-btn" data-tab="' + tabId + '" title="Edit this note">✎</button>' +
     ' <span class="tab-close" data-tab="' + tabId + '">&#215;</span>'
 
   // Create content div
@@ -777,18 +781,19 @@ function createBvTab (tabId, label, html, file, content) {
     })
   })
 
-  // ── Inline editing: click content to edit ──
-  contentDiv.addEventListener('click', (e) => {
-    if (e.target.classList.contains('wiki-link')) return
-    if (e.target.classList.contains('tab-close')) return
-    startEditMode(contentDiv, tabId, file)
-  })
-
   // ── Double-click tab label to rename ──
   const labelSpan = tabBtn.querySelector('.bv-tab-label')
   labelSpan.addEventListener('dblclick', (e) => {
     e.stopPropagation()
     startRename(tabId, file, labelSpan)
+  })
+
+  // Edit button: open edit mode with Save button beside tab label
+  const editBtn = tabBtn.querySelector('.bv-edit-btn')
+  editBtn.addEventListener('click', (e) => {
+    e.stopPropagation()
+    if (noteDirty.get(tabId)) return // already editing
+    startEditMode(contentDiv, tabId, file)
   })
 
   // Tab close button
@@ -798,8 +803,9 @@ function createBvTab (tabId, label, html, file, content) {
     closeNoteTab(tabId)
   })
 
-  // Tab click to switch
+  // Tab click to switch (not on edit button or close)
   tabBtn.addEventListener('click', (e) => {
+    if (e.target.classList.contains('bv-edit-btn')) return
     if (e.target.classList.contains('tab-close')) return
     switchBvTab(tabId)
   })
@@ -890,13 +896,6 @@ async function saveNote (tabId, content) {
     const contentDiv = document.querySelector('.brain-vault-tab-content[data-tab="' + tabId + '"]')
     const html = renderNoteContent(file, content)
     contentDiv.innerHTML = html
-
-    // Re-wire click-to-edit
-    contentDiv.addEventListener('click', (e) => {
-      if (e.target.classList.contains('wiki-link')) return
-      if (e.target.classList.contains('tab-close')) return
-      startEditMode(contentDiv, tabId, file)
-    })
 
     // Re-wire wiki links
     contentDiv.querySelectorAll('.wiki-link').forEach(link => {
@@ -1117,6 +1116,60 @@ async function createNoteFromSession (sessionId) {
 bvBtnCreateNote.addEventListener('click', () => {
   showCreate()
 })
+
+// ── Settings button ──
+if (bvBtnSettings) {
+  bvBtnSettings.addEventListener('click', (e) => {
+    e.stopPropagation()
+    e.preventDefault()
+    bvGraphCtxMenu.style.display = 'none'
+    bvNodeCtxMenu.style.display = 'none'
+    if (bvSettingsCtxMenu) {
+      const rect = bvBtnSettings.getBoundingClientRect()
+      bvSettingsCtxMenu.style.left = (rect.left - 150) + 'px'
+      bvSettingsCtxMenu.style.top = (rect.bottom + 5) + 'px'
+      bvSettingsCtxMenu.style.display = 'block'
+    }
+  })
+}
+
+// ── Settings menu actions ──
+if (bvSettingsCtxMenu) {
+  document.getElementById('bvCtxSettingsChangeDir').addEventListener('click', async (e) => {
+    e.stopPropagation()
+    bvSettingsCtxMenu.style.display = 'none'
+    try {
+      const newDir = await _synAPI.openFolderDialog()
+      if (newDir) {
+        const result = await _synAPI.brainSetDir(newDir)
+        if (result.ok) {
+          await loadBrainVault()
+        } else {
+          alert('Failed to change Brain directory: ' + result.error)
+        }
+      }
+    } catch (err) {
+      alert('Failed to change directory: ' + err.message)
+    }
+  })
+
+  document.getElementById('bvCtxSettingsRebuildIndex').addEventListener('click', async (e) => {
+    e.stopPropagation()
+    bvSettingsCtxMenu.style.display = 'none'
+    try {
+      const result = await _synAPI.brainIndex()
+      alert('Brain index rebuilt: ' + (result.files || 0) + ' files')
+      await loadBrainVault()
+    } catch (err) {
+      alert('Failed to rebuild index: ' + err.message)
+    }
+  })
+
+  document.getElementById('bvCtxSettingsClose').addEventListener('click', (e) => {
+    e.stopPropagation()
+    bvSettingsCtxMenu.style.display = 'none'
+  })
+}
 
 // ── Graph background right-click menu ──
 function showGraphMenu (x, y) {

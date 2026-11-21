@@ -54,6 +54,7 @@ const setup = () => {
   // Context menu elements
   const ctxMenu = document.getElementById('ctxMenu')
   const ctxCopySessionId = document.getElementById('ctxCopySessionId')
+  const ctxArchiveOnVault = document.getElementById('ctxArchiveOnVault')
   const ctxDeleteEntry = document.getElementById('ctxDeleteEntry')
   const ctxConfirmOverlay = document.getElementById('ctxConfirmOverlay')
   const ctxConfirmTitle = document.getElementById('ctxConfirmTitle')
@@ -956,6 +957,56 @@ const setup = () => {
         ctxTargetSessionId = null
       }
     )
+  })
+
+  // Context menu: Archive on Vault - copies session content into Brain Vault as a .md note
+  ctxArchiveOnVault.addEventListener('click', async (e) => {
+    e.stopPropagation()
+    ctxMenu.style.display = 'none'
+    if (!ctxTargetSessionId) return
+    try {
+      const session = await synAPI.readSession(ctxTargetSessionId)
+      if (!session) {
+        alert('Session not found: ' + ctxTargetSessionId)
+        return
+      }
+
+      // Build markdown content from session
+      const messages = session.messages || []
+      const lines = [
+        '# Session: ' + (session.title || ctxTargetSessionId),
+        '',
+        'Harness: ' + (session.harness || 'unknown'),
+        'Session ID: ' + ctxTargetSessionId,
+        'Created: ' + (session.created_at || ''),
+        '',
+        '## Messages',
+        ''
+      ]
+      for (const m of messages) {
+        const role = (m.role || 'unknown').toUpperCase()
+        const ts = m.timestamp ? ' (' + m.timestamp + ')' : ''
+        lines.push('### ' + role + ts)
+        lines.push('')
+        lines.push(m.content || '')
+        lines.push('')
+        lines.push('---')
+        lines.push('')
+      }
+      lines.push('', '---', '', 'Archived from Syn session.')
+
+      const fileName = 'sessions/session-' + ctxTargetSessionId.replace(/[^a-z0-9]/gi, '-') + '.md'
+      const result = await synAPI.brainWrite(fileName, lines.join('\n') + '\n')
+      if (result.ok) {
+        alert('Session archived to Brain Vault as "' + fileName + '"')
+      } else {
+        alert('Failed to archive session: ' + result.error)
+      }
+    } catch (err) {
+      console.error('Archive on Vault failed:', err)
+      alert('Failed to archive session: ' + err.message)
+    }
+    ctxTargetSessionId = null
   })
 
   ctxConfirmCancel.addEventListener('click', () => {

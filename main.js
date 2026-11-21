@@ -784,6 +784,15 @@ ipcMain.handle('brain:import', async (event, sourcePath) => {
   }
 })
 
+ipcMain.handle('brain:setDir', async (event, newDir) => {
+  try {
+    brainmaxxing.setBrainDir(newDir)
+    return { ok: true, path: brainmaxxing.BRAIN_DIR }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+})
+
 ipcMain.handle('dialog:openFile', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openFile', 'multiSelections'],

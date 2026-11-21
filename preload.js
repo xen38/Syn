@@ -36,6 +36,7 @@ const synAPI = {
   brainDelete: (relativePath) => ipcRenderer.invoke('brain:delete', relativePath),
   brainList: () => ipcRenderer.invoke('brain:list'),
   brainImport: (sourcePath) => ipcRenderer.invoke('brain:import', sourcePath),
+  brainSetDir: (newDir) => ipcRenderer.invoke('brain:setDir', newDir),
   brainReflect: (sessionId) => ipcRenderer.invoke('brain:reflect', sessionId),
   brainMeditate: (sessionId) => ipcRenderer.invoke('brain:meditate', sessionId),
   brainRuminate: (sessionId) => ipcRenderer.invoke('brain:ruminate', sessionId),
