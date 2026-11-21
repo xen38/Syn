@@ -212,18 +212,27 @@ function injectBrainIndex () {
 }
 
 // ── Auto-index hook: rebuild brain/index.md when brain/ files change ─────
+let rebuildIndexTimer = null
 function watchBrainIndex () {
   const brainDir = brainmaxxing.BRAIN_DIR
   if (!fs.existsSync(brainDir)) return
   try {
     fs.watch(brainDir, { recursive: true }, (eventType, filename) => {
       if (!filename || !filename.endsWith('.md')) return
-      try {
-        brainmaxxing.rebuildIndex()
-        console.log(`[syn] Auto-indexed brain/ (${eventType}): ${filename}`)
-      } catch (e) {
-        console.error('[syn] Auto-index failed:', e.message)
-      }
+      // Skip index.md changes — rebuildIndex() writes index.md itself, which
+      // would otherwise trigger another watch event → infinite loop.
+      if (filename === 'index.md') return
+      // Debounce: batch rapid file changes into a single rebuild
+      if (rebuildIndexTimer) clearTimeout(rebuildIndexTimer)
+      rebuildIndexTimer = setTimeout(() => {
+        try {
+          brainmaxxing.rebuildIndex()
+          console.log(`[syn] Auto-indexed brain/ (${eventType}): ${filename}`)
+        } catch (e) {
+          console.error('[syn] Auto-index failed:', e.message)
+        }
+        rebuildIndexTimer = null
+      }, 300)
     })
   } catch (e) {
     console.error('[syn] Failed to watch brain/:', e.message)
