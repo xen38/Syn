@@ -1555,6 +1555,12 @@ a { color: #ffffff; }
   border-bottom: 1px solid #333333;
 }
 
+.brain-vault-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .brain-vault-tabs {
   display: flex;
   gap: 2px;
