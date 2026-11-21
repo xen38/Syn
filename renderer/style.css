@@ -456,7 +456,7 @@ a { color: #ffffff; }
 .wiki-link {
   color: #53C68B;
   cursor: pointer;
-  text-decoration: none;
+  text-decoration: underline;
   font-weight: 500;
   border-bottom: 1px solid #53C68B;
 }
@@ -1764,6 +1764,21 @@ a { color: #ffffff; }
 
 .bv-ctx-section {
   padding: 4px 0;
+}
+
+/* Settings menu: items side by side horizontally */
+.bv-settings-ctx-menu .bv-ctx-section {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 8px;
+}
+.bv-settings-ctx-menu .bv-ctx-item {
+  white-space: nowrap;
+}
+.bv-settings-ctx-menu .bv-ctx-separator {
+  display: none;
 }
 
 .bv-ctx-item {

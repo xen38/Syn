@@ -720,10 +720,12 @@ function renderNoteContent (file, content) {
 
 // ── Open a note in a new tab ──
 async function openNote (file) {
+  const tabId = 'note-' + escapeCssId(file)
+
   // If already open, switch to it
-  const existingTab = document.querySelector('.brain-vault-tab[data-tab="note-' + escapeCssId(file) + '"]')
+  const existingTab = document.querySelector('.brain-vault-tab[data-tab="' + tabId + '"]')
   if (existingTab) {
-    switchBvTab('note-' + escapeCssId(file))
+    switchBvTab(tabId)
     return
   }
 
@@ -733,10 +735,16 @@ async function openNote (file) {
     return
   }
 
+  // Check again after async read — another call may have created the tab while we waited
+  const existingTab2 = document.querySelector('.brain-vault-tab[data-tab="' + tabId + '"]')
+  if (existingTab2) {
+    switchBvTab(tabId)
+    return
+  }
+
   const content = result.content || ''
   const label = file.replace(/\.md$/, '')
   const html = renderNoteContent(file, content)
-  const tabId = 'note-' + escapeCssId(file)
 
   createBvTab(tabId, label, html, file, content)
   switchBvTab(tabId)
