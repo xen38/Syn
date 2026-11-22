@@ -159,6 +159,39 @@ function brainList () {
 }
 
 /**
+ * Generate the next serial number tag (#000000-#999999) by scanning all
+ * vault files for existing `Serial: #NNNNNN` lines and returning the next
+ * unused number.
+ * @returns {{ok:boolean, serial?:number, tag?:string, error?:string}} Next serial result
+ */
+function brainNextSerial () {
+  ensureDir(BRAIN_DIR)
+  let maxSerial = -1
+  const serialRe = /Serial:\s*#(\d{6})/g
+  const files = brainList()
+  for (const f of files) {
+    let filePath
+    try {
+      filePath = containBrainPath(f)
+    } catch (e) {
+      continue
+    }
+    if (!fs.existsSync(filePath)) continue
+    const content = fs.readFileSync(filePath, 'utf8')
+    let m
+    while ((m = serialRe.exec(content)) !== null) {
+      const n = parseInt(m[1], 10)
+      if (n > maxSerial) maxSerial = n
+    }
+  }
+  const next = maxSerial + 1
+  if (next > 999999) {
+    return { ok: false, error: 'Serial number limit reached (999999)' }
+  }
+  return { ok: true, serial: next, tag: '#' + String(next).padStart(6, '0') }
+}
+
+/**
  * Rename a brain/memory file in the vault.
  * @param {string} oldPath - Current path relative to BRAIN_DIR
  * @param {string} newPath - New path relative to BRAIN_DIR
@@ -602,6 +635,7 @@ module.exports = {
   brainRename,
   brainDelete,
   brainList,
+  brainNextSerial,
   brainImport,
   rebuildIndex,
   readIndexMd,

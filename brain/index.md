@@ -6,9 +6,12 @@ Root entry point for the Syn Memory Vault. Every brain file is reachable from he
 
 - [[principles]] — principles
 - [[codebase]] — codebase
+- [[principles/delegate-to-syn]] — delegate-to-syn
+- [[principles/local-only]] — local-only
 - [[principles/meditate-2026-11-14]] — meditate-2026-11-14
 - [[principles/meditate-2026-11-18]] — meditate-2026-11-18
 - [[principles/read-only-sessions]] — read-only-sessions
+- [[principles/session-start-brain]] — session-start-brain
 - [[codebase/indexing-engine]] — indexing-engine
 - [[codebase/mcp-server]] — mcp-server
 - [[codebase/terminal-api]] — terminal-api

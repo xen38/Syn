@@ -993,12 +993,18 @@ const setup = () => {
         lines.push('---')
         lines.push('')
       }
+      // Add archive tag at the bottom, after the last interaction
       lines.push('', '---', '', 'Archived from Syn session.')
+
+      // Generate a serial number tag (#000000-#999999) for this archived note
+      const serialResult = await synAPI.brainNextSerial()
+      const serialTag = serialResult.ok ? '#' + String(serialResult.serial).padStart(6, '0') : '#000000'
+      lines.push('', 'Serial: ' + serialTag)
 
       const fileName = 'sessions/session-' + ctxTargetSessionId.replace(/[^a-z0-9]/gi, '-') + '.md'
       const result = await synAPI.brainWrite(fileName, lines.join('\n') + '\n')
       if (result.ok) {
-        alert('Session archived to Brain Vault as "' + fileName + '"')
+        alert('Session archived to Brain Vault as "' + fileName + '" with serial ' + serialTag)
       } else {
         alert('Failed to archive session: ' + result.error)
       }

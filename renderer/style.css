@@ -1564,6 +1564,7 @@ a { color: #ffffff; }
 .brain-vault-tabs {
   display: flex;
   gap: 2px;
+  margin-left: 8px;
 }
 
 .brain-vault-tab {

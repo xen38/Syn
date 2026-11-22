@@ -677,6 +677,14 @@ ipcMain.handle('brain:list', async (event) => {
     throw new Error(`Brain list failed: ${e.message}`)
   }
 })
+// IPC: Get next serial number tag (#000000-#999999) for vault notes
+ipcMain.handle('brain:nextSerial', async (event) => {
+  try {
+    return brainmaxxing.brainNextSerial()
+  } catch (e) {
+    throw new Error(`Brain nextSerial failed: ${e.message}`)
+  }
+})
 
 ipcMain.handle('brain:reflect', async (event, sessionId) => {
   try {

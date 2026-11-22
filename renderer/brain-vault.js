@@ -125,6 +125,10 @@ let ctx // 2d context of the graph canvas
 let scale = 1
 let offsetX = 0
 let offsetY = 0
+let lastCanvasW = 0
+let lastCanvasH = 0
+let isPanning = false
+let panStart = { x: 0, y: 0 }
 let isDragging = false
 let dragStart = { x: 0, y: 0 }
 
@@ -471,6 +475,15 @@ async function loadBrainVault () {
 
       // ── Mouse interactions ──
       bvGraphCanvas.addEventListener('mousedown', (e) => {
+      // Middle-click: start panning the canvas
+        if (e.button === 1) {
+          e.preventDefault()
+          e.stopPropagation()
+          isPanning = true
+          panStart = { x: e.clientX, y: e.clientY }
+          bvGraphCanvas.style.cursor = 'move'
+          return
+        }
       // Right-click opens background menu
         if (e.button === 2) {
           e.preventDefault()
@@ -520,14 +533,22 @@ async function loadBrainVault () {
         } else {
           bvGraphTooltip.style.display = 'none'
         }
-        if (isDragging) {
+        if (isPanning) {
+          offsetX += (e.clientX - panStart.x) / scale
+          offsetY += (e.clientY - panStart.y) / scale
+          panStart = { x: e.clientX, y: e.clientY }
+        } else if (isDragging) {
           offsetX += (e.clientX - rect.left - dragStart.x) / scale
           offsetY += (e.clientY - rect.top - dragStart.y) / scale
           dragStart = { x: e.clientX - rect.left, y: e.clientY - rect.top }
         }
       })
 
-      bvGraphCanvas.addEventListener('mouseup', () => { isDragging = false })
+      bvGraphCanvas.addEventListener('mouseup', (e) => {
+        isDragging = false
+        isPanning = false
+        bvGraphCanvas.style.cursor = 'grab'
+      })
 
       bvGraphCanvas.addEventListener('wheel', (e) => {
         e.preventDefault()
@@ -580,14 +601,29 @@ function resizeCanvas () {
   // Ensure minimum dimensions so the canvas is never 0x0
   w = Math.max(w, 400)
   h = Math.max(h, 300)
+  const oldW = bvGraphCanvas.width
+  const oldH = bvGraphCanvas.height
   if (bvGraphCanvas.width !== w || bvGraphCanvas.height !== h) {
     bvGraphCanvas.width = w
     bvGraphCanvas.height = h
+    // Recenter graph when canvas size changes (e.g. fullscreen/resize)
+    if (oldW && oldH && nodes.size > 0) {
+      const cxOld = oldW / 2
+      const cyOld = oldH / 2
+      const cxNew = w / 2
+      const cyNew = h / 2
+      offsetX += (cxNew - cxOld) / scale
+      offsetY += (cyNew - cyOld) / scale
+    }
+    lastCanvasW = w
+    lastCanvasH = h
     // Update canvas dimension text in status bar
     if (bvStatusText) {
       const zoomPct = document.getElementById('bvGraphZoomVal')
       const zoom = zoomPct ? zoomPct.textContent : '100'
-      bvStatusText.textContent = 'canvas ' + w + '×' + h + ' · zoom ' + zoom + '%'
+      const current = bvStatusText.textContent
+      const cleaned = current.replace(/ · canvas \d+×\d+ · zoom \d+%/, '')
+      bvStatusText.textContent = cleaned + ' · canvas ' + w + '×' + h + ' · zoom ' + zoom + '%'
     }
   }
 }
@@ -630,11 +666,52 @@ function drawNode (ctx, n, isHover, isSelected) {
   ctx.strokeStyle = isSelected || isHover ? '#53C68B' : '#9ca3af'
   ctx.lineWidth = 2
   ctx.stroke()
+  // Draw label with collision-avoided vertical offset
+  const labelY = n.labelY !== undefined ? n.labelY : s.y + r + 14
   ctx.fillStyle = '#cccccc'
   ctx.font = '11px system-ui, sans-serif'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText(n.label, s.x, s.y + r + 14)
+  ctx.fillText(n.label, s.x, labelY)
+}
+
+// ── Resolve label overlaps by nudging labels vertically ──
+function resolveLabelOverlaps () {
+  const nodeArr = Array.from(nodes.values())
+  const labelH = 14 // approximate label height in screen px
+  const labelGap = 6 // minimum gap between labels
+  // Initialize labelY for each node
+  for (const n of nodeArr) {
+    const s = worldToScreen(n.x, n.y)
+    n.labelY = s.y + 14 + labelH / 2
+  }
+  // Iteratively resolve overlaps
+  for (let pass = 0; pass < 3; pass++) {
+    for (let i = 0; i < nodeArr.length; i++) {
+      for (let j = i + 1; j < nodeArr.length; j++) {
+        const a = nodeArr[i]
+        const b = nodeArr[j]
+        const sa = worldToScreen(a.x, a.y)
+        const sb = worldToScreen(b.x, b.y)
+        const dx = Math.abs(sa.x - sb.x)
+        const dy = Math.abs(a.labelY - b.labelY)
+        // Labels overlap horizontally if centers are close enough
+        if (dx < 90) {
+          const overlap = labelH + labelGap - dy
+          if (overlap > 0) {
+            const move = overlap / 2
+            if (a.labelY <= b.labelY) {
+              a.labelY -= move
+              b.labelY += move
+            } else {
+              a.labelY += move
+              b.labelY -= move
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 function drawEdge (ctx, a, b) {
@@ -690,6 +767,9 @@ function render () {
   if (offScreen > 0 && bvGraphCanvas.width > 0 && bvGraphCanvas.height > 0) {
     showDiagnostic('Render warning: ' + offScreen + '/' + nodeArr.length + ' nodes off-canvas (canvas ' + bvGraphCanvas.width + '×' + bvGraphCanvas.height + ')')
   }
+
+  // Resolve label overlaps before drawing
+  resolveLabelOverlaps()
 
   const seenEdges = new Set()
   for (const e of edges) {
@@ -1136,6 +1216,7 @@ bvBtnCreateNote.addEventListener('click', () => {
 })
 
 // ── Settings button ──
+let settingsMenuOpen = false
 if (bvBtnSettings) {
   bvBtnSettings.addEventListener('click', (e) => {
     e.stopPropagation()
@@ -1143,13 +1224,27 @@ if (bvBtnSettings) {
     bvGraphCtxMenu.style.display = 'none'
     bvNodeCtxMenu.style.display = 'none'
     if (bvSettingsCtxMenu) {
+      if (settingsMenuOpen) {
+        bvSettingsCtxMenu.style.display = 'none'
+        settingsMenuOpen = false
+        return
+      }
       const rect = bvBtnSettings.getBoundingClientRect()
       bvSettingsCtxMenu.style.left = (rect.left - 150) + 'px'
       bvSettingsCtxMenu.style.top = (rect.bottom + 5) + 'px'
       bvSettingsCtxMenu.style.display = 'block'
+      settingsMenuOpen = true
     }
   })
 }
+
+// Close settings menu when clicking outside
+document.addEventListener('click', (e) => {
+  if (settingsMenuOpen && bvSettingsCtxMenu && !bvSettingsCtxMenu.contains(e.target) && e.target !== bvBtnSettings) {
+    bvSettingsCtxMenu.style.display = 'none'
+    settingsMenuOpen = false
+  }
+})
 
 // ── Settings menu actions ──
 if (bvSettingsCtxMenu) {
@@ -1183,10 +1278,6 @@ if (bvSettingsCtxMenu) {
     }
   })
 
-  document.getElementById('bvCtxSettingsClose').addEventListener('click', (e) => {
-    e.stopPropagation()
-    bvSettingsCtxMenu.style.display = 'none'
-  })
 }
 
 // ── Graph background right-click menu ──
@@ -1297,7 +1388,7 @@ async function confirmDelete (file) {
   })
 }
 
-// ── Create Group: select 2+ notes, link with [[l#serial]] ──
+// ── Create Group: select 2+ notes, link with #serial ──
 async function showCreateGroup () {
   const files = brainFiles
   if (files.length < 2) {
@@ -1316,30 +1407,29 @@ async function showCreateGroup () {
     return
   }
 
-  const serial = prompt('Enter group serial number (#000001-#999999):', '#000001')
-  if (!serial) return
-  const serialRe = /^#\d{6}$/
-  if (!serialRe.test(serial)) {
-    alert('Serial must be like #000001 through #999999.')
+  // Auto-generate the next serial number tag (#000000-#999999)
+  const serialResult = await _synAPI.brainNextSerial()
+  if (!serialResult.ok) {
+    alert('Failed to generate serial number: ' + serialResult.error)
     return
   }
-
-  const linkTag = '[[l' + serial + ']]'
+  const serialTag = serialResult.tag  // e.g. #000001
 
   for (const idx of selected) {
     const file = files[idx - 1]
     const result = await _synAPI.brainRead(file)
     if (!result.ok) continue
     let content = result.content || ''
-    if (!content.includes(linkTag)) {
-      content = content.trim() + '\n\n' + linkTag + '\n'
+    const tagLine = 'Serial: ' + serialTag
+    if (!content.includes(tagLine)) {
+      content = content.trim() + '\n\n' + tagLine + '\n'
       await _synAPI.brainWrite(file, content)
     }
   }
 
   // Rebuild graph to show new links
   await loadBrainVault()
-  alert('Grouped ' + selected.length + ' notes with ' + linkTag)
+  alert('Grouped ' + selected.length + ' notes with ' + serialTag)
 }
 
 // ── Import ──
