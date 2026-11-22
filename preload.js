@@ -55,6 +55,8 @@ const synAPI = {
 
   // Brain Vault window shown notification (for canvas resize)
   onBvWindowShown: (cb) => ipcRenderer.on('bv:window-shown', cb),
+  onBvEnterFullscreen: (cb) => ipcRenderer.on('bv:enter-fullscreen', cb),
+  onBvLeaveFullscreen: (cb) => ipcRenderer.on('bv:leave-fullscreen', cb),
 
   // File dialogs
   openFileDialog: () => ipcRenderer.invoke('dialog:openFile'),

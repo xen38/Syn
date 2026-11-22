@@ -296,7 +296,14 @@ async function init () {
 // fires after show(), so this is the reliable trigger; onBvWindowShown is a
 // secondary trigger in case the IPC lands first.
 window.addEventListener('load', () => {
-  try { loadBrainVault() } catch (e) { console.error('Brain vault onload error:', e) }
+  try {
+    // loadBrainVault already ran during init() (with canvas possibly at
+    // fallback size while the window was hidden). Now that the window is
+    // shown, force a canvas resize + recenter so the graph is centered on
+    // the real canvas dimensions.
+    resizeCanvas()
+    recenterGraph()
+  } catch (e) { console.error('Brain vault onload error:', e) }
 })
 
 window.addEventListener('resize', () => { resizeCanvas(); recenterGraph() })
@@ -306,10 +313,28 @@ window.addEventListener('resize', () => { resizeCanvas(); recenterGraph() })
 // attempt loadBrainVault() on its own.
 if (_synAPI && typeof _synAPI.onBvWindowShown === 'function') {
   _synAPI.onBvWindowShown(() => {
-    try { loadBrainVault() } catch (e) { console.error('Brain vault window-shown error:', e) }
+    try {
+      // Force canvas resize + recenter now that the window is shown with
+      // its real dimensions (canvas may have been at fallback size during
+      // init()). loadBrainVault() is guarded against re-entry, so call
+      // resizeCanvas/recenter directly here.
+      resizeCanvas()
+      recenterGraph()
+    } catch (e) { console.error('Brain vault window-shown error:', e) }
   })
 } else {
   console.warn('_synAPI not available — Brain Vault IPC features will be limited')
+}
+
+// Handle fullscreen toggle: recenter graph when entering or leaving fullscreen
+// (Electron may not fire a resize event on fullscreen toggle on Windows)
+if (_synAPI && typeof _synAPI.onBvEnterFullscreen === 'function') {
+  _synAPI.onBvEnterFullscreen(() => {
+    try { resizeCanvas(); recenterGraph() } catch (e) { console.error('bv:enter-fullscreen error:', e) }
+  })
+  _synAPI.onBvLeaveFullscreen(() => {
+    try { resizeCanvas(); recenterGraph() } catch (e) { console.error('bv:leave-fullscreen error:', e) }
+  })
 }
 
 // Kick off loadBrainVault directly so the graph starts even if window.onload

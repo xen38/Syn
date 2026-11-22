@@ -185,6 +185,14 @@ function createBrainVaultWindow () {
   brainVaultWindow.on('closed', () => {
     brainVaultWindow = null
   })
+
+  // Notify renderer on fullscreen state changes so the graph can recenter
+  brainVaultWindow.on('enter-fullscreen', () => {
+    brainVaultWindow.webContents.send('bv:enter-fullscreen')
+  })
+  brainVaultWindow.on('leave-fullscreen', () => {
+    brainVaultWindow.webContents.send('bv:leave-fullscreen')
+  })
 }
 
 // Open or focus the brain vault window
