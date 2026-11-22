@@ -819,10 +819,10 @@ const setup = () => {
             id: 'vault:' + file,
             title: file,
             harness: 'vault',
-            snippet: snippet,
+            snippet,
             source: 'vault',
             path: file,
-            matchScore: matchScore
+            matchScore
           })
         }
       } catch (e) {
