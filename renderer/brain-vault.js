@@ -299,10 +299,10 @@ window.addEventListener('load', () => {
   try {
     // loadBrainVault already ran during init() (with canvas possibly at
     // fallback size while the window was hidden). Now that the window is
-    // shown, force a canvas resize + recenter so the graph is centered on
+    // shown, force a canvas resize + center so the graph is centered on
     // the real canvas dimensions.
     resizeCanvas()
-    recenterGraph()
+    centerGraph()
   } catch (e) { console.error('Brain vault onload error:', e) }
 })
 
@@ -314,12 +314,12 @@ window.addEventListener('resize', () => { resizeCanvas(); recenterGraph() })
 if (_synAPI && typeof _synAPI.onBvWindowShown === 'function') {
   _synAPI.onBvWindowShown(() => {
     try {
-      // Force canvas resize + recenter now that the window is shown with
+      // Force canvas resize + center now that the window is shown with
       // its real dimensions (canvas may have been at fallback size during
       // init()). loadBrainVault() is guarded against re-entry, so call
-      // resizeCanvas/recenter directly here.
+      // resizeCanvas/centerGraph directly here.
       resizeCanvas()
-      recenterGraph()
+      centerGraph()
     } catch (e) { console.error('Brain vault window-shown error:', e) }
   })
 } else {
@@ -330,10 +330,10 @@ if (_synAPI && typeof _synAPI.onBvWindowShown === 'function') {
 // (Electron may not fire a resize event on fullscreen toggle on Windows)
 if (_synAPI && typeof _synAPI.onBvEnterFullscreen === 'function') {
   _synAPI.onBvEnterFullscreen(() => {
-    try { resizeCanvas(); recenterGraph() } catch (e) { console.error('bv:enter-fullscreen error:', e) }
+    try { resizeCanvas(); centerGraph() } catch (e) { console.error('bv:enter-fullscreen error:', e) }
   })
   _synAPI.onBvLeaveFullscreen(() => {
-    try { resizeCanvas(); recenterGraph() } catch (e) { console.error('bv:leave-fullscreen error:', e) }
+    try { resizeCanvas(); centerGraph() } catch (e) { console.error('bv:leave-fullscreen error:', e) }
   })
 }
 
@@ -490,7 +490,7 @@ async function loadBrainVault () {
     }
 
     // Center the initial graph layout on the canvas
-    recenterGraph()
+    centerGraph()
 
     // Draw now so the graph appears even when loadBrainVault() runs after the
     // window has been shown (the canvas was 0x0 on the first hidden run).
@@ -603,11 +603,7 @@ async function loadBrainVault () {
               updateStatusBarCanvasDims()
       })
       document.getElementById('bvGraphReset').addEventListener('click', () => {
-        scale = 1
-        offsetX = 0
-        offsetY = 0
-        document.getElementById('bvGraphZoomVal').textContent = '100'
-              updateStatusBarCanvasDims()
+        centerGraph()
       })
     } // end idempotency guard
   } finally {
@@ -672,6 +668,7 @@ function resizeCanvas () {
 }
 
 // Recenter all nodes around the canvas center (keeps relative layout).
+// Does NOT reset pan/zoom — call centerGraph() for a full reset.
 function recenterGraph () {
   if (nodes.size === 0) return
   const cx = bvGraphCanvas.width / 2
@@ -686,6 +683,17 @@ function recenterGraph () {
   const dx = cx - avgX
   const dy = cy - avgY
   nodeArr.forEach(n => { n.x += dx; n.y += dy })
+}
+
+// Full center/reset: reset pan and zoom, then recenter nodes.
+function centerGraph () {
+  scale = 1
+  offsetX = 0
+  offsetY = 0
+  recenterGraph()
+  const zoomEl = document.getElementById('bvGraphZoomVal')
+  if (zoomEl) zoomEl.textContent = '100'
+  updateStatusBarCanvasDims()
 }
 
 // ── Update canvas dims portion of status bar ──
@@ -818,14 +826,21 @@ function render () {
     return
   }
 
-  // Diagnostic: if all nodes are at or near origin / off-canvas, log it.
+  // Diagnostic: check if all nodes are off-canvas in screen space
+  // (accounting for pan offset and zoom). Only warn if every node is off-screen,
+  // which indicates a real layout problem rather than normal panning.
   const nodeArr = Array.from(nodes.values())
-  const offScreen = nodeArr.filter(n =>
-    Math.abs(n.x) > bvGraphCanvas.width * 10 ||
-    Math.abs(n.y) > bvGraphCanvas.height * 10 ||
-    (n.x === 0 && n.y === 0)).length
-  if (offScreen > 0 && bvGraphCanvas.width > 0 && bvGraphCanvas.height > 0) {
-    showDiagnostic('Render warning: ' + offScreen + '/' + nodeArr.length + ' nodes off-canvas (canvas ' + bvGraphCanvas.width + '×' + bvGraphCanvas.height + ')')
+  let allOffScreen = true
+  for (const n of nodeArr) {
+    const s = worldToScreen(n.x, n.y)
+    if (s.x >= -50 && s.x <= bvGraphCanvas.width + 50 &&
+        s.y >= -50 && s.y <= bvGraphCanvas.height + 50) {
+      allOffScreen = false
+      break
+    }
+  }
+  if (allOffScreen && bvGraphCanvas.width > 0 && bvGraphCanvas.height > 0) {
+    showDiagnostic('Render warning: ' + nodeArr.length + ' nodes off-canvas (canvas ' + bvGraphCanvas.width + '×' + bvGraphCanvas.height + ')')
   }
 
   // Resolve label overlaps before drawing
@@ -1497,7 +1512,7 @@ async function showCreateGroup () {
     const result = await _synAPI.brainRead(file)
     if (!result.ok) continue
     let content = result.content || ''
-    const tagLine = 'Serial: ' + serialTag
+    const tagLine = 'Serial: [[Serial: ' + serialTag + ']]'
     if (!content.includes(tagLine)) {
       content = content.trim() + '\n\n' + tagLine + '\n'
       await _synAPI.brainWrite(file, content)

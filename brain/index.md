@@ -22,6 +22,7 @@ Root entry point for the Syn Memory Vault. Every brain file is reachable from he
 - [[plans/review-2026-11-18-test-code-with-copy-and-duplicate]] — review-2026-11-18-test-code-with-copy-and-duplicate
 - [[sessions/ruminate-2026-11-14]] — ruminate-2026-11-14
 - [[sessions/ruminate-2026-11-18]] — ruminate-2026-11-18
+- [[sessions/session-2026-11-18T12-45-11-716Z-01a1eeb0-92a3-7346-90b0-31610b8201e2-c9ef48ce]] — session-2026-11-18T12-45-11-716Z-01a1eeb0-92a3-7346-90b0-31610b8201e2-c9ef48ce
 - [[sessions/session-e7ebce58-8eb8-4846-a296-6023c353cf81-968f5bf1]] — session-e7ebce58-8eb8-4846-a296-6023c353cf81-968f5bf1
 
 ## Rules

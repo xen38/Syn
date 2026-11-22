@@ -53,6 +53,13 @@ const synAPI = {
   brainVaultWindowGetBounds: () => ipcRenderer.invoke('brainVaultWindow:getBounds'),
   brainDir: () => ipcRenderer.invoke('brain:dir'),
 
+  // Main window controls (custom title bar)
+  synWindow: {
+    minimize: () => ipcRenderer.invoke('SynWindow:minimize'),
+    maximize: () => ipcRenderer.invoke('SynWindow:maximize'),
+    close: () => ipcRenderer.invoke('SynWindow:close')
+  },
+
   // Brain Vault window shown notification (for canvas resize)
   onBvWindowShown: (cb) => ipcRenderer.on('bv:window-shown', cb),
   onBvEnterFullscreen: (cb) => ipcRenderer.on('bv:enter-fullscreen', cb),

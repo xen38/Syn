@@ -16,9 +16,9 @@ const setup = () => {
   const terminalOutput = document.getElementById('terminalOutput')
   const terminalColumn = document.querySelector('.terminal-column')
   const btnCloseTerminal = document.getElementById('btnCloseTerminal')
-  // Terminal starts open per spec: â—€ = open (arrow points left toward terminal, click to close)
+  // Terminal starts open per spec: ◄ = open (arrow points left toward terminal, click to close)
   let terminalVisible = true
-  btnCloseTerminal.textContent = 'â—€'
+  btnCloseTerminal.textContent = '◄'
   btnCloseTerminal.className = 'terminal-toggle open'
   terminalColumn.style.display = 'flex'
   updateTogglePosition()
@@ -134,7 +134,7 @@ const setup = () => {
     synAPI.brainVaultOpen()
   })
 
-  // â”€â”€ Database health (Gate G7) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ═══ Database health (Gate G7) ════════════════════════════════════════════════════════════════════════â”€â”€
   const DB_HEALTH_COLORS = {
     healthy: '#53C68B',
     corrupt: '#ff4444',
@@ -156,7 +156,7 @@ const setup = () => {
         btnRebuildIndex.style.display = 'none'
       } else {
         btnRebuildIndex.style.display = 'inline-block'
-        btnRebuildIndex.textContent = status === 'corrupt' ? 'Rebuild index' : 'Rebuildingâ€¦'
+        btnRebuildIndex.textContent = status === 'corrupt' ? 'Rebuild index' : 'Rebuilding…'
         btnRebuildIndex.disabled = status === 'rebuilding'
       }
     } catch (e) {
@@ -173,7 +173,7 @@ const setup = () => {
     e.stopPropagation()
     try {
       btnRebuildIndex.disabled = true
-      btnRebuildIndex.textContent = 'Rebuildingâ€¦'
+      btnRebuildIndex.textContent = 'Rebuilding…'
       dbHealthBadge.style.color = DB_HEALTH_COLORS.rebuilding
       const result = await synAPI.dbRebuild()
       if (result.status === 'rebuilt') {
@@ -287,7 +287,7 @@ const setup = () => {
     }
   })
 
-  // â”€â”€ Brainmaxxing commands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ═══ Brainmaxxing commands ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════â”€â”€
   async function showBrainResult (title, result) {
     const lines = [
       '<div style="padding:12px;background:#1a1a1a;border:1px solid #333;border-radius:8px;margin-top:12px;">',
@@ -403,7 +403,7 @@ const setup = () => {
     await synAPI.setConfig({ batchSize })
   })
 
-  // â”€â”€ Terminal command input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ═══ Terminal command input ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════â”€
   terminalInput.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -449,13 +449,13 @@ const setup = () => {
     if (terminalVisible) {
       terminalColumn.style.display = 'flex'
       resizerTerminal.style.display = 'block'
-      btnCloseTerminal.textContent = 'â—€'
+      btnCloseTerminal.textContent = '◄'
       btnCloseTerminal.className = 'terminal-toggle open'
       updateTogglePosition()
     } else {
       terminalColumn.style.display = 'none'
       resizerTerminal.style.display = 'none'
-      btnCloseTerminal.textContent = 'â–¶'
+      btnCloseTerminal.textContent = '►'
       btnCloseTerminal.className = 'terminal-toggle closed'
       updateTogglePosition()
     }
@@ -479,6 +479,25 @@ const setup = () => {
       btnCloseTerminal.style.transform = 'translateY(-50%)'
       btnCloseTerminal.style.position = 'absolute'
     }
+  }
+
+  // Custom title bar window controls
+  const synBtnMinimize = document.getElementById('synBtnMinimize')
+  const synBtnMaximize = document.getElementById('synBtnMaximize')
+  const synBtnClose = document.getElementById('synBtnClose')
+  if (synBtnMinimize && synBtnMaximize && synBtnClose && window.synAPI) {
+    synBtnMinimize.addEventListener('click', (e) => {
+      e.stopPropagation()
+      window.synAPI.synWindow.minimize()
+    })
+    synBtnMaximize.addEventListener('click', (e) => {
+      e.stopPropagation()
+      window.synAPI.synWindow.maximize()
+    })
+    synBtnClose.addEventListener('click', (e) => {
+      e.stopPropagation()
+      window.synAPI.synWindow.close()
+    })
   }
 
   // Status indicator: toggle between idle and loading/working GIF
@@ -522,21 +541,21 @@ const setup = () => {
           return
         }
         const result = await synAPI.brainReflect(sessionId)
-        appendTerminalLine(`/reflect â†’ ${result.path || 'done'}`, 'ok')
+        appendTerminalLine(`/reflect → ${result.path || 'done'}`, 'ok')
         appendTerminalLine(`Learnings: ${result.learningsCount || 0}`, 'ok')
         break
       }
 
       case '/meditate': {
         const result = await synAPI.brainMeditate()
-        appendTerminalLine(`/meditate â†’ ${result.path || 'done'}`, 'ok')
+        appendTerminalLine(`/meditate → ${result.path || 'done'}`, 'ok')
         appendTerminalLine(`Files audited: ${result.filesAudited || 0}, principles: ${result.principlesExtracted || 0}, stale: ${result.staleNotes ? result.staleNotes.length : 0}`, 'ok')
         break
       }
 
       case '/ruminate': {
         const result = await synAPI.brainRuminate()
-        appendTerminalLine(`/ruminate â†’ ${result.path || 'done'}`, 'ok')
+        appendTerminalLine(`/ruminate → ${result.path || 'done'}`, 'ok')
         appendTerminalLine(`Sessions scanned: ${result.sessionsScanned || 0}, patterns: ${result.patternsFound || 0}`, 'ok')
         break
       }
@@ -548,7 +567,7 @@ const setup = () => {
           return
         }
         const result = await synAPI.brainPlan(task)
-        appendTerminalLine(`/plan â†’ ${result.path || 'done'}`, 'ok')
+        appendTerminalLine(`/plan → ${result.path || 'done'}`, 'ok')
         appendTerminalLine(`Task: ${result.task || task}`, 'ok')
         break
       }
@@ -560,7 +579,7 @@ const setup = () => {
           return
         }
         const result = await synAPI.brainReview(content)
-        appendTerminalLine(`/review â†’ ${result.path || 'done'}`, 'ok')
+        appendTerminalLine(`/review → ${result.path || 'done'}`, 'ok')
         if (result.issues && result.issues.length) {
           result.issues.forEach((issue, i) => {
             appendTerminalLine(`  ${i + 1}. [${issue.severity}] ${issue.message}`, 'warn')
@@ -579,7 +598,7 @@ const setup = () => {
           files.forEach(f => appendTerminalLine(`  [[${f}]]`, 'ok'))
         } else if (sub === 'index') {
           const result = await synAPI.brainIndex()
-          appendTerminalLine(`/brain index â†’ ${result.files} files indexed`, 'ok')
+          appendTerminalLine(`/brain index → ${result.files} files indexed`, 'ok')
         } else if (sub === 'read') {
           const path = args[1]
           if (!path) {
@@ -601,7 +620,7 @@ const setup = () => {
             return
           }
           const result = await synAPI.brainWrite(path, content)
-          appendTerminalLine(`/brain write â†’ ${result.path}`, 'ok')
+          appendTerminalLine(`/brain write → ${result.path}`, 'ok')
         } else {
           appendTerminalLine('Usage: /brain <list|index|read <path>|write <path> <content>>', 'warn')
         }
@@ -609,7 +628,7 @@ const setup = () => {
       }
 
       case '/syn': {
-        appendTerminalLine('/syn â€” Syn skill guidance', 'keyword')
+        appendTerminalLine('/syn — Syn skill guidance', 'keyword')
         appendTerminalLine('Use /locate <query> to search sessions and Memory Vault.', 'info')
         appendTerminalLine('Use /reflect, /meditate, /ruminate, /plan, /review for brainmaxxing.', 'info')
         appendTerminalLine('Use /brain <read|write|list|index> for Memory Vault file ops.', 'info')
@@ -619,15 +638,15 @@ const setup = () => {
 
       case '/help': {
         appendTerminalLine('Available commands:', 'keyword')
-        appendTerminalLine('  /locate <query> [filters]  â€” search sessions + Memory Vault', 'string')
-        appendTerminalLine('  /reflect [sessionId]       â€” reflect on a session', 'string')
-        appendTerminalLine('  /meditate                  â€” audit brain vault', 'string')
-        appendTerminalLine('  /ruminate                  â€” mine session patterns', 'string')
-        appendTerminalLine('  /plan <task>               â€” create phased plan', 'string')
-        appendTerminalLine('  /review <content>          â€” review content against principles', 'string')
-        appendTerminalLine('  /brain <list|index|read|write>  â€” Memory Vault file ops', 'string')
-        appendTerminalLine('  /syn                       â€” skill guidance', 'string')
-        appendTerminalLine('  /help                      â€” this help', 'string')
+        appendTerminalLine('  /locate <query> [filters]  — search sessions + Memory Vault', 'string')
+        appendTerminalLine('  /reflect [sessionId]       — reflect on a session', 'string')
+        appendTerminalLine('  /meditate                  — audit brain vault', 'string')
+        appendTerminalLine('  /ruminate                  — mine session patterns', 'string')
+        appendTerminalLine('  /plan <task>               — create phased plan', 'string')
+        appendTerminalLine('  /review <content>          — review content against principles', 'string')
+        appendTerminalLine('  /brain <list|index|read|write>  — Memory Vault file ops', 'string')
+        appendTerminalLine('  /syn                       — skill guidance', 'string')
+        appendTerminalLine('  /help                      — this help', 'string')
         appendTerminalLine('Tip: click any search result to open the session.', 'hint')
         break
       }
@@ -659,7 +678,7 @@ const setup = () => {
       const div = document.createElement('div')
       div.className = 'terminal-result'
       div.innerHTML = `
-        <div class="title"><span style="color:#ff69b4">â–¸</span> ${escapeHtml(r.title || '')} <span class="meta">[${escapeHtml(r.harness || '')}]</span></div>
+        <div class="title"><span style="color:#ff69b4">●</span> ${escapeHtml(r.title || '')} <span class="meta">[${escapeHtml(r.harness || '')}]</span></div>
         ${r.snippet ? `<div class="meta" style="font-size:11px;color:#53C68B;margin-top:2px">${escapeHtml(r.snippet)}</div>` : ''}
       `
       div.style.cursor = 'pointer'
@@ -672,7 +691,7 @@ const setup = () => {
     })
   }
 
-  // â”€â”€ Search bar (top, search-only, no terminal features) â”€â”€
+  // ═══ Search bar (top, search-only, no terminal features) ═════════════════════════════════════════════════════════════════════════════════════════════════
   searchInput.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -999,7 +1018,7 @@ const setup = () => {
       // Generate a serial number tag (#000000-#999999) for this archived note
       const serialResult = await synAPI.brainNextSerial()
       const serialTag = serialResult.ok ? '#' + String(serialResult.serial).padStart(6, '0') : '#000000'
-      lines.push('', 'Serial: ' + serialTag)
+      lines.push('', 'Serial: [[Serial: ' + serialTag + ']]')
 
       const fileName = 'sessions/session-' + ctxTargetSessionId.replace(/[^a-z0-9]/gi, '-') + '.md'
       const result = await synAPI.brainWrite(fileName, lines.join('\n') + '\n')
@@ -1091,7 +1110,7 @@ const setup = () => {
 
         // Welcome message in terminal (matches UI Sketch terminal look)
         appendTerminalLine('syn@agent:~$', 'ok')
-        appendTerminalLine('  Syn â€” unified agent memory environment', 'normal')
+        appendTerminalLine('  Syn — unified agent memory environment', 'normal')
         appendTerminalLine('  Type /help for commands, or /locate <query> to search.', 'normal')
         appendTerminalLine('', 'normal')
       }
@@ -1403,7 +1422,7 @@ const setup = () => {
   // Initialize
   init()
 
-  // â”€â”€ Column resizing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ═══ Column resizing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const sidebar = document.querySelector('.sidebar')
   const panel = document.querySelector('.panel')
   const resizerSidebar = document.getElementById('resizerSidebar')

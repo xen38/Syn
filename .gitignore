@@ -9,3 +9,10 @@ Thumbs.db
 check_codex_sessions.js
 reindex.js
 PROJECT\ LOCATE.txt
+
+# Brain Vault — non-essential user data (test archives, scratch notes, etc.)
+# Core brain files (index.md, codebase/, principles/) are tracked; everything
+# else under brain/ is user-specific and should not be pushed to GitHub.
+brain/sessions/
+brain/plans/
+brain/memories/

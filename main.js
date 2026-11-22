@@ -103,6 +103,7 @@ function createWindow () {
     minWidth: 900,
     minHeight: 600,
     icon: windowIcon,
+    frame: false, // custom title bar; window controls handled via SynWindow IPC
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -289,6 +290,20 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
+})
+
+// ── SynWindow IPC handlers (custom title bar for main window) ─────────────
+ipcMain.handle('SynWindow:minimize', async () => {
+  if (mainWindow) mainWindow.minimize()
+})
+ipcMain.handle('SynWindow:maximize', async () => {
+  if (mainWindow) {
+    if (mainWindow.isMaximized()) mainWindow.unmaximize()
+    else mainWindow.maximize()
+  }
+})
+ipcMain.handle('SynWindow:close', async () => {
+  if (mainWindow) mainWindow.close()
 })
 
 // IPC: Get configuration
@@ -673,7 +688,13 @@ ipcMain.handle('brain:read', async (event, relativePath) => {
 
 ipcMain.handle('brain:write', async (event, relativePath, content) => {
   try {
-    return brainmaxxing.brainWrite(relativePath, content)
+    const result = await brainmaxxing.brainWrite(relativePath, content)
+    // Keep the in-memory brainIndexMd cache in sync when index.md is written,
+    // so brain:getIndex returns fresh content without requiring a restart.
+    if (relativePath === 'index.md' && result.ok) {
+      brainIndexMd = content
+    }
+    return result
   } catch (e) {
     throw new Error(`Brain write failed: ${e.message}`)
   }

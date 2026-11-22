@@ -16,6 +16,69 @@ html, body {
 
 a { color: #ffffff; }
 
+/* ── Custom title bar for frameless main window ── */
+
+.syn-window-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 0 12px;
+  background: #0d0d0d;
+  border-bottom: 1px solid #333333;
+  cursor: default;
+  -webkit-app-region: drag;
+}
+
+.syn-window-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.syn-window-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #cccccc;
+  letter-spacing: -0.5px;
+}
+
+.syn-window-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+}
+
+.syn-window-btn {
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #cccccc;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  -webkit-app-region: no-drag;
+}
+
+.syn-window-btn:hover {
+  background: #1a1a1a;
+  border-color: #333333;
+}
+
+.syn-window-btn.syn-btn-close:hover {
+  background: #2a1a1a;
+  border-color: #ff4444;
+  color: #ff4444;
+}
+
 /* Header */
 .header {
   display: flex;
@@ -1019,7 +1082,7 @@ a { color: #ffffff; }
   background: transparent;
   border: 1px solid #555555;
   border-radius: 4px;
-  color: #000000;
+  color: #ffffff;
   font-size: 14px;
   cursor: pointer;
   display: flex;
