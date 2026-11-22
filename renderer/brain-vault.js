@@ -299,7 +299,7 @@ window.addEventListener('load', () => {
   try { loadBrainVault() } catch (e) { console.error('Brain vault onload error:', e) }
 })
 
-window.addEventListener('resize', resizeCanvas)
+window.addEventListener('resize', () => { resizeCanvas(); recenterGraph() })
 
 // Only wire up the window-shown trigger if _synAPI is available.
 // If _synAPI is undefined (contextBridge not exposed), init() will still
@@ -464,6 +464,9 @@ async function loadBrainVault () {
       }
     }
 
+    // Center the initial graph layout on the canvas
+    recenterGraph()
+
     // Draw now so the graph appears even when loadBrainVault() runs after the
     // window has been shown (the canvas was 0x0 on the first hidden run).
     updateStatus('_synAPI OK · ' + brainFiles.length + ' files · ' + nodes.size + ' nodes · ' + edges.length + ' links · canvas ' + bvGraphCanvas.width + '×' + bvGraphCanvas.height)
@@ -625,7 +628,39 @@ function resizeCanvas () {
       const cleaned = current.replace(/ · canvas \d+×\d+ · zoom \d+%/, '')
       bvStatusText.textContent = cleaned + ' · canvas ' + w + '×' + h + ' · zoom ' + zoom + '%'
     }
+    // Always update the canvas dimension text (even when size unchanged) so
+    // fullscreen/zoom changes are reflected.
+    else if (bvStatusText) {
+      const zoomPct = document.getElementById('bvGraphZoomVal')
+      const zoom = zoomPct ? zoomPct.textContent : '100'
+      const current = bvStatusText.textContent
+      const cleaned = current.replace(/ · canvas \d+×\d+ · zoom \d+%/, '')
+      bvStatusText.textContent = cleaned + ' · canvas ' + w + '×' + h + ' · zoom ' + zoom + '%'
+    }
   }
+
+  // Always recenter graph when canvas dimensions change (handles first load,
+  // fullscreen, and zoom). This runs even if oldW/oldH were 0.
+  if (nodes.size > 0 && (oldW !== w || oldH !== h)) {
+    recenterGraph()
+  }
+}
+
+// Recenter all nodes around the canvas center (keeps relative layout).
+function recenterGraph () {
+  if (nodes.size === 0) return
+  const cx = bvGraphCanvas.width / 2
+  const cy = bvGraphCanvas.height / 2
+  const nodeArr = Array.from(nodes.values())
+  // Compute current average position
+  let sumX = 0, sumY = 0
+  nodeArr.forEach(n => { sumX += n.x; sumY += n.y })
+  const avgX = sumX / nodeArr.length
+  const avgY = sumY / nodeArr.length
+  // Shift all nodes so average lands at canvas center
+  const dx = cx - avgX
+  const dy = cy - avgY
+  nodeArr.forEach(n => { n.x += dx; n.y += dy })
 }
 
 // ── Update canvas dims portion of status bar ──
@@ -1278,6 +1313,23 @@ if (bvSettingsCtxMenu) {
     }
   })
 
+  document.getElementById('bvCtxSettingsEditIndex').addEventListener('click', async (e) => {
+    e.stopPropagation()
+    bvSettingsCtxMenu.style.display = 'none'
+    try {
+      await openNote('index.md')
+      // Trigger edit mode on the just-opened tab
+      const tabId = 'note-index-md'
+      const editBtn = document.querySelector('.bv-edit-btn[data-tab="' + tabId + '"]')
+      if (editBtn) {
+        editBtn.click()
+      } else {
+        alert('Brain index tab opened but edit button not found.')
+      }
+    } catch (err) {
+      alert('Failed to edit brain index: ' + err.message)
+    }
+  })
 }
 
 // ── Graph background right-click menu ──

@@ -138,12 +138,13 @@ function createWindow () {
 // ── Brain Vault window (separate draggable/resizable BrowserWindow) ─────
 function createBrainVaultWindow () {
   const windowIcon = path.join(__dirname, 'assets', 'icon.png')
+  const { screen } = require('electron')
 
-  // Spawn at same aspect/position as the main window's brain vault area would be:
-  // offset slightly down and right from main window so both are visible.
-  const mainBounds = mainWindow ? mainWindow.getBounds() : null
-  const spawnX = mainBounds ? Math.round(mainBounds.x + 60) : 100
-  const spawnY = mainBounds ? Math.round(mainBounds.y + 60) : 100
+  // Spawn centered on the screen
+  const primaryDisplay = screen.getPrimaryDisplay()
+  const { width: screenW, height: screenH } = primaryDisplay.workAreaSize
+  const spawnX = Math.round((screenW - 900) / 2)
+  const spawnY = Math.round((screenH - 700) / 2)
 
   brainVaultWindow = new BrowserWindow({
     x: spawnX,
