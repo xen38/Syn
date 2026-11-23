@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "outDir": "./dist",
+    "rootDir": ".",
+    "strict": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "declaration": false,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@packages/core/*": ["packages/core/*"],
+      "@packages/adapters/*": ["packages/adapters/*"]
+    }
+  },
+  "include": [
+    "packages/**/*.ts",
+    "mcp-server.ts",
+    "main.ts",
+    "preload.ts",
+    "renderer/**/*.ts",
+    "scripts/**/*.ts",
+    "test/**/*.ts",
+    "src/types/**/*.d.ts"
+  ],
+  "exclude": ["node_modules", "dist", "release", "brain", "assets", "docs", "skills"]
+}

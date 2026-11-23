@@ -7,8 +7,9 @@
     "start": "electron .",
     "dev": "electron .",
     "build": "electron-builder",
-    "lint": "eslint . --ext .js --max-warnings 0",
-    "test": "node test/search.test.js && node test/search-quality.test.js && node test/validator-precision.test.js && node test/fixture-tests.js && node test/indexing.test.js && node test/security.test.js && node test/brainmaxxing.test.js && node test/session-delete.test.js && node test/g3-filter-forwarding.test.js && node test/mcp.test.js && node test/real-world-integration.test.js"
+    "tsc": "tsc --noEmit",
+    "lint": "eslint . --ext .js,.ts --max-warnings 0",
+    "test": "node -e \"require('tsx'); process.exit(0)\" && tsx test/search.test.ts && tsx test/search-quality.test.ts && tsx test/validator-precision.test.ts && tsx test/fixture-tests.ts && tsx test/indexing.test.ts && tsx test/security.test.ts && tsx test/brainmaxxing.test.ts && tsx test/session-delete.test.ts && tsx test/g3-filter-forwarding.test.ts && tsx test/mcp.test.ts && tsx test/real-world-integration.test.ts"
   },
   "keywords": [
     "sessions",
@@ -38,7 +39,13 @@
     "eslint-config-standard": "^17.1.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-n": "^15.7.0",
-    "eslint-plugin-promise": "^6.6.0"
+    "eslint-plugin-promise": "^6.6.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "typescript": "^5.4.0",
+    "tsx": "^4.0.0",
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^20.0.0"
   },
   "build": {
     "appId": "com.xen38.syn",
