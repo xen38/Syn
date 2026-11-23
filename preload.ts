@@ -1,6 +1,80 @@
-const { contextBridge, ipcRenderer } = require('electron')
+import { contextBridge, ipcRenderer } from 'electron'
 
-const synAPI = {
+export interface SynAPI {
+  // Config
+  getConfig: () => Promise<unknown>
+  setConfig: (updates: Record<string, unknown>) => Promise<unknown>
+
+  // Harnesses / sources
+  addHarness: (dirPath: string, harness: string) => Promise<unknown>
+  removeHarness: (dirPath: string) => Promise<unknown>
+  listHarnesses: () => Promise<unknown>
+  getHarnessSettings: () => Promise<unknown>
+  setHarnessSetting: (name: string, enabled: boolean) => Promise<unknown>
+  autodetectHarnesses: () => Promise<unknown>
+
+  // Source indexing
+  indexSource: (sourceId: string) => Promise<unknown>
+  indexAllSources: (options: Record<string, unknown>) => Promise<unknown>
+  incrementalIndex: (options: Record<string, unknown>) => Promise<unknown>
+
+  // Sessions
+  listSessions: (sourcePath: string) => Promise<unknown>
+  listAllSessions: () => Promise<unknown>
+  readSession: (sessionId: string) => Promise<unknown>
+  deleteSession: (sessionId: string) => Promise<unknown>
+  searchSessions: (query: string, options: Record<string, unknown>) => Promise<unknown>
+  getContext: (sessionId: string, messageIndex: number, before: number, after: number) => Promise<unknown>
+
+  // Brainmaxxing (Memory Vault)
+  brainIndex: () => Promise<unknown>
+  getBrainIndex: () => Promise<unknown>
+  brainRead: (relativePath: string) => Promise<unknown>
+  brainWrite: (relativePath: string, content: string) => Promise<unknown>
+  brainRename: (oldPath: string, newPath: string) => Promise<unknown>
+  brainDelete: (relativePath: string) => Promise<unknown>
+  brainList: () => Promise<unknown>
+  brainNextSerial: () => Promise<unknown>
+  brainImport: (sourcePath: string) => Promise<unknown>
+  brainSetDir: (newDir: string) => Promise<unknown>
+  brainReflect: (sessionId: string) => Promise<unknown>
+  brainMeditate: (sessionId: string) => Promise<unknown>
+  brainRuminate: (sessionId: string) => Promise<unknown>
+  brainPlan: (sessionId: string) => Promise<unknown>
+  brainReview: (sessionId: string) => Promise<unknown>
+
+  // Brain Vault window
+  brainVaultOpen: () => Promise<unknown>
+  brainVaultWindowMinimize: () => Promise<unknown>
+  brainVaultWindowMaximize: () => Promise<unknown>
+  brainVaultWindowClose: () => Promise<unknown>
+  brainVaultWindowSetBounds: (bounds: Record<string, unknown>) => Promise<unknown>
+  brainVaultWindowGetBounds: () => Promise<unknown>
+  brainDir: () => Promise<unknown>
+
+  // Main window controls (custom title bar)
+  synWindow: {
+    minimize: () => Promise<unknown>
+    maximize: () => Promise<unknown>
+    close: () => Promise<unknown>
+  }
+
+  // Brain Vault window shown notification (for canvas resize)
+  onBvWindowShown: (cb: (...args: unknown[]) => void) => void
+  onBvEnterFullscreen: (cb: (...args: unknown[]) => void) => void
+  onBvLeaveFullscreen: (cb: (...args: unknown[]) => void) => void
+
+  // File dialogs
+  openFileDialog: () => Promise<unknown>
+  openFolderDialog: () => Promise<unknown>
+  showItemInFolder: (fullPath: string) => Promise<unknown>
+
+  // Database health (Gate G7)
+  dbHealth: () => Promise<unknown>
+  dbRebuild: (preserveCorrupt?: boolean) => Promise<unknown>
+}
+
+const synAPI: SynAPI = {
   // Config
   getConfig: () => ipcRenderer.invoke('config:get'),
   setConfig: (updates) => ipcRenderer.invoke('config:set', updates),

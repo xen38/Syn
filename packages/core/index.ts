@@ -25,7 +25,7 @@ export const SUPPORTED_EXTS = new Set<string>(['.md', '.txt', '.json', '.jsonl',
 // Applied at index time to redact secrets from indexed content.
 // Original files are never modified — only the indexed copy is redacted.
 
-interface SecretPattern {
+export interface SecretPattern {
   name: string
   pattern: RegExp
   replacement: string
@@ -225,7 +225,7 @@ type DbHealth = 'healthy' | 'corrupt' | 'rebuilding' | null
  * SQLite-based full-text search index for archived coding sessions.
  * Uses sql.js backend with BM25-style ranking implemented in JS.
  */
-class IndexingEngine {
+export class IndexingEngine {
   dbPath: string
   db: SqlJsDatabase | null = null
   initialized = false
@@ -1719,7 +1719,7 @@ class IndexingEngine {
    */
   listSessions (options: { harness?: string; project?: string; dateFrom?: string; dateTo?: string; limit?: number; enabledHarnesses?: string[] } = {}): Array<{
     session_id: string; title: string; harness: string; source_path: string;
-    file_path: string; created_at: string
+    file_path: string; created_at: string; indexed_at: string
   }> {
     if (!this.db) throw new Error('Database not open')
     const harness = options.harness || null
@@ -1744,7 +1744,7 @@ class IndexingEngine {
     params.push(limit)
     return this.db.prepare(sql).all(params) as Array<{
       session_id: string; title: string; harness: string; source_path: string;
-      file_path: string; created_at: string
+      file_path: string; created_at: string; indexed_at: string
     }>
   }
 
@@ -1852,5 +1852,3 @@ class IndexingEngine {
     return content.substring(start, end).replace(/\n/g, ' ')
   }
 }
-
-export { IndexingEngine }

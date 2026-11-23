@@ -11,11 +11,18 @@
  * Transport: stdio (JSON-RPC 2.0)
  */
 
-const path = require('path')
-const fs = require('fs')
-const os = require('os')
-const { IndexingEngine } = require('./packages/core/index')
-const bm = require('./packages/core/brainmaxxing')
+import path from 'path'
+import fs from 'fs'
+import os from 'os'
+import { IndexingEngine, SecretPattern } from './packages/core/index'
+import * as bm from './packages/core/brainmaxxing'
+
+import { Server } from '@modelcontextprotocol/sdk/server/index.js'
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema
+} from '@modelcontextprotocol/sdk/types.js'
 
 // ── Configuration ──────────────────────────────────────────────────────────
 // Shared configuration file — same file the desktop app (main.js) writes to,
@@ -36,34 +43,41 @@ const INDEX_DB_PATH = path.join(
   'syn-index.db'
 )
 
-const DEFAULT_CONFIG = {
+interface SynConfig {
+  harnessDirectories: string[]
+  batchSize: number
+  redactSecrets: boolean
+  secretPatterns: SecretPattern[] | undefined
+  excludedPaths: string[]
+}
+
+const DEFAULT_CONFIG: SynConfig = {
   harnessDirectories: [],
   batchSize: 10,
-  // Phase 8: Privacy & Security
   redactSecrets: true,
-  secretPatterns: null,
+  secretPatterns: undefined,
   excludedPaths: []
 }
 
-let config = { ...DEFAULT_CONFIG }
+let config: SynConfig = { ...DEFAULT_CONFIG }
 
-function loadConfig () {
+function loadConfig (): void {
   try {
     if (fs.existsSync(CONFIG_FILE)) {
       config = { ...DEFAULT_CONFIG, ...JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')) }
     }
   } catch (e) {
-    console.error('[syn-mcp] Failed to load config:', e.message)
+    console.error('[syn-mcp] Failed to load config:', (e as Error).message)
   }
 }
 
-function saveConfig () {
+function saveConfig (): void {
   try {
     const dir = path.dirname(CONFIG_FILE)
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8')
   } catch (e) {
-    console.error('[syn-mcp] Failed to save config:', e.message)
+    console.error('[syn-mcp] Failed to save config:', (e as Error).message)
   }
 }
 
@@ -79,13 +93,6 @@ const engine = new IndexingEngine(INDEX_DB_PATH, {
 engine.open().catch(e => console.error('[syn-mcp] Failed to open index:', e))
 
 // ── MCP Server ─────────────────────────────────────────────────────────────
-
-const { Server } = require('@modelcontextprotocol/sdk/server/index.js')
-const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js')
-const {
-  CallToolRequestSchema,
-  ListToolsRequestSchema
-} = require('@modelcontextprotocol/sdk/types.js')
 
 const server = new Server(
   { name: 'syn', version: '2.0.0' },
@@ -363,12 +370,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 })
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params
+  const args = (request.params.arguments ?? {}) as Record<string, unknown>
 
   try {
-    switch (name) {
+    switch (request.params.name) {
     case 'syn_search': {
-      const results = engine.search(args.query, {
+      const query = String(args.query ?? '')
+      const results = engine.search(query, {
         harness: args.harness ? String(args.harness) : undefined,
         role: args.role ? String(args.role) : undefined,
         project: args.project ? String(args.project) : undefined,
@@ -387,7 +395,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             type: 'text',
             text: JSON.stringify(
               {
-                query: args.query,
+                query,
                 totalResults: results.length,
                 results: results.map(r => ({
                   id: r.session_id,
@@ -410,7 +418,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case 'syn_get_session': {
-      const session = engine.getSession(args.sessionId)
+      const session = engine.getSession(String(args.sessionId ?? ''))
       if (!session) {
         return {
           content: [{ type: 'text', text: JSON.stringify({ error: 'Session not found' }, null, 2) }],
@@ -441,7 +449,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case 'syn_get_context': {
-      const ctx = engine.getContext(args.sessionId, args.messageIndex, args.before || 5, args.after || 5)
+      const ctx = engine.getContext(String(args.sessionId ?? ''), Number(args.messageIndex ?? 0), args.before ? Number(args.before) : 5, args.after ? Number(args.after) : 5)
       if (!ctx) {
         return {
           content: [{ type: 'text', text: JSON.stringify({ error: 'Session not found' }, null, 2) }],
@@ -460,8 +468,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     case 'syn_list_sessions': {
       const sessions = engine.listSessions({
-        harness: args.harness || undefined,
-        limit: args.limit || 100
+        harness: args.harness ? String(args.harness) : undefined,
+        limit: args.limit ? Number(args.limit) : 100
       })
       return {
         content: [
@@ -520,8 +528,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     case 'syn_add_harness': {
       try {
-        const sourceId = engine.addSource(args.dirPath, args.harness || undefined)
-        const normalized = path.resolve(args.dirPath)
+        const sourceId = engine.addSource(String(args.dirPath), args.harness ? String(args.harness) : undefined)
+        const normalized = path.resolve(String(args.dirPath))
         if (!config.harnessDirectories.includes(normalized)) {
           config.harnessDirectories.push(normalized)
           saveConfig()
@@ -547,7 +555,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
       } catch (e) {
         return {
-          content: [{ type: 'text', text: JSON.stringify({ error: e.message }, null, 2) }],
+          content: [{ type: 'text', text: JSON.stringify({ error: (e as Error).message }, null, 2) }],
           isError: true
         }
       }
@@ -555,7 +563,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     case 'syn_index_source': {
       try {
-        const normalized = path.resolve(args.dirPath)
+        const normalized = path.resolve(String(args.dirPath))
         const sources = engine.listSources()
         const source = sources.find(s => path.resolve(s.path) === normalized)
         if (!source) {
@@ -564,7 +572,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             isError: true
           }
         }
-        const result = engine.indexSource(source.id)
+        const result = await engine.indexSource(source.id)
         return {
           content: [
             {
@@ -573,10 +581,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 {
                   path: normalized,
                   sourceId: source.id,
-                  indexed: result.indexed || 0,
-                  skipped: result.skipped || 0,
-                  total: result.total || 0,
-                  status: result.status || 'done'
+                  indexed: result.indexed,
+                  skipped: result.skipped,
+                  total: result.total
                 },
                 null,
                 2
@@ -586,7 +593,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
       } catch (e) {
         return {
-          content: [{ type: 'text', text: JSON.stringify({ error: e.message }, null, 2) }],
+          content: [{ type: 'text', text: JSON.stringify({ error: (e as Error).message }, null, 2) }],
           isError: true
         }
       }
@@ -594,17 +601,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     case 'syn_index_all': {
       try {
-        const result = engine.indexAllSources()
+        const result = await engine.indexAllSources()
         return {
           content: [
             {
               type: 'text',
               text: JSON.stringify(
                 {
-                  indexed: result.indexed || 0,
-                  skipped: result.skipped || 0,
-                  total: result.total || 0,
-                  sources: result.sources || []
+                  indexed: result.indexed,
+                  skipped: result.skipped,
+                  total: result.total,
+                  sources: result.sources
                 },
                 null,
                 2
@@ -614,7 +621,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
       } catch (e) {
         return {
-          content: [{ type: 'text', text: JSON.stringify({ error: e.message }, null, 2) }],
+          content: [{ type: 'text', text: JSON.stringify({ error: (e as Error).message }, null, 2) }],
           isError: true
         }
       }
@@ -658,7 +665,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case 'syn_read_brain': {
-      const result = bm.brainRead(args.path)
+      const result = bm.brainRead(String(args.path ?? ''))
       if (!result.ok) {
         return {
           content: [{ type: 'text', text: JSON.stringify({ error: result.error }, null, 2) }],
@@ -671,7 +678,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case 'syn_write_brain': {
-      const result = bm.brainWrite(args.path, args.content)
+      const result = bm.brainWrite(String(args.path ?? ''), String(args.content ?? ''))
       if (!result.ok) {
         return {
           content: [{ type: 'text', text: JSON.stringify({ error: result.error }, null, 2) }],
@@ -684,7 +691,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case 'syn_reflect': {
-      const result = await bm.reflect(args.sessionId || undefined, engine)
+      const result = await bm.reflect(String(args.sessionId ?? ''), engine)
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
       }
@@ -705,28 +712,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case 'syn_plan': {
-      const result = await bm.plan(args.task, engine)
+      const result = await bm.plan(String(args.task ?? ''), engine)
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
       }
     }
 
     case 'syn_review': {
-      const result = await bm.review(args.content, engine)
+      const result = await bm.review(String(args.content ?? ''), engine)
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
       }
     }
 
     default:
-      throw new Error(`Unknown tool: ${name}`)
+      throw new Error(`Unknown tool: ${request.params.name}`)
     }
   } catch (e) {
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify({ error: e.message }, null, 2)
+          text: JSON.stringify({ error: (e as Error).message }, null, 2)
         }
       ],
       isError: true
@@ -736,7 +743,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 // ── Start ──────────────────────────────────────────────────────────────────
 
-async function main () {
+async function main (): Promise<void> {
   const transport = new StdioServerTransport()
   await server.connect(transport)
   console.error('[syn-mcp] Syn MCP server running on stdio')
