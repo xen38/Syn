@@ -205,7 +205,7 @@ interface SessionRow {
   content: string
 }
 
-interface SessionWithMessages extends SessionRow {
+export interface SessionWithMessages extends SessionRow {
   messages: Message[]
 }
 
