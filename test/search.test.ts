@@ -1,11 +1,11 @@
-const path = require('path')
-const fs = require('fs')
-const os = require('os')
+import path from 'path'
+import fs from 'fs'
+import os from 'os'
 
-// Test the search logic by simulating what main.js does
-function buildSessionsFromDir (dirPath) {
+// Test the search logic by simulating what main.ts does
+function buildSessionsFromDir (dirPath: string): { id: string; label: string; content: string; harness: string }[] {
   const supportedExts = ['.md', '.txt', '.json']
-  const sessions = []
+  const sessions: { id: string; label: string; content: string; harness: string }[] = []
   const entries = fs.readdirSync(dirPath, { withFileTypes: true })
   for (const entry of entries) {
     if (!entry.isFile()) continue
@@ -19,9 +19,12 @@ function buildSessionsFromDir (dirPath) {
   return sessions
 }
 
-function searchSessions (sessions, query) {
+function searchSessions (
+  sessions: { id: string; label: string; content: string; harness: string }[],
+  query: string
+): { id: string; label: string; harness: string; labelMatch: boolean; contentMatch: boolean; context: string; score: number }[] {
   const queryLower = query.toLowerCase()
-  const results = []
+  const results: { id: string; label: string; harness: string; labelMatch: boolean; contentMatch: boolean; context: string; score: number }[] = []
   for (const s of sessions) {
     const labelMatch = s.label.toLowerCase().includes(queryLower)
     const contentMatch = s.content.toLowerCase().includes(queryLower)
@@ -60,7 +63,7 @@ fs.writeFileSync(path.join(harnessDir, 'api-session.md'), '# API Design\n\nREST 
 let passed = 0
 let failed = 0
 
-function assert (condition, message) {
+function assert (condition: boolean, message: string) {
   if (condition) {
     passed++
     console.log(`  PASS: ${message}`)

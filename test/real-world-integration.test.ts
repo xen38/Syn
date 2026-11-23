@@ -7,11 +7,17 @@
  * Runs end-to-end through the same IndexingEngine used by MCP server and desktop app.
  */
 
-const path = require('path')
-const fs = require('fs')
-const { IndexingEngine } = require(path.join(__dirname, '..', 'packages', 'core', 'index'))
+import path from 'path'
+import fs from 'fs'
+import crypto from 'crypto'
+import { IndexingEngine, SessionResult } from '../packages/core/index'
 
-const HARNESS_DIRS = [
+interface HarnessDir {
+  dir: string
+  harness: string
+}
+
+const HARNESS_DIRS: HarnessDir[] = [
   { dir: 'K:\\Users\\luizy\\.copilot', harness: 'GitHub Copilot' },
   { dir: 'K:\\Users\\luizy\\.cline', harness: 'Cline' },
   { dir: 'K:\\Users\\luizy\\.codex', harness: 'Codex' },
@@ -34,7 +40,7 @@ if (!anyDirExists) {
 let passed = 0
 let failed = 0
 
-function assert (condition, message) {
+function assert (condition: boolean, message: string) {
   if (condition) {
     console.log(`  PASS: ${message}`)
     passed++
@@ -46,7 +52,7 @@ function assert (condition, message) {
 
 // Conditional assertion: passes if true, warns (but does not fail) if false.
 // Used for assertions that depend on environment-specific data that may or may not exist.
-function assertConditional (condition, message) {
+function assertConditional (condition: boolean, message: string) {
   if (condition) {
     console.log(`  PASS: ${message}`)
     passed++
@@ -95,40 +101,41 @@ async function main () {
   // Search for "JWT" — should find Cline (api-session.json, auth-session.md) and Copilot
   const jwtResults = engine.search('JWT')
   console.log(`  "JWT" search: ${jwtResults.length} results`)
-  jwtResults.forEach(r => console.log(`    - ${r.title} (${r.harness}) rank=${r.rank}`))
-  const jwtHarnesses = new Set(jwtResults.map(r => r.harness))
+  jwtResults.forEach((r: SessionResult) => console.log(`    - ${r.title} (${r.harness}) rank=${r.rank}`))
+  const jwtHarnesses = new Set(jwtResults.map((r: SessionResult) => r.harness))
   assertConditional(jwtHarnesses.size > 0, '"JWT" search returns at least one result')
 
   // Search for "meteor" — should find Cursor
   const meteorResults = engine.search('meteor')
   console.log(`  "meteor" search: ${meteorResults.length} results`)
-  meteorResults.forEach(r => console.log(`    - ${r.title} (${r.harness}) rank=${r.rank}`))
-  const meteorFound = meteorResults.some(r => r.harness === 'Cursor')
+  meteorResults.forEach((r: SessionResult) => console.log(`    - ${r.title} (${r.harness}) rank=${r.rank}`))
+  const meteorFound = meteorResults.some((r: SessionResult) => r.harness === 'Cursor')
   assertConditional(meteorFound, '"meteor" search finds Cursor harness session')
 
   // Search for "OAuth2" — should find Cline auth-session
   const oauthResults = engine.search('OAuth2')
   console.log(`  "OAuth2" search: ${oauthResults.length} results`)
-  oauthResults.forEach(r => console.log(`    - ${r.title} (${r.harness})`))
-  const oauthCline = oauthResults.some(r => r.harness === 'Cline')
+  oauthResults.forEach((r: SessionResult) => console.log(`    - ${r.title} (${r.harness})`))
+  const oauthCline = oauthResults.some((r: SessionResult) => r.harness === 'Cline')
   assertConditional(oauthCline, '"OAuth2" search finds Cline auth session')
 
   // Search for "locate app" — should find Copilot and Pi
   const locateResults = engine.search('locate app')
   console.log(`  "locate app" search: ${locateResults.length} results`)
-  locateResults.forEach(r => console.log(`    - ${r.title} (${r.harness})`))
+  locateResults.forEach((r: SessionResult) => console.log(`    - ${r.title} (${r.harness})`))
   assertConditional(locateResults.length > 0, '"locate app" search returns results')
+
   const pgResults = engine.search('PostgreSQL')
   console.log(`  "PostgreSQL" search: ${pgResults.length} results`)
-  pgResults.forEach(r => console.log(`    - ${r.title} (${r.harness})`))
-  const pgCline = pgResults.some(r => r.harness === 'Cline')
+  pgResults.forEach((r: SessionResult) => console.log(`    - ${r.title} (${r.harness})`))
+  const pgCline = pgResults.some((r: SessionResult) => r.harness === 'Cline')
   assertConditional(pgCline, '"PostgreSQL" search finds Cline database session')
 
   // ── Step 4: Search with harness filter ──
   console.log('\nStep 4: Harness-filtered search...')
   const clineOnly = engine.search('session', { harness: 'Cline' })
   console.log(`  Cline-only "session": ${clineOnly.length} results`)
-  const allCline = clineOnly.every(r => r.harness === 'Cline')
+  const allCline = clineOnly.every((r: SessionResult) => r.harness === 'Cline')
   assertConditional(allCline && clineOnly.length > 0, 'Harness filter returns only Cline results')
 
   // ── Step 5: Retrieve individual sessions ──
@@ -145,9 +152,9 @@ async function main () {
   // ── Step 6: Archive integrity ──
   console.log('\nStep 6: Archive file integrity (read-only)...')
   // Hash all original archive files before and after
-  const archiveFiles = []
+  const archiveFiles: string[] = []
   for (const dir of HARNESS_DIRS.map(d => d.dir)) {
-    function collect (dirPath) {
+    function collect (dirPath: string) {
       for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
         const full = path.join(dirPath, entry.name)
         if (entry.isDirectory()) collect(full)
@@ -157,8 +164,7 @@ async function main () {
     collect(dir)
   }
 
-  const crypto = require('crypto')
-  const hashesBefore = {}
+  const hashesBefore: Record<string, string> = {}
   for (const f of archiveFiles) {
     hashesBefore[f] = crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex')
   }
@@ -166,7 +172,7 @@ async function main () {
   // Re-index to confirm no modification
   await engine.indexAllSources()
 
-  const hashesAfter = {}
+  const hashesAfter: Record<string, string> = {}
   for (const f of archiveFiles) {
     hashesAfter[f] = crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex')
   }
@@ -191,7 +197,7 @@ async function main () {
   process.exit(failed > 0 ? 1 : 0)
 }
 
-main().catch((err) => {
+main().catch((err: Error) => {
   console.error('Fatal error:', err)
   process.exit(1)
 })

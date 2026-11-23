@@ -8,17 +8,17 @@
  *    brain, role, harness, enabledHarnesses filters end-to-end.
  */
 
-const path = require('path')
-const fs = require('fs')
-const os = require('os')
-const { IndexingEngine } = require('../packages/core/index')
+import path from 'path'
+import fs from 'fs'
+import os from 'os'
+import { IndexingEngine } from '../packages/core/index'
 
 const DB_PATH = path.join(os.tmpdir(), `locate-g3-${Date.now()}.db`)
 
 let passed = 0
 let failed = 0
 
-function assert (condition, message) {
+function assert (condition: boolean, message: string) {
   if (condition) {
     passed++
     console.log(`  PASS: ${message}`)
@@ -29,8 +29,8 @@ function assert (condition, message) {
 }
 
 // ── parseSearchFilters (shared by header performSearch + terminal /locate) ──
-function parseSearchFilters (raw) {
-  const options = {}
+function parseSearchFilters (raw: string) {
+  const options: Record<string, unknown> = {}
   let query = raw
 
   const brainMatch = query.match(/\bbrain:\s*/i)
@@ -63,11 +63,11 @@ async function main () {
   const now = new Date().toISOString()
   const older = new Date(Date.now() - 86400000 * 30).toISOString() // 30 days ago
 
-  const insertSession = engine.db.prepare(`
+  const insertSession = engine.db!.prepare(`
     INSERT INTO sessions (session_id, title, harness, source_path, file_path, file_ext, created_at, content)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `)
-  const insertMessage = engine.db.prepare(`
+  const insertMessage = engine.db!.prepare(`
     INSERT INTO messages (session_id, message_index, role, timestamp, content)
     VALUES (?, ?, ?, ?, ?)
   `)
@@ -166,7 +166,7 @@ async function main () {
     const harness = options.harness ? String(options.harness) : undefined
     const role = options.role ? String(options.role) : undefined
     const project = options.project ? String(options.project) : undefined
-    const brain = options.brain === true || options.brain === 'true'
+    const brain = options.brain === 'true'
     const dateFrom = options.dateFrom ? String(options.dateFrom) : undefined
     const dateTo = options.dateTo ? String(options.dateTo) : undefined
     const enabledHarnesses = Array.isArray(options.enabledHarnesses)
@@ -197,7 +197,7 @@ async function main () {
   process.exit(failed > 0 ? 1 : 0)
 }
 
-main().catch((err) => {
+main().catch((err: Error) => {
   console.error('Test setup failed:', err)
   process.exit(1)
 })

@@ -1,20 +1,20 @@
 // Phase 8 — Privacy & Security tests
 // Secret redaction + path exclusions
 
-const path = require('path')
-const fs = require('fs')
-const os = require('os')
-const { IndexingEngine } = require('../packages/core/index')
+import path from 'path'
+import fs from 'fs'
+import os from 'os'
+import { IndexingEngine } from '../packages/core/index'
 
 function makeTempDb () {
   return path.join(os.tmpdir(), 'syn-security-test-' + Date.now() + '.db')
 }
-function cleanupDb (dbPath) {
+function cleanupDb (dbPath: string) {
   try { fs.unlinkSync(dbPath) } catch (e) {}
   try { fs.unlinkSync(dbPath + '-wal') } catch (e) {}
   try { fs.unlinkSync(dbPath + '-shm') } catch (e) {}
 }
-function cleanupDir (dirPath) {
+function cleanupDir (dirPath: string) {
   try {
     if (fs.existsSync(dirPath)) {
       fs.readdirSync(dirPath).forEach(f => {
@@ -27,10 +27,22 @@ function cleanupDir (dirPath) {
   } catch (e) {}
 }
 
+interface RedactionPattern {
+  name: string
+  pattern: RegExp
+  replacement: string
+}
+
+interface EngineOptions {
+  redactSecrets?: boolean
+  excludedPaths?: string[]
+  secretPatterns?: RedactionPattern[]
+}
+
 let passed = 0
 let failed = 0
 
-function assert (condition, name) {
+function assert (condition: boolean, name: string) {
   if (condition) { passed++; console.log(`  PASS: ${name}`) } else { failed++; console.log(`  FAIL: ${name}`) }
 }
 
@@ -51,25 +63,25 @@ async function main () {
   fs.writeFileSync(secretFile, secretLines.map(l => JSON.stringify(l)).join('\n') + '\n')
 
   const TEST_DB = makeTempDb()
-  const engine = new IndexingEngine(TEST_DB, { redactSecrets: true, excludedPaths: [] })
+  const engine = new IndexingEngine(TEST_DB, { redactSecrets: true, excludedPaths: [] } as EngineOptions)
   await engine.open()
 
   const sourceId = engine.addSource(baseDir, 'Cline')
   const result = await engine.indexSource(sourceId)
   assert(result.indexed >= 1, 'Indexed secret-containing session')
 
-  const sessions = engine.listSessions()
-  const secSession = sessions.find(s => s.content && s.content.includes('[REDACTED_GITHUB_TOKEN]'))
-  assert(secSession != null, 'Secret session found in index')
+  const searchResults = engine.search('[REDACTED_GITHUB_TOKEN]')
+  assert(searchResults.length > 0, 'Secret session found in index')
+  const secSession = searchResults[0]
   if (secSession) {
     const full = engine.getSession(secSession.session_id)
-    const userMsg = full.messages.find(m => m.role === 'user' && m.content.includes('[REDACTED_GITHUB_TOKEN]'))
-    const assistantMsg = full.messages.find(m => m.role === 'assistant' && m.content.includes('[REDACTED_AWS_KEY]'))
-    const normalMsg = full.messages.find(m => m.content === 'Normal message without secrets')
-    assert(userMsg && !userMsg.content.includes('ghp_'), 'GitHub token redacted from user message')
-    assert(userMsg && userMsg.content.includes('[REDACTED_GITHUB_TOKEN]'), 'GitHub token replaced with redaction marker')
-    assert(assistantMsg && !assistantMsg.content.includes('AKIA'), 'AWS key redacted from assistant message')
-    assert(assistantMsg && assistantMsg.content.includes('[REDACTED_AWS_KEY]'), 'AWS key replaced with redaction marker')
+    const userMsg = full!.messages.find(m => m.role === 'user' && m.content.includes('[REDACTED_GITHUB_TOKEN]'))
+    const assistantMsg = full!.messages.find(m => m.role === 'assistant' && m.content.includes('[REDACTED_AWS_KEY]'))
+    const normalMsg = full!.messages.find(m => m.content === 'Normal message without secrets')
+    assert(!!(userMsg && !userMsg.content.includes('ghp_')), 'GitHub token redacted from user message')
+    assert(!!(userMsg && userMsg.content.includes('[REDACTED_GITHUB_TOKEN]')), 'GitHub token replaced with redaction marker')
+    assert(!!(assistantMsg && !assistantMsg.content.includes('AKIA')), 'AWS key redacted from assistant message')
+    assert(!!(assistantMsg && assistantMsg.content.includes('[REDACTED_AWS_KEY]')), 'AWS key replaced with redaction marker')
     assert(normalMsg != null, 'Normal message preserved unchanged')
   }
 
@@ -84,7 +96,7 @@ async function main () {
 
   // Engine with redaction disabled
   const TEST_DB2 = makeTempDb()
-  const engine2 = new IndexingEngine(TEST_DB2, { redactSecrets: false, excludedPaths: [] })
+  const engine2 = new IndexingEngine(TEST_DB2, { redactSecrets: false, excludedPaths: [] } as EngineOptions)
   await engine2.open()
 
   const baseDir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'syn-sec-'))
@@ -98,13 +110,13 @@ async function main () {
 
   const sourceId2 = engine2.addSource(baseDir2, 'Cline')
   await engine2.indexSource(sourceId2)
-  const sessions2 = engine2.listSessions()
-  const secSession2 = sessions2.find(s => s.content && s.content.includes('ghp_'))
-  assert(secSession2 != null, 'Session indexed without redaction')
+  const searchResults2 = engine2.search('ghp_')
+  assert(searchResults2.length > 0, 'Session indexed without redaction')
+  const secSession2 = searchResults2[0]
   if (secSession2) {
     const full2 = engine2.getSession(secSession2.session_id)
-    const userMsg2 = full2.messages.find(m => m.role === 'user')
-    assert(userMsg2 && userMsg2.content.includes('ghp_'), 'Secret NOT redacted when redactSecrets is false')
+    const userMsg2 = full2!.messages.find(m => m.role === 'user')
+    assert(!!(userMsg2 && userMsg2.content.includes('ghp_')), 'Secret NOT redacted when redactSecrets is false')
   }
 
   engine2.close()
@@ -114,7 +126,7 @@ async function main () {
   console.log('\n=== Phase 8.2: Path exclusions ===')
 
   const TEST_DB3 = makeTempDb()
-  const engine3 = new IndexingEngine(TEST_DB3, { redactSecrets: false, excludedPaths: [] })
+  const engine3 = new IndexingEngine(TEST_DB3, { redactSecrets: false, excludedPaths: [] } as EngineOptions)
   await engine3.open()
 
   const baseDir3 = fs.mkdtempSync(path.join(os.tmpdir(), 'syn-sec-'))
@@ -142,7 +154,7 @@ async function main () {
   const engine3b = new IndexingEngine(TEST_DB3, {
     redactSecrets: false,
     excludedPaths: [excludedDir]
-  })
+  } as EngineOptions)
   await engine3b.open()
 
   const sourceId3b = engine3b.addSource(baseDir3, 'Cline')
@@ -159,7 +171,7 @@ async function main () {
   console.log('\n=== Phase 8.2b: Precise exclusion matching (no sibling false positives) ===')
 
   const TEST_DB4 = makeTempDb()
-  const engine4 = new IndexingEngine(TEST_DB4, { redactSecrets: false, excludedPaths: [] })
+  const engine4 = new IndexingEngine(TEST_DB4, { redactSecrets: false, excludedPaths: [] } as EngineOptions)
   await engine4.open()
 
   const baseDir4 = fs.mkdtempSync(path.join(os.tmpdir(), 'syn-sec-'))
@@ -180,7 +192,7 @@ async function main () {
   const engine4b = new IndexingEngine(TEST_DB4, {
     redactSecrets: false,
     excludedPaths: [clineDir4]
-  })
+  } as EngineOptions)
   await engine4b.open()
 
   const sourceId4b = engine4b.addSource(baseDir4, 'Cline')
@@ -198,7 +210,7 @@ async function main () {
   console.log('\n=== Phase 8.2c: Case normalization ===')
 
   const TEST_DB5 = makeTempDb()
-  const engine5 = new IndexingEngine(TEST_DB5, { redactSecrets: false, excludedPaths: [] })
+  const engine5 = new IndexingEngine(TEST_DB5, { redactSecrets: false, excludedPaths: [] } as EngineOptions)
   await engine5.open()
 
   const baseDir5 = fs.mkdtempSync(path.join(os.tmpdir(), 'syn-sec-'))
@@ -220,7 +232,7 @@ async function main () {
   const engine5b = new IndexingEngine(TEST_DB5, {
     redactSecrets: false,
     excludedPaths: [path.join(baseDir5, '.cline-excluded')]
-  })
+  } as EngineOptions)
   await engine5b.open()
 
   const sourceId5b = engine5b.addSource(baseDir5, 'Cline')
@@ -243,7 +255,7 @@ async function main () {
   console.log('\n=== Phase 8.2d: Exact match exclusion ===')
 
   const TEST_DB6 = makeTempDb()
-  const engine6 = new IndexingEngine(TEST_DB6, { redactSecrets: false, excludedPaths: [] })
+  const engine6 = new IndexingEngine(TEST_DB6, { redactSecrets: false, excludedPaths: [] } as EngineOptions)
   await engine6.open()
 
   const baseDir6 = fs.mkdtempSync(path.join(os.tmpdir(), 'syn-sec-'))
@@ -264,7 +276,7 @@ async function main () {
   const engine6b = new IndexingEngine(TEST_DB6, {
     redactSecrets: false,
     excludedPaths: [exactDir]
-  })
+  } as EngineOptions)
   await engine6b.open()
 
   const sourceId6b = engine6b.addSource(baseDir6, 'Cline')
@@ -289,7 +301,7 @@ async function main () {
       { name: 'legacy-key', pattern: /legacy_[A-Za-z0-9_]{16,}/g, replacement: '[REDACTED_LEGACY_KEY]' }
     ],
     excludedPaths: []
-  })
+  } as EngineOptions)
   await engine7.open()
 
   const baseDir7 = fs.mkdtempSync(path.join(os.tmpdir(), 'syn-sec-'))
@@ -309,13 +321,13 @@ async function main () {
   assert(ctSession != null, 'Custom token session indexed')
   if (ctSession) {
     const full7 = engine7.getSession(ctSession.session_id)
-    const userMsg = full7.messages.find(m => m.role === 'user' && m.content.includes('[REDACTED_CUSTOM_TOKEN]'))
-    const assistantMsg = full7.messages.find(m => m.role === 'assistant' && m.content.includes('[REDACTED_LEGACY_KEY]'))
-    const normalMsg = full7.messages.find(m => m.content === 'No secret here')
-    assert(userMsg && !userMsg.content.includes('syn_token_'), 'Custom token pattern redacted')
-    assert(userMsg && userMsg.content.includes('[REDACTED_CUSTOM_TOKEN]'), 'Custom token replaced with marker')
-    assert(assistantMsg && !assistantMsg.content.includes('legacy_'), 'Legacy key pattern redacted')
-    assert(assistantMsg && assistantMsg.content.includes('[REDACTED_LEGACY_KEY]'), 'Legacy key replaced with marker')
+    const userMsg = full7!.messages.find(m => m.role === 'user' && m.content.includes('[REDACTED_CUSTOM_TOKEN]'))
+    const assistantMsg = full7!.messages.find(m => m.role === 'assistant' && m.content.includes('[REDACTED_LEGACY_KEY]'))
+    const normalMsg = full7!.messages.find(m => m.content === 'No secret here')
+    assert(!!(userMsg && !userMsg.content.includes('syn_token_')), 'Custom token pattern redacted')
+    assert(!!(userMsg && userMsg.content.includes('[REDACTED_CUSTOM_TOKEN]')), 'Custom token replaced with marker')
+    assert(!!(assistantMsg && !assistantMsg.content.includes('legacy_')), 'Legacy key pattern redacted')
+    assert(!!(assistantMsg && assistantMsg.content.includes('[REDACTED_LEGACY_KEY]')), 'Legacy key replaced with marker')
     assert(normalMsg != null, 'Normal message preserved unchanged')
   }
 
@@ -327,7 +339,7 @@ async function main () {
 
   // G7.1: Corrupt DB detected on open — backup preserved, original not deleted
   const TEST_DB8 = makeTempDb()
-  const engine8 = new IndexingEngine(TEST_DB8, { redactSecrets: false, excludedPaths: [] })
+  const engine8 = new IndexingEngine(TEST_DB8, { redactSecrets: false, excludedPaths: [] } as EngineOptions)
   await engine8.open()
   engine8.close()
   cleanupDb(TEST_DB8)
@@ -335,7 +347,7 @@ async function main () {
   // Write garbage to the DB file to simulate corruption
   fs.writeFileSync(TEST_DB8, 'this is not a valid SQLite database')
 
-  const engine8b = new IndexingEngine(TEST_DB8, { redactSecrets: false, excludedPaths: [] })
+  const engine8b = new IndexingEngine(TEST_DB8, { redactSecrets: false, excludedPaths: [] } as EngineOptions)
   await engine8b.open()
   assert(engine8b.dbHealth === 'corrupt', 'Corrupt DB detected on open (dbHealth=corrupt)')
   assert(engine8b.db === null, 'DB instance is null when corrupt')
@@ -357,14 +369,14 @@ async function main () {
 
   // G7.2: Rebuild from corrupt DB creates fresh healthy DB
   const TEST_DB9 = makeTempDb()
-  const engine9 = new IndexingEngine(TEST_DB9, { redactSecrets: false, excludedPaths: [] })
+  const engine9 = new IndexingEngine(TEST_DB9, { redactSecrets: false, excludedPaths: [] } as EngineOptions)
   await engine9.open()
   engine9.close()
 
   // Corrupt it
   fs.writeFileSync(TEST_DB9, 'corrupted garbage data')
 
-  const engine9b = new IndexingEngine(TEST_DB9, { redactSecrets: false, excludedPaths: [] })
+  const engine9b = new IndexingEngine(TEST_DB9, { redactSecrets: false, excludedPaths: [] } as EngineOptions)
   await engine9b.open()
   assert(engine9b.dbHealth === 'corrupt', 'Corrupt DB detected before rebuild')
 
@@ -377,13 +389,13 @@ async function main () {
 
   // G7.3: Rebuild preserves corrupt DB as .bak when preserveCorrupt=true
   const TEST_DB10 = makeTempDb()
-  const engine10 = new IndexingEngine(TEST_DB10, { redactSecrets: false, excludedPaths: [] })
+  const engine10 = new IndexingEngine(TEST_DB10, { redactSecrets: false, excludedPaths: [] } as EngineOptions)
   await engine10.open()
   engine10.close()
 
   fs.writeFileSync(TEST_DB10, 'more corruption')
 
-  const engine10b = new IndexingEngine(TEST_DB10, { redactSecrets: false, excludedPaths: [] })
+  const engine10b = new IndexingEngine(TEST_DB10, { redactSecrets: false, excludedPaths: [] } as EngineOptions)
   await engine10b.open()
   await engine10b.rebuild(true)
   const bakFiles10 = fs.readdirSync(path.dirname(TEST_DB10)).filter(f => f.startsWith(path.basename(TEST_DB10) + '.rebuild-') && f.endsWith('.bak'))
@@ -403,7 +415,7 @@ async function main () {
   process.exit(failed > 0 ? 1 : 0)
 }
 
-main().catch(e => {
+main().catch((e: unknown) => {
   console.error('Test error:', e)
   process.exit(1)
 })

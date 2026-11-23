@@ -21,4 +21,5 @@ declare module 'sql.js' {
 
   export function initSqlJs(opts?: { locateFile?: (file: string) => string }): Promise<{ Database: new (buffer?: Uint8Array | null) => Database }>;
   export const Database: new (buffer?: Uint8Array | null) => Database;
+  export default initSqlJs;
 }

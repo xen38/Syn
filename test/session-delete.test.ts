@@ -3,21 +3,21 @@
 // never deletes the original archive file from disk, and that
 // session:deleteFile is disabled (returns unsupported error).
 
-const path = require('path')
-const fs = require('fs')
-const os = require('os')
-const crypto = require('crypto')
-const { IndexingEngine } = require('../packages/core/index')
+import path from 'path'
+import fs from 'fs'
+import os from 'os'
+import crypto from 'crypto'
+import { IndexingEngine } from '../packages/core/index'
 
 function makeTempDb () {
   return path.join(os.tmpdir(), 'syn-g2-test-' + Date.now() + '.db')
 }
-function cleanupDb (dbPath) {
+function cleanupDb (dbPath: string) {
   try { fs.unlinkSync(dbPath) } catch (e) {}
   try { fs.unlinkSync(dbPath + '-wal') } catch (e) {}
   try { fs.unlinkSync(dbPath + '-shm') } catch (e) {}
 }
-function cleanupDir (dirPath) {
+function cleanupDir (dirPath: string) {
   try {
     if (fs.existsSync(dirPath)) {
       fs.readdirSync(dirPath).forEach(f => {
@@ -33,11 +33,11 @@ function cleanupDir (dirPath) {
 let passed = 0
 let failed = 0
 
-function assert (condition, name) {
+function assert (condition: boolean, name: string) {
   if (condition) { passed++; console.log(`  PASS: ${name}`) } else { failed++; console.log(`  FAIL: ${name}`) }
 }
 
-function hashFile (filePath) {
+function hashFile (filePath: string) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex')
 }
 
@@ -73,8 +73,8 @@ async function main () {
   assert(archSession != null, 'Archived session found in index after indexing')
 
   // ── Test: engine.removeSession() removes from index but does NOT delete file ──
-  const removeResult = engine.removeSession(archSession.session_id)
-  assert(removeResult === true || removeResult.success === true, 'engine.removeSession() returns success')
+  const removeResult = engine.removeSession(archSession!.session_id)
+  assert(removeResult === true, 'engine.removeSession() returns success')
 
   const sessionsAfterRemove = engine.listSessions()
   const archSessionAfter = sessionsAfterRemove.find(s => s.session_id && s.session_id.startsWith('arch-001'))
@@ -108,7 +108,7 @@ async function main () {
   process.exit(failed > 0 ? 1 : 0)
 }
 
-main().catch(e => {
+main().catch((e: unknown) => {
   console.error('Test error:', e)
   process.exit(1)
 })

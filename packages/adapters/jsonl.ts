@@ -144,6 +144,11 @@ class JsonlAdapter extends BaseAdapter {
     return { sessionId, title, createdAt, messages, filePath, harness: this.harness }
   }
 
+  async parseAllSessions (filePath: string): Promise<import('./base').SessionData[]> {
+    const parsed = this.parseSession(filePath)
+    return parsed ? [parsed] : []
+  }
+
   async extractText (filePath: string): Promise<string> {
     const parsed = this.parseSession(filePath)
     if (!parsed) return ''

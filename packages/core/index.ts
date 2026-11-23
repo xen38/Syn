@@ -14,7 +14,7 @@
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
-import { initSqlJs } from 'sql.js'
+import initSqlJs from 'sql.js'
 import { wrapDb, SqlJsDatabase } from './db-compat'
 import { AdapterRegistry } from '../adapters/registry'
 

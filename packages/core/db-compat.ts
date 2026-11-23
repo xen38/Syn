@@ -46,6 +46,7 @@ export function wrapDb (db: SqlJsNativeDatabase): SqlJsDatabase {
         stmt.bind(args)
       }
     }
+    const stmtGet = stmt.get.bind(stmt)
     const wrapped = {
       bind: stmt.bind.bind(stmt),
       step: stmt.step.bind(stmt),
@@ -57,7 +58,7 @@ export function wrapDb (db: SqlJsNativeDatabase): SqlJsDatabase {
         const rows: Record<string, unknown>[] = []
         bindParams(args)
         while (this.step()) {
-          const rowArr = this.get()!
+          const rowArr = stmtGet()
           const row: Record<string, unknown> = {}
           this.getColumnNames().forEach((col, i) => {
             row[col] = rowArr[i]
@@ -71,7 +72,7 @@ export function wrapDb (db: SqlJsNativeDatabase): SqlJsDatabase {
         bindParams(args)
         let row: Record<string, unknown> | undefined
         if (this.step()) {
-          const rowArr = this.get()!
+          const rowArr = stmtGet()
           row = {}
           this.getColumnNames().forEach((col, i) => {
             row![col] = rowArr[i]

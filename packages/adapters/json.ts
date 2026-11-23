@@ -82,6 +82,11 @@ class JsonAdapter extends BaseAdapter {
     }
   }
 
+  async parseAllSessions (filePath: string): Promise<import('./base').SessionData[]> {
+    const parsed = this.parseSession(filePath)
+    return parsed ? [parsed] : []
+  }
+
   async extractText (filePath: string): Promise<string> {
     const parsed = this.parseSession(filePath)
     if (!parsed) return ''

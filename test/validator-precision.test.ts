@@ -5,9 +5,12 @@
  *   - No false negatives (real session files included)
  */
 
-const { getSessionValidator } = require('../packages/adapters/registry')
+import { getSessionValidator } from '../packages/adapters/registry'
 
-const cases = [
+// type alias matching the JS test structure
+type TestCase = [harness: string, filePath: string, expectedIsSession: boolean, description: string]
+
+const cases: TestCase[] = [
   // [harness, filePath, expectedIsSession, description]
   // ── Cline ──
   ['Cline', 'C:/Users/u/.cline/sessions/abc123.json', true, 'cline session json'],

@@ -4,17 +4,17 @@
  * harness/project/date/brain filters, and snippet generation.
  */
 
-const path = require('path')
-const fs = require('fs')
-const os = require('os')
-const { IndexingEngine } = require('../packages/core/index')
+import path from 'path'
+import fs from 'fs'
+import os from 'os'
+import { IndexingEngine } from '../packages/core/index'
 
 const DB_PATH = path.join(os.tmpdir(), `locate-search-quality-${Date.now()}.db`)
 
 let passed = 0
 let failed = 0
 
-function assert (condition, message) {
+function assert (condition: boolean, message: string) {
   if (condition) {
     passed++
     console.log(`  PASS: ${message}`)
@@ -32,11 +32,11 @@ async function main () {
   const older = new Date(Date.now() - 86400000 * 30).toISOString() // 30 days ago
 
   // Directly insert sessions into the sessions table
-  const insertSession = engine.db.prepare(`
+  const insertSession = engine.db!.prepare(`
     INSERT INTO sessions (session_id, title, harness, source_path, file_path, file_ext, created_at, content)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `)
-  const insertMessage = engine.db.prepare(`
+  const insertMessage = engine.db!.prepare(`
     INSERT INTO messages (session_id, message_index, role, timestamp, content)
     VALUES (?, ?, ?, ?, ?)
   `)
@@ -88,7 +88,7 @@ async function main () {
   {
     const results = engine.search('PostgreSQL')
     assert(results.length === 1, 'search "PostgreSQL" returns 1 result')
-    assert(results[0].snippet, 'snippet is non-empty')
+    assert(!!results[0].snippet, 'snippet is non-empty')
     assert(results[0].snippet.toLowerCase().includes('postgresql'), 'snippet contains matched term')
   }
 
@@ -97,7 +97,7 @@ async function main () {
     const results = engine.search('indexes')
     assert(results.length === 1, 'search "indexes" returns 1 result (s2)')
     const s2 = results.find(r => r.id === 's2')
-    assert(s2 && s2.snippet, 's2 snippet is non-empty')
+    assert(!!(s2 && s2.snippet), 's2 snippet is non-empty')
   }
 
   // Test 5: No results for non-existent term
@@ -153,7 +153,7 @@ async function main () {
   process.exit(failed > 0 ? 1 : 0)
 }
 
-main().catch((err) => {
+main().catch((err: Error) => {
   console.error('Test setup failed:', err)
   process.exit(1)
 })

@@ -205,7 +205,7 @@ Type strictness: start with `strict: true` but allow `noImplicitAny` violations 
 
 | **P6** ✅ COMPLETED | Convert `renderer/app.js` + `renderer/brain-vault.js` | Renderer type-checks; ESLint clean; UI behavior unchanged. Old `.js` deleted via `git rm`. Committed as `ce46f51`. |
 
-| **P7** | Convert `test/*.js` to `test/*.ts` | Full `npm test` passes (identical results) |
+| **P7** ✅ COMPLETED | Convert `test/*.js` to `test/*.ts` | Full `npm test` passes (identical results). All 11 test .ts files converted; tsc 0 errors; ESLint 0 warnings; all tests pass (search 13/13, search-quality 24/24, validator-precision 65/65, fixture-tests 46/46, indexing 8/8, security 34/34, brainmaxxing 104/104, session-delete 10/10, g3-filter-forwarding 30/30, mcp 34/34, real-world-integration 39/39). Old .js test files deleted via `git rm`. Committed and pushed. |
 
 | **P8** | Final review + regression | `npm ci` + `npm test` + `npm run lint` + `tsc --noEmit` all green on clean checkout |
 

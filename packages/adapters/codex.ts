@@ -14,7 +14,7 @@
 
 import path from 'path'
 import fs from 'fs'
-import { initSqlJs } from 'sql.js'
+import initSqlJs from 'sql.js'
 import { wrapDb, type SqlJsDatabase } from '../core/db-compat'
 import { BaseAdapter, SessionData, Message } from './base'
 
