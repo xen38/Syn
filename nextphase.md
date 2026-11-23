@@ -97,6 +97,14 @@
 
 - 2026-11-23: Brain Vault window positioned aligned with Syn middle column â€” `createBrainVaultWindow()` in main.js set to x=300 (middle column left edge after Sessions sidebar), y=80 (below header), width=1003 (fills horizontally across middle column before Terminal), height=933 (fills vertically from header to near bottom). Iterated through multiple sizes (185x540 to 1003x933) matching Picture 2 alignment. App restarted via `npm start` and verified running after each change.
 
+- 2026-11-23: Brain Vault tab overflow fix â€” `renderer/style.css` updated so multiple open document tabs no longer cut off text. `.brain-vault-tabs` now has `overflow-x: auto` for horizontal scrolling when tabs overflow; `.brain-vault-tab` has `min-width: 0` + `overflow: hidden` so tabs can shrink; `.bv-tab-label` has `white-space: nowrap`, `overflow: hidden`, `text-overflow: ellipsis`, `min-width: 0` so long document names truncate with ellipsis instead of leaking out of the interface. Applied to both duplicate CSS definition blocks (lines ~450 and ~1644). ESLint verified clean (0 errors, 0 warnings).
+
+- 2026-11-23: Settings and Brainmaxxing panels aligned to y=80 â€” `.menu-panel` in renderer/style.css changed `top` from `48px` to `80px` so both the settings panel (menuPanel) and brainmaxxing panel (brainmaxxingPanel) start at y=80, aligned with the rest of the interface header. ESLint verified clean.
+
+- 2026-11-23: Removed title bar text "Syn — session archive search" â€” emptied `.syn-window-title` content in renderer/index.html since the app name "Syn" already appears in the header below. ESLint verified clean.
+
+- 2026-11-23: Dual-mode interface: "Syn Code" / "Syn Brain" â€” mode-switcher in top-left with Syn Code as first button and default active mode (green #53C68B). Clicking toggles visibility between Syn Brain container and Syn Code empty-canvas panel. Removed mode indicator dot. `currentMode` defaults to 'code'. ESLint verified clean (0 errors, 0 warnings).
+
 ---
 
 

@@ -50,6 +50,10 @@ const setup = () => {
   const btnBrainReview = document.getElementById('btnBrainReview')
   const btnBrainIndex = document.getElementById('btnBrainIndex')
   const settingBatchSize = document.getElementById('settingBatchSize')
+  const modeBtnBrain = document.getElementById('modeBtnBrain')
+  const modeBtnCode = document.getElementById('modeBtnCode')
+  const container = document.querySelector('.container')
+  const synCodePanel = document.getElementById('synCodePanel')
 
   // Context menu elements
   const ctxMenu = document.getElementById('ctxMenu')
@@ -70,6 +74,7 @@ const setup = () => {
   let selectedSessionId = null
   let menuOpen = false
   let brainmaxxingOpen = false
+  let currentMode = 'code'
   let batchSize = 10
   let harnessSettings = {}
   let ctxTargetSessionId = null
@@ -133,6 +138,45 @@ const setup = () => {
     e.stopPropagation()
     synAPI.brainVaultOpen()
   })
+
+  // ═══ Mode Switcher: Syn Code / Syn Brain ═══════════════════════════════════════════════════════════════════════
+  function updateModeUI () {
+    if (currentMode === 'brain') {
+      modeBtnBrain.classList.add('active')
+      modeBtnCode.classList.remove('active')
+      // Show Syn Brain interface (container), hide Syn Code panel
+      container.classList.remove('hidden')
+      synCodePanel.classList.add('hidden')
+    } else {
+      modeBtnCode.classList.add('active')
+      modeBtnBrain.classList.remove('active')
+      // Show Syn Code interface, hide Syn Brain container
+      container.classList.add('hidden')
+      synCodePanel.classList.remove('hidden')
+    }
+  }
+
+  function switchMode (newMode) {
+    if (newMode === currentMode) return
+    currentMode = newMode
+    updateModeUI()
+    console.log('Switched to mode:', currentMode)
+  }
+
+  modeBtnBrain.addEventListener('click', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    switchMode('brain')
+  })
+
+  modeBtnCode.addEventListener('click', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    switchMode('code')
+  })
+
+  // Initialize mode UI
+  updateModeUI()
 
   // ═══ Database health (Gate G7) ════════════════════════════════════════════════════════════════════════â”€â”€
   const DB_HEALTH_COLORS = {

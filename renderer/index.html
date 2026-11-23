@@ -10,7 +10,7 @@
   <!-- Custom title bar for frameless main window -->
   <header class="syn-window-header">
     <div class="syn-window-title-wrap">
-      <div class="syn-window-title">Syn — session archive search</div>
+      <div class="syn-window-title"></div>
     </div>
     <div class="syn-window-actions">
       <button id="synBtnMinimize" class="syn-window-btn" aria-label="Minimize" title="Minimize">─</button>
@@ -21,7 +21,11 @@
 
   <header class="header">
       <div class="app-title-wrap">
-        <div class="app-title">Syn</div>
+        <div class="mode-switcher" id="modeSwitcher">
+          <button class="mode-btn active" data-mode="code" id="modeBtnCode">Syn Code</button>
+          <span class="mode-separator">/</span>
+          <button class="mode-btn" data-mode="brain" id="modeBtnBrain">Syn Brain</button>
+        </div>
         <div id="dbHealthBadge" class="db-health-badge" role="status" aria-label="Index database health" aria-live="polite">●</div>
       </div>
     <div class="search-wrap">
@@ -166,6 +170,15 @@
 
     <!-- Terminal toggle button (Kindle-style floating button, inside container for correct absolute positioning) -->
     <button id="btnCloseTerminal" class="terminal-toggle" title="Toggle terminal">&#9654;</button>
+  </div>
+
+  <!-- Syn Code interface (empty canvas, shown only in Code mode) -->
+  <div id="synCodePanel" class="syn-code-panel hidden">
+    <div class="syn-code-empty">
+      <div class="syn-code-icon">□</div>
+      <div class="syn-code-title">Syn Code</div>
+      <div class="syn-code-desc">Code mode interface — empty canvas</div>
+    </div>
   </div>
 
   <script src="app.js"></script>

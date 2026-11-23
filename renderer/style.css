@@ -104,6 +104,82 @@ a { color: #ffffff; }
   letter-spacing: -0.5px;
 }
 
+/* Mode switcher: Syn Code / Syn Brain buttons in top-left */
+.mode-switcher {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+.mode-btn {
+  background: transparent;
+  border: none;
+  color: #555555;
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1;
+}
+
+.mode-btn.active {
+  color: #53C68B;
+}
+
+.mode-btn:hover:not(.active) {
+  color: #888888;
+}
+
+.mode-separator {
+  color: #333333;
+  padding: 0 6px;
+  font-weight: 400;
+  user-select: none;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Syn Code panel (empty canvas shown only in Code mode) */
+.syn-code-panel {
+  height: calc(100% - 48px);
+  background: #000000;
+  display: flex;
+  flex-direction: column;
+}
+
+.syn-code-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #666666;
+  text-align: center;
+}
+
+.syn-code-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  color: #333333;
+}
+
+.syn-code-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #cccccc;
+  margin-bottom: 8px;
+}
+
+.syn-code-desc {
+  font-size: 13px;
+  color: #888888;
+}
+
 .search-wrap {
   display: flex;
   align-items: center;
@@ -451,6 +527,7 @@ a { color: #ffffff; }
   gap: 4px;
   border-bottom: 2px solid #333333;
   margin-bottom: -1px;
+  overflow-x: auto;
 }
 
 .brain-vault-tab {
@@ -463,6 +540,8 @@ a { color: #ffffff; }
   padding: 8px 16px;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .brain-vault-tab:hover {
@@ -824,7 +903,7 @@ a { color: #ffffff; }
 /* Menu panel */
 .menu-panel {
   position: fixed;
-  top: 48px;
+  top: 80px;
   right: 16px;
   width: 320px;
   background: #0a0a0a;
@@ -1647,6 +1726,7 @@ a { color: #ffffff; }
   display: flex;
   gap: 2px;
   margin-left: 8px;
+  overflow-x: auto;
 }
 
 .brain-vault-tab {
@@ -1662,6 +1742,8 @@ a { color: #ffffff; }
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .brain-vault-tab:hover {
@@ -1678,6 +1760,10 @@ a { color: #ffffff; }
 .bv-tab-label {
   display: inline-flex;
   align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tab-close {
