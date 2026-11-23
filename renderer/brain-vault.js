@@ -1,5 +1,5 @@
 /**
- * Brain Vault window â€” standalone draggable/resizable BrowserWindow.
+ * Brain Vault window - standalone draggable/resizable BrowserWindow.
  *
  * Features:
  * - Graph view with force-directed layout of [[wikilink]] notes
@@ -11,7 +11,7 @@
  * - Node right-click: Open, Copy, Delete
  */
 
-// â”€â”€ Global error handler: surface any renderer JS errors on screen â”€â”€
+// === Global error handler: surface any renderer JS errors on screen ===
 window.addEventListener('error', (e) => {
   const msg = 'Brain Vault renderer error: ' + (e.message || e.error || String(e))
   console.error(msg)
@@ -37,7 +37,7 @@ window.addEventListener('unhandledrejection', (e) => {
 // _synAPI property already set by contextBridge in classic scripts).
 const _synAPI = window.synAPI
 
-// â”€â”€ Startup diagnostic: show _synAPI status on screen â”€â”€
+// === Startup diagnostic: show _synAPI status on screen ===
 function showDiagnostic (msg) {
   const el = document.getElementById('bvGraphEmpty')
   if (el) {
@@ -53,13 +53,13 @@ function showDiagnostic (msg) {
   console.error('[Brain Vault diagnostic]', msg)
 }
 
-// â”€â”€ Update status bar with current state â”€â”€
+// === Update status bar with current state ===
 function updateStatus (msg) {
   if (bvStatusText) bvStatusText.textContent = msg
   if (bvStatusBar) bvStatusBar.style.display = 'flex'
 }
 
-// â”€â”€ DOM elements â”€â”€
+// === DOM elements ===
 const bvTabs = document.getElementById('bvTabs')
 const bvTabNotes = document.getElementById('bvTabNotes')
 const bvBrainIndexContent = document.getElementById('bvBrainIndexContent')
@@ -113,7 +113,7 @@ const bvImportCancel = document.getElementById('bvImportCancel')
 const bvImportFile = document.getElementById('bvImportFile')
 const bvImportFolder = document.getElementById('bvImportFolder')
 
-// â”€â”€ State â”€â”€
+// === State ===
 let brainFiles = []
 let nodes = new Map()
 let edges = []
@@ -147,16 +147,16 @@ let pendingCloseTabId = null // tabId waiting for confirm
 
 let brainVaultInitialized = false
 
-// â”€â”€ Resize handles (frameless window borders) â”€â”€
+// === Resize handles (frameless window borders) ===
 const resizeHandles = document.querySelectorAll('.bv-resize')
 
-// â”€â”€ Resize state â”€â”€
+// === Resize state ===
 let isResizing = false
 let resizeEdge = ''
 let resizeStart = { x: 0, y: 0 }
 let resizeStartBounds = { x: 0, y: 0, width: 0, height: 0 }
 
-// â”€â”€ Resize handle wiring â”€â”€
+// === Resize handle wiring ===
 function startResize (edge, e) {
   e.preventDefault()
   e.stopPropagation()
@@ -225,7 +225,7 @@ resizeHandles.forEach(handle => {
   })
 })
 
-// â”€â”€ Window controls (native OS buttons via IPC) â”€â”€
+// === Window controls (native OS buttons via IPC) ===
 if (bvBtnClose) {
   bvBtnClose.addEventListener('click', async (e) => {
     e.stopPropagation()
@@ -252,10 +252,11 @@ if (bvBtnMaximize) {
     try { _synAPI.brainVaultWindowMaximize() } catch (err) {
       showDiagnostic('Maximize failed: ' + escapeHtml(err.message || String(err)))
     }
+    try { resizeCanvas(); centerGraph() } catch (e) { console.error('bv:maximize error:', e) }
   })
 }
 
-// â”€â”€ Escape / click outside closes context menus â”€â”€
+// === Escape / click outside closes context menus ===
 document.addEventListener('click', (e) => {
   if (bvGraphCtxMenu && bvGraphCtxMenu.style.display === 'block' && !bvGraphCtxMenu.contains(e.target)) {
     bvGraphCtxMenu.style.display = 'none'
@@ -276,7 +277,7 @@ document.addEventListener('keydown', (e) => {
   }
 })
 
-// â”€â”€ Initialize â”€â”€
+// === Initialize ===
 let loadBrainVaultRunning = false
 
 async function init () {
@@ -321,7 +322,7 @@ if (_synAPI && typeof _synAPI.onBvWindowShown === 'function') {
     } catch (e) { console.error('Brain vault window-shown error:', e) }
   })
 } else {
-  console.warn('_synAPI not available â€” Brain Vault IPC features will be limited')
+  console.warn('_synAPI not available - Brain Vault IPC features will be limited')
 }
 
 // Handle fullscreen toggle: recenter graph when entering or leaving fullscreen
@@ -340,7 +341,7 @@ if (_synAPI && typeof _synAPI.onBvEnterFullscreen === 'function') {
 // window.onload and onBvWindowShown remain as re-triggers for correctness.
 init()
 
-// â”€â”€ Load brain vault â”€â”€
+// === Load brain vault ===
 async function loadBrainVault () {
   // Guard against concurrent execution (init() + onload + onBvWindowShown can race)
   if (loadBrainVaultRunning) {
@@ -365,11 +366,11 @@ async function loadBrainVault () {
     try {
       files = await _synAPI.brainList()
     } catch (e) {
-      showDiagnostic('Brain Vault: brainList() failed â€” ' + escapeHtml(e.message))
+      showDiagnostic('Brain Vault: brainList() failed - ' + escapeHtml(e.message))
       return
     }
     brainFiles = files || []
-    updateStatus('_synAPI OK Â· ' + brainFiles.length + ' vault files')
+    updateStatus('_synAPI OK . ' + brainFiles.length + ' vault files')
 
     if (brainFiles.length === 0) {
       showDiagnostic('Brain Vault: brainList() returned 0 files. Check that brain/ directory exists at ' + (await _synAPI.brainDir ? (await _synAPI.brainDir()).path : 'unknown'))
@@ -420,7 +421,7 @@ async function loadBrainVault () {
     }
 
     // Resize canvas first so layout can fall back to canvas dimensions
-    // when the container hasn't laid out yet (0Ã—0 client size).
+    // when the container hasn't laid out yet (0x0 client size).
     resizeCanvas()
 
     // Force-directed layout
@@ -433,7 +434,7 @@ async function loadBrainVault () {
       // Vary radius so it's not a perfect circle; place some nodes inside.
       const angle = (i / nodeArr.length) * 2 * Math.PI + (Math.random() - 0.5) * 0.8
       const baseR = Math.min(centerX, centerY) * 0.3
-      const r = baseR * (0.45 + Math.random() * 0.55) // 45%â€“100% of base radius
+      const r = baseR * (0.45 + Math.random() * 0.55) // 45%-100% of base radius
       n.x = centerX + Math.cos(angle) * r
       n.y = centerY + Math.sin(angle) * r
       n.vx = 0
@@ -492,14 +493,14 @@ async function loadBrainVault () {
 
     // Draw now so the graph appears even when loadBrainVault() runs after the
     // window has been shown (the canvas was 0x0 on the first hidden run).
-    updateStatus('_synAPI OK Â· ' + brainFiles.length + ' files Â· ' + nodes.size + ' nodes Â· ' + edges.length + ' links Â· canvas ' + bvGraphCanvas.width + 'Ã—' + bvGraphCanvas.height)
+    updateStatus('_synAPI OK . ' + brainFiles.length + ' files . ' + nodes.size + ' nodes . ' + edges.length + ' links . canvas ' + bvGraphCanvas.width + 'x' + bvGraphCanvas.height)
     render()
 
-    // â”€â”€ Idempotency: event listeners once â”€â”€
+    // === Idempotency: event listeners once ===
     if (!brainVaultInitialized) {
       brainVaultInitialized = true
 
-      // â”€â”€ Mouse interactions â”€â”€
+      // === Mouse interactions ===
       bvGraphCanvas.addEventListener('mousedown', (e) => {
         // Middle-click: start panning the canvas
         if (e.button === 1) {
@@ -609,12 +610,12 @@ async function loadBrainVault () {
   }
 }
 
-// â”€â”€ Resize canvas â”€â”€
+// === Resize canvas ===
 function resizeCanvas () {
   let w = bvGraphContainer.clientWidth
   let h = bvGraphContainer.clientHeight
   // Fallback to window dimensions when the flex chain hasn't laid out yet
-  // (body has height:100% but no display:flex, so container can report 0Ã—0).
+  // (body has height:100% but no display:flex, so container can report 0x0).
   if (!w || !h) {
     const rect = bvGraphContainer.getBoundingClientRect()
     w = rect.width || window.innerWidth || 900
@@ -623,45 +624,20 @@ function resizeCanvas () {
   // Ensure minimum dimensions so the canvas is never 0x0
   w = Math.max(w, 400)
   h = Math.max(h, 300)
-  const oldW = bvGraphCanvas.width
-  const oldH = bvGraphCanvas.height
   if (bvGraphCanvas.width !== w || bvGraphCanvas.height !== h) {
     bvGraphCanvas.width = w
     bvGraphCanvas.height = h
     // Recenter graph when canvas size changes (e.g. fullscreen/resize)
-    if (oldW && oldH && nodes.size > 0) {
-      const cxOld = oldW / 2
-      const cyOld = oldH / 2
-      const cxNew = w / 2
-      const cyNew = h / 2
-      offsetX += (cxNew - cxOld) / scale
-      offsetY += (cyNew - cyOld) / scale
+    if (nodes.size > 0) {
+      offsetX = 0
+      offsetY = 0
+      recenterGraph()
     }
-    // Update canvas dimension text in status bar
-    if (bvStatusText) {
-      const zoomPct = document.getElementById('bvGraphZoomVal')
-      const zoom = zoomPct ? zoomPct.textContent : '100'
-      const current = bvStatusText.textContent
-      const cleaned = current.replace(/ Â· canvas \d+Ã—\d+ Â· zoom \d+%/, '')
-      bvStatusText.textContent = cleaned + ' Â· canvas ' + w + 'Ã—' + h + ' Â· zoom ' + zoom + '%'
-    } else if (bvStatusText) {
-      const zoomPct = document.getElementById('bvGraphZoomVal')
-      const zoom = zoomPct ? zoomPct.textContent : '100'
-      const current = bvStatusText.textContent
-      const cleaned = current.replace(/ Â· canvas \d+Ã—\d+ Â· zoom \d+%/, '')
-      bvStatusText.textContent = cleaned + ' Â· canvas ' + w + 'Ã—' + h + ' Â· zoom ' + zoom + '%'
-    }
-  }
-
-  // Always recenter graph when canvas dimensions change (handles first load,
-  // fullscreen, and zoom). This runs even if oldW/oldH were 0.
-  if (nodes.size > 0 && (oldW !== w || oldH !== h)) {
-    recenterGraph()
   }
 }
 
 // Recenter all nodes around the canvas center (keeps relative layout).
-// Does NOT reset pan/zoom â€” call centerGraph() for a full reset.
+// Does NOT reset pan/zoom - call centerGraph() for a full reset.
 function recenterGraph () {
   if (nodes.size === 0) return
   const cx = bvGraphCanvas.width / 2
@@ -690,7 +666,7 @@ function centerGraph () {
   updateStatusBarCanvasDims()
 }
 
-// â”€â”€ Update canvas dims portion of status bar â”€â”€
+// === Update canvas dims portion of status bar ===
 function updateStatusBarCanvasDims () {
   if (!bvStatusText) return
   const zoomPct = document.getElementById('bvGraphZoomVal')
@@ -698,8 +674,8 @@ function updateStatusBarCanvasDims () {
   // Preserve existing brain vault status text, just refresh canvas dims
   const current = bvStatusText.textContent
   // Remove any previous canvas dims segment
-  const cleaned = current.replace(/ Â· canvas \d+Ã—\d+ Â· zoom \d+%/, '')
-  bvStatusText.textContent = cleaned + ' Â· canvas ' + bvGraphCanvas.width + 'Ã—' + bvGraphCanvas.height + ' Â· zoom ' + zoom + '%'
+  const cleaned = current.replace(/ . canvas \d+x\d+ . zoom \d+%/, '')
+  bvStatusText.textContent = cleaned + ' . canvas ' + bvGraphCanvas.width + 'x' + bvGraphCanvas.height + ' . zoom ' + zoom + '%'
 }
 
 function worldToScreen (x, y) {
@@ -737,7 +713,7 @@ function drawNode (ctx, n, isHover, isSelected) {
   ctx.fillText(n.label, s.x, labelY)
 }
 
-// â”€â”€ Resolve label overlaps by nudging labels vertically â”€â”€
+// === Resolve label overlaps by nudging labels vertically ===
 function resolveLabelOverlaps () {
   const nodeArr = Array.from(nodes.values())
   const labelH = 14 // approximate label height in screen px
@@ -805,7 +781,7 @@ function drawEdge (ctx, a, b) {
 function render () {
   if (!ctx) return
   // Ensure canvas is always sized correctly, even if loadBrainVault() ran
-  // while the container had 0Ã—0 dimensions (flex chain not yet laid out).
+  // while the container had 0x0 dimensions (flex chain not yet laid out).
   resizeCanvas()
   ctx.clearRect(0, 0, bvGraphCanvas.width, bvGraphCanvas.height)
 
@@ -834,7 +810,7 @@ function render () {
     }
   }
   if (allOffScreen && bvGraphCanvas.width > 0 && bvGraphCanvas.height > 0) {
-    showDiagnostic('Render warning: ' + nodeArr.length + ' nodes off-canvas (canvas ' + bvGraphCanvas.width + 'Ã—' + bvGraphCanvas.height + ')')
+    showDiagnostic('Render warning: ' + nodeArr.length + ' nodes off-canvas (canvas ' + bvGraphCanvas.width + 'x' + bvGraphCanvas.height + ')')
   }
 
   // Resolve label overlaps before drawing
@@ -857,7 +833,7 @@ function render () {
   requestAnimationFrame(render)
 }
 
-// â”€â”€ Render note content â”€â”€
+// === Render note content ===
 function renderNoteContent (file, content) {
   let html = escapeHtml(content)
   html = html.replace(/\[\[([^\]]+)\]\]/g, (match, link) => {
@@ -868,7 +844,7 @@ function renderNoteContent (file, content) {
   return html
 }
 
-// â”€â”€ Open a note in a new tab â”€â”€
+// === Open a note in a new tab ===
 async function openNote (file) {
   // If already open, switch to it
   const tabId = 'note-' + escapeCssId(file)
@@ -888,7 +864,7 @@ async function openNote (file) {
       return
     }
 
-    // Check again after async read â€” another call may have created the tab while we waited
+    // Check again after async read - another call may have created the tab while we waited
     const existingTab2 = document.querySelector('.brain-vault-tab[data-tab="' + tabId + '"]')
     if (existingTab2) {
       switchBvTab(tabId)
@@ -906,7 +882,7 @@ async function openNote (file) {
   }
 }
 
-// â”€â”€ Create a brain vault tab â”€â”€
+// === Create a brain vault tab ===
 function createBvTab (tabId, label, html, file, content) {
   // Deactivate all tabs
   document.querySelectorAll('.brain-vault-tab').forEach(tab => tab.classList.remove('active'))
@@ -918,7 +894,7 @@ function createBvTab (tabId, label, html, file, content) {
   tabBtn.dataset.tab = tabId
   tabBtn.innerHTML =
     '<span class="bv-tab-label">' + escapeHtml(label) + '</span>' +
-    ' <button class="bv-edit-btn" data-tab="' + tabId + '" title="Edit this note">âœŽ</button>' +
+    ' <button class="bv-edit-btn" data-tab="' + tabId + '" title="Edit this note">e</button>' +
     ' <span class="tab-close" data-tab="' + tabId + '">&#215;</span>'
 
   // Create content div
@@ -945,7 +921,7 @@ function createBvTab (tabId, label, html, file, content) {
     })
   })
 
-  // â”€â”€ Double-click tab label to rename â”€â”€
+  // === Double-click tab label to rename ===
   const labelSpan = tabBtn.querySelector('.bv-tab-label')
   labelSpan.addEventListener('dblclick', (e) => {
     e.stopPropagation()
@@ -975,7 +951,7 @@ function createBvTab (tabId, label, html, file, content) {
   })
 }
 
-// â”€â”€ Start inline edit mode â”€â”€
+// === Start inline edit mode ===
 function startEditMode (contentDiv, tabId, file) {
   if (noteDirty.get(tabId)) return // already editing
 
@@ -1047,7 +1023,7 @@ function startEditMode (contentDiv, tabId, file) {
   // Click outside textarea to stop editing? Keep editing until Save or switch tab.
 }
 
-// â”€â”€ Save a note â”€â”€
+// === Save a note ===
 async function saveNote (tabId, content) {
   const file = noteFileMap.get(tabId)
   if (!file) return
@@ -1078,7 +1054,7 @@ async function saveNote (tabId, content) {
   }
 }
 
-// â”€â”€ Close a note tab â”€â”€
+// === Close a note tab ===
 function closeNoteTab (tabId) {
   if (noteDirty.get(tabId)) {
     pendingCloseTabId = tabId
@@ -1134,7 +1110,7 @@ function doCloseTab (tabId) {
   }
 }
 
-// â”€â”€ Switch tab â”€â”€
+// === Switch tab ===
 function switchBvTab (tabId) {
   document.querySelectorAll('.brain-vault-tab').forEach(tab => {
     tab.classList.toggle('active', tab.dataset.tab === tabId)
@@ -1144,7 +1120,7 @@ function switchBvTab (tabId) {
   })
 }
 
-// â”€â”€ Double-click rename â”€â”€
+// === Double-click rename ===
 function startRename (tabId, oldFile, labelSpan) {
   bvRenameInput.value = oldFile.replace(/\.md$/, '')
   bvRenameError.style.display = 'none'
@@ -1192,7 +1168,7 @@ function hideRename () {
   bvRenameOverlay.classList.add('hidden')
 }
 
-// â”€â”€ Tab switching event delegation â”€â”€
+// === Tab switching event delegation ===
 bvTabs.addEventListener('click', (e) => {
   const closeBtn = e.target.closest('.tab-close')
   if (closeBtn) {
@@ -1210,7 +1186,7 @@ bvTabs.addEventListener('click', (e) => {
   }
 })
 
-// â”€â”€ Load brain index content â”€â”€
+// === Load brain index content ===
 async function loadBrainIndexContent () {
   try {
     const result = await _synAPI.brainRead('index.md')
@@ -1225,7 +1201,7 @@ async function loadBrainIndexContent () {
       })
     } else {
       const idx = await _synAPI.getBrainIndex()
-      bvBrainIndexContent.textContent = idx.content || '(brain index empty â€” rebuild via /brain index)'
+      bvBrainIndexContent.textContent = idx.content || '(brain index empty - rebuild via /brain index)'
     }
   } catch (e) {
     console.error('Failed to load brain index:', e)
@@ -1233,12 +1209,12 @@ async function loadBrainIndexContent () {
   }
 }
 
-// â”€â”€ Create new note â”€â”€
+// === Create new note ===
 bvBtnCreateNote.addEventListener('click', () => {
   showCreate()
 })
 
-// â”€â”€ Settings button â”€â”€
+// === Settings button ===
 let settingsMenuOpen = false
 if (bvBtnSettings) {
   bvBtnSettings.addEventListener('click', (e) => {
@@ -1269,7 +1245,7 @@ document.addEventListener('click', (e) => {
   }
 })
 
-// â”€â”€ Settings menu actions â”€â”€
+// === Settings menu actions ===
 if (bvSettingsCtxMenu) {
   document.getElementById('bvCtxSettingsChangeDir').addEventListener('click', async (e) => {
     e.stopPropagation()
@@ -1320,7 +1296,7 @@ if (bvSettingsCtxMenu) {
   })
 }
 
-// â”€â”€ Graph background right-click menu â”€â”€
+// === Graph background right-click menu ===
 function showGraphMenu (x, y) {
   bvNodeCtxMenu.style.display = 'none'
   bvGraphCtxMenu.style.left = x + 'px'
@@ -1328,7 +1304,7 @@ function showGraphMenu (x, y) {
   bvGraphCtxMenu.style.display = 'block'
 }
 
-// â”€â”€ Node right-click menu â”€â”€
+// === Node right-click menu ===
 function showNodeMenu (x, y) {
   bvGraphCtxMenu.style.display = 'none'
   bvNodeCtxMenu.style.left = x + 'px'
@@ -1336,7 +1312,7 @@ function showNodeMenu (x, y) {
   bvNodeCtxMenu.style.display = 'block'
 }
 
-// â”€â”€ Graph menu actions â”€â”€
+// === Graph menu actions ===
 document.getElementById('bvCtxCreateNote').addEventListener('click', (e) => {
   e.stopPropagation()
   bvGraphCtxMenu.style.display = 'none'
@@ -1366,7 +1342,7 @@ document.getElementById('bvCtxOpenFolder').addEventListener('click', async (e) =
   }
 })
 
-// â”€â”€ Node menu actions â”€â”€
+// === Node menu actions ===
 document.getElementById('bvCtxNodeOpen').addEventListener('click', (e) => {
   e.stopPropagation()
   bvNodeCtxMenu.style.display = 'none'
@@ -1428,7 +1404,7 @@ async function confirmDelete (file) {
   })
 }
 
-// â”€â”€ Create Group: select 2+ notes, link with #serial â”€â”€
+// === Create Group: select 2+ notes, link with #serial ===
 async function showCreateGroup () {
   const files = brainFiles
   if (files.length < 2) {
@@ -1472,7 +1448,7 @@ async function showCreateGroup () {
   alert('Grouped ' + selected.length + ' notes with ' + serialTag)
 }
 
-// â”€â”€ Import â”€â”€
+// === Import ===
 function showImport () {
   bvImportOverlay.style.display = 'flex'
   bvImportOverlay.classList.remove('hidden')
@@ -1500,7 +1476,7 @@ bvImportFolder.addEventListener('click', async () => {
   }
 })
 
-// â”€â”€ Overlay helpers â”€â”€
+// === Overlay helpers ===
 function hideConfirm () {
   bvConfirmOverlay.style.display = 'none'
 }
@@ -1543,7 +1519,7 @@ bvCreateSave.addEventListener('click', async () => {
   }
 })
 
-// â”€â”€ Check unsaved before close â”€â”€
+// === Check unsaved before close ===
 async function checkUnsavedClose () {
   const dirtyTabs = [...noteDirty.entries()].filter(([_, d]) => d)
   if (dirtyTabs.length === 0) return true
@@ -1556,7 +1532,7 @@ async function checkUnsavedClose () {
   return true
 }
 
-// â”€â”€ Unload / beforeunload â”€â”€
+// === Unload / beforeunload ===
 window.addEventListener('beforeunload', (e) => {
   const hasDirty = [...noteDirty.values()].some(Boolean)
   if (hasDirty) {
@@ -1565,7 +1541,7 @@ window.addEventListener('beforeunload', (e) => {
   }
 })
 
-// â”€â”€ Helpers â”€â”€
+// === Helpers ===
 function escapeHtml (text) {
   const div = document.createElement('div')
   div.textContent = text
@@ -1576,4 +1552,4 @@ function escapeCssId (id) {
   return id.replace(/[^a-z0-9]/gi, '-')
 }
 
-// â”€â”€ Start â”€â”€
+// === Start ===

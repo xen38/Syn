@@ -515,6 +515,25 @@ a { color: #ffffff; }
   color: #ffffff;
 }
 
+/* Edit button (pencil icon on individual note tabs) */
+.bv-edit-btn {
+  margin-left: 6px;
+  padding: 2px 6px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #666666;
+  cursor: pointer;
+  border-radius: 4px;
+  line-height: 1;
+  background: transparent;
+  border: none;
+}
+
+.bv-edit-btn:hover {
+  background: rgba(255,255,255,0.15);
+  color: #ffffff;
+}
+
 /* Wikilink rendering in note content: [[wikilink]] as clickable green text */
 .wiki-link {
   color: #53C68B;

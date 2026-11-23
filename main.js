@@ -139,20 +139,17 @@ function createWindow () {
 // ── Brain Vault window (separate draggable/resizable BrowserWindow) ─────
 function createBrainVaultWindow () {
   const windowIcon = path.join(__dirname, 'assets', 'icon.png')
-  const { screen } = require('electron')
 
-  // Spawn centered on the screen
-  const primaryDisplay = screen.getPrimaryDisplay()
-  const { width: screenW, height: screenH } = primaryDisplay.workAreaSize
-  const spawnX = Math.round((screenW - 900) / 2)
-  const spawnY = Math.round((screenH - 700) / 2)
+  // Spawn filling the middle column (after Sessions sidebar, before Terminal)
+  const spawnX = 300
+  const spawnY = 80
 
   brainVaultWindow = new BrowserWindow({
     x: spawnX,
     y: spawnY,
-    width: 900,
-    height: 700,
-    minWidth: 600,
+    width: 1003,
+    height: 933,
+    minWidth: 500,
     minHeight: 400,
     icon: windowIcon,
     frame: false, // custom title bar; window controls handled via IPC

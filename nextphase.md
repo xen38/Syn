@@ -95,6 +95,8 @@
 
 - 2026-11-22: renderer/app.js syntax error fixed â€” stray `)` after `updateTogglePosition()` function closing brace removed; all JS files pass `node --check`.
 
+- 2026-11-23: Brain Vault window positioned aligned with Syn middle column â€” `createBrainVaultWindow()` in main.js set to x=300 (middle column left edge after Sessions sidebar), y=80 (below header), width=1003 (fills horizontally across middle column before Terminal), height=933 (fills vertically from header to near bottom). Iterated through multiple sizes (185x540 to 1003x933) matching Picture 2 alignment. App restarted via `npm start` and verified running after each change.
+
 ---
 
 
@@ -2014,16 +2016,21 @@ Syn/
 | 14.3 | Serial number clickable links â€” archived sessions and Create Group write Serial: [[Serial: #NNNNNN]] as clickable wikilink instead of plain text, consistent with vault's [[wikilink]] system | done |
 | 14.4 | Portable paths audit â€” all runtime code uses __dirname/path.join/app.getPath('userData'); already portable; hardcoded K:\ paths only in non-runtime files (.mcp.json, docs, tests); no changes needed | done |
 | 14.5 | Fix renderer/app.js syntax error â€” removed stray ) after updateTogglePosition() function closing brace; all JS files pass node --check | done |
+| 14.6 | Fix edit button garbled character â€” replaced `*` icon with `✎` pencil character; added `.bv-edit-btn` CSS styling (padding, font-size 16px, hover state) matching `.tab-close` design system | done |
+| 14.7 | Fix graph off-canvas on maximize â€” fixed `resizeCanvas()` in renderer/brain-vault.js: removed buggy offset compensation logic that drifted graph bottom-right; now resets offsetX/offsetY to 0 before `recenterGraph()`; fixed missing closing brace syntax error | done |
+| 14.8 | Remove mojibake characters â€” replaced all `â”€â”€` sequences with `===` and `â€“` en-dash with `-` in renderer/brain-vault.js | done |
+| 14.9 | ESLint clean â€” full project `npx eslint . --ext .js --max-warnings 0` passes with 0 errors, 0 warnings | done |
+| 14.10 | Brain Vault window positioned aligned with Syn middle column â€” `createBrainVaultWindow()` in main.js: x=300 (aligned with middle column left edge after Sessions sidebar), y=80 (below header), width=1003 (fills horizontally across middle column before Terminal), height=933 (fills vertically from header to near bottom) | done |
 
 **Files changed:**
 | File | Change |
 |------|--------|
-| main.js | frame: false on mainWindow; SynWindow:minimize/maximize/close IPC handlers |
+| main.js | frame: false on mainWindow; SynWindow:minimize/maximize/close IPC handlers; `createBrainVaultWindow()` spawn position x=300, y=80, width=1003, height=933 aligned with Syn middle column |
 | preload.js | synWindow: { minimize, maximize, close } synAPI object |
 | renderer/index.html | Custom title bar <header class="syn-window-header"> with three window control buttons |
-| renderer/style.css | .syn-window-header, .syn-window-title, .syn-window-actions, .syn-window-btn CSS |
+| renderer/style.css | .syn-window-header, .syn-window-title, .syn-window-actions, .syn-window-btn CSS; `.bv-edit-btn` pencil icon styling (font-size 16px, padding, hover) |
 | renderer/app.js | Window control click handlers + serial wikilink + syntax fix |
-| renderer/brain-vault.js | Serial wikilink for Create Group |
+| renderer/brain-vault.js | Serial wikilink for Create Group; edit button `*` â†’ `✎` pencil icon; `resizeCanvas()` offset fix for maximize recenter; mojibake `â”€â”€` â†’ `===` cleanup |
 | .gitignore | brain/sessions/, brain/plans/, brain/memories/ exclusions |
 
 **Validation loop:**
