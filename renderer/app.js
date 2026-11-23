@@ -140,6 +140,24 @@ const setup = () => {
   })
 
   // ═══ Mode Switcher: Syn Code / Syn Brain ═══════════════════════════════════════════════════════════════════════
+  //
+  // ARCHITECTURE NOTES (foundation for future Syn Code harness/agent-client):
+  //
+  // - Both modes run in the same renderer process, sharing synAPI, IPC handlers,
+  //   search, terminal, and session state. Syn Code can call any Syn app feature
+  //   through synAPI regardless of which mode is active.
+  //
+  // - Mode switching uses CSS visibility (display: none) only — DOM elements stay
+  //   mounted, so state in each mode (scroll position, input text, open sessions)
+  //   is preserved across switches. No work is lost when toggling modes.
+  //
+  // - Shared chrome (header, mode switcher, search bar, terminal toggle) is always
+  //   visible in both modes. Only the main content area swaps between Syn Brain
+  //   (container) and Syn Code (synCodePanel).
+  //
+  // - currentMode defaults to 'code'. Syn Brain is the legacy interface; Syn Code
+  //   is the new default that will eventually host the full harness/agent-client.
+  //
   function updateModeUI () {
     if (currentMode === 'brain') {
       modeBtnBrain.classList.add('active')

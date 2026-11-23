@@ -1,4 +1,4 @@
-﻿# nextphase.md â€” Syn: From Locate to a Unified Agent Memory Environment
+# nextphase.md â€” Syn: From Locate to a Unified Agent Memory Environment
 
 
 
@@ -103,7 +103,7 @@
 
 - 2026-11-23: Removed title bar text "Syn — session archive search" â€” emptied `.syn-window-title` content in renderer/index.html since the app name "Syn" already appears in the header below. ESLint verified clean.
 
-- 2026-11-23: Dual-mode interface: "Syn Code" / "Syn Brain" â€” mode-switcher in top-left with Syn Code as first button and default active mode (green #53C68B). Clicking toggles visibility between Syn Brain container and Syn Code empty-canvas panel. Removed mode indicator dot. `currentMode` defaults to 'code'. ESLint verified clean (0 errors, 0 warnings).
+- 2026-11-23: Dual-mode interface: "Syn Code" / "Syn Brain" — mode-switcher in top-left with Syn Code as first button and default active mode (green #53C68B). Terminal toggle moved outside .container so shared chrome stays accessible in both modes. Mode switching uses CSS visibility (display: none) only, preserving state in each mode across toggles. Both modes share synAPI/IPC in the same renderer process so Syn Code can use all Syn app features. Added architecture comments in app.js documenting shared services, state preservation, and the code-mode-first default. Removed mode indicator dot. ESLint verified clean (0 errors, 0 warnings).
 
 ---
 
