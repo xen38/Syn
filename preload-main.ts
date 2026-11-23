@@ -1,20 +1,18 @@
 // This script runs before main.js and patches require('electron') to return built-in modules
 
-const Module = require('module')
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Module } from 'module'
+import path from 'path'
+
 const originalLoad = Module._load
-const path = require('path')
 
 // Track if we've already patched
 let patched = false
 
-Module._load = function (request, parent, isMain) {
+Module._load = function (this: any, request: string, parent: any, isMain: boolean, ..._rest: any[]) {
   if (request === 'electron' && process.versions && process.versions.electron && !patched) {
     patched = true
     try {
-      // The built-in electron modules should be available through the internal module system
-      // Try to access them by using the internal require that bypasses the npm package
-      // We can do this by temporarily removing the npm package from the resolution paths
-
       // Save the original paths
       const originalPaths = Module.globalPaths.slice()
 
@@ -39,7 +37,7 @@ Module._load = function (request, parent, isMain) {
       patched = false
     }
   }
-  return originalLoad.apply(this, arguments)
+  return originalLoad.apply(this, [request, parent, isMain])
 }
 
 console.log('[preload-main] Electron module patch installed')

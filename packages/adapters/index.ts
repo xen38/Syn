@@ -6,19 +6,20 @@
  * discovery, parsing, and text extraction.
  */
 
-const { BaseAdapter } = require('./base')
-const { SQLiteAdapter } = require('./sqlite')
-const { JsonlAdapter } = require('./jsonl')
-const { JsonAdapter } = require('./json')
-const { TextAdapter } = require('./text')
-const { AdapterRegistry, detectHarness } = require('./registry')
+import { BaseAdapter } from './base'
+import { SQLiteAdapter } from './sqlite'
+import { JsonlAdapter } from './jsonl'
+import { JsonAdapter } from './json'
+import { TextAdapter } from './text'
+import { AdapterRegistry, detectHarness, getSessionValidator } from './registry'
 
-module.exports = {
+export {
   BaseAdapter,
   SQLiteAdapter,
   JsonlAdapter,
   JsonAdapter,
   TextAdapter,
   AdapterRegistry,
-  detectHarness
+  detectHarness,
+  getSessionValidator
 }

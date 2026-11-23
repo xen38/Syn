@@ -1,14 +1,14 @@
-const initSqlJs = require('sql.js')
-const { wrapDb } = require('./packages/core/db-compat')
-const fs = require('fs')
-const path = require('path')
+import initSqlJs from 'sql.js'
+import { wrapDb } from '../packages/core/db-compat'
+import fs from 'fs'
+import path from 'path'
 
-async function main () {
+async function main (): Promise<void> {
   const SQL = await initSqlJs({
-    locateFile: file => path.join(__dirname, 'node_modules', 'sql.js', 'dist', file)
+    locateFile: (file: string) => path.join(__dirname, 'node_modules', 'sql.js', 'dist', file)
   })
 
-  function makeDb (dbPath) {
+  function makeDb (dbPath: string): void {
     const dir = path.dirname(dbPath)
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
     let buffer = null
@@ -33,4 +33,4 @@ async function main () {
   console.log('All sqlite databases created.')
 }
 
-main().catch(e => console.error(e))
+main().catch((e: Error) => console.error(e))
