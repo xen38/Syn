@@ -201,7 +201,7 @@ Type strictness: start with `strict: true` but allow `noImplicitAny` violations 
 
 | **P4** ✅ COMPLETED | Convert `preload.js` + `mcp-server.js` → `preload.ts` + `mcp-server.ts` | MCP server lists 16 tools; preload exposes synAPI; `src/types/electron-preload.d.ts` added; `packages/core/index.ts` exports `SecretPattern` + `indexed_at` on `listSessions`. Committed as `cfa537b`. |
 
-| **P5** | Convert `main.js` + `reindex.js` + `check_codex_sessions.js` + `bootstrap.js` + `wrapper.js` | `electron .` launches; IPC handlers intact |
+| **P5** ✅ COMPLETED | Convert `main.js` + `reindex.js` + `check_codex_sessions.js` + `bootstrap.js` + `wrapper.js` → `main.ts` + `reindex.ts` + `check_codex_sessions.ts` + `bootstrap.ts` + `wrapper.ts` | `tsc --noEmit` clean; ESLint 0 warnings; IPC handlers intact; old `.js` deleted via `git rm`. Committed as `19416e5`. |
 
 | **P6** | Convert `renderer/app.js` + `renderer/brain-vault.js` | Renderer type-checks; ESLint clean; UI behavior unchanged |
 
@@ -1305,11 +1305,13 @@ Continues from Part 6. Append after Part 6.
 
 ---
 
-**## Phase P5 — Convert** `main.ts` **+ scripts** `reindex.ts`**,** `check_codex_sessions.ts`**,** `bootstrap.ts`**,** `wrapper.ts`**)**
+**## Phase P5 — Convert** `main.ts` **+ scripts** `reindex.ts`**,** `check_codex_sessions.ts`**,** `bootstrap.ts`**,** `wrapper.ts`**)** ✅ DONE
 
 **Goal:** Convert the Electron main process (~856 lines) and standalone scripts. `main.ts` is the largest conversion: window lifecycle, `app.whenReady`, ~40 IPC handlers, engine + brainmaxxing wiring, config load/save.
 
 **Exit criteria:** `tsc --noEmit` clean; ESLint clean; `electron .` launches (or `tsx main.ts` type-checks; actual launch requires Electron runtime — verify `npm start` works after P6 renderer conversion); all IPC channel names identical to current `main.js`.
+
+**Status:** Completed and committed as `19416e5`. `main.js` → `main.ts`, `reindex.js` → `reindex.ts`, `check_codex_sessions.js` → `check_codex_sessions.ts`, `bootstrap.js` → `bootstrap.ts`, `wrapper.js` → `wrapper.ts`. All `.js` originals deleted from repo via `git rm`.
 
 **### P5.1 Convert** `main.ts`
 
