@@ -1,8 +1,8 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron')
-const path = require('path')
-const fs = require('fs')
-const { IndexingEngine } = require('./packages/core/index')
-const brainmaxxing = require('./packages/core/brainmaxxing')
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell as electronShell } from 'electron'
+import path from 'path'
+import fs from 'fs'
+import { IndexingEngine } from './packages/core/index'
+import * as brainmaxxing from './packages/core/brainmaxxing'
 
 // Configuration file path (user data dir)
 const CONFIG_FILE = path.join(app.getPath('userData'), 'syn', 'config.json')
@@ -11,46 +11,56 @@ const CONFIG_FILE = path.join(app.getPath('userData'), 'syn', 'config.json')
 // components share a single index.
 const INDEX_DB_PATH = path.join(app.getPath('userData'), 'syn', 'syn-index.db')
 
+interface SynConfig {
+  harnessDirectories: string[]
+  batchSize: number
+  windowBounds: { width: number; height: number }
+  harnessSettings: Record<string, boolean>
+  redactSecrets: boolean
+  secretPatterns: { name: string; pattern: RegExp; replacement: string }[] | undefined
+  excludedPaths: string[]
+}
+
 // Default configuration
-const DEFAULT_CONFIG = {
+const DEFAULT_CONFIG: SynConfig = {
   harnessDirectories: [],
   batchSize: 10,
   windowBounds: { width: 1200, height: 800 },
   harnessSettings: {},
   // Phase 8: Privacy & Security
   redactSecrets: true,
-  secretPatterns: null, // null = use built-in DEFAULT_SECRET_PATTERNS
+  secretPatterns: undefined, // undefined = use built-in DEFAULT_SECRET_PATTERNS
   excludedPaths: []
 }
 
-let config = { ...DEFAULT_CONFIG }
+let config: SynConfig = { ...DEFAULT_CONFIG }
 
 // Load config
-function loadConfig () {
+function loadConfig (): void {
   try {
     if (fs.existsSync(CONFIG_FILE)) {
       const data = fs.readFileSync(CONFIG_FILE, 'utf8')
-      config = { ...DEFAULT_CONFIG, ...JSON.parse(data) }
+      config = { ...DEFAULT_CONFIG, ...JSON.parse(data) } as SynConfig
     }
   } catch (e) {
-    console.error('Failed to load config:', e.message)
+    console.error('Failed to load config:', (e as Error).message)
     config = { ...DEFAULT_CONFIG }
   }
 }
 
 // Save config
-function saveConfig () {
+function saveConfig (): void {
   try {
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8')
   } catch (e) {
-    console.error('Failed to save config:', e.message)
+    console.error('Failed to save config:', (e as Error).message)
   }
 }
 
 // All possible harnesses that can appear in the settings menu,
 // even if not yet indexed on this machine. This lets users pre-enable
 // or pre-disable harnesses before they are detected.
-const ALL_POSSIBLE_HARNESSES = [
+const ALL_POSSIBLE_HARNESSES: string[] = [
   'Cline',
   'Codex',
   'GitHub Copilot',
@@ -71,7 +81,7 @@ const ALL_POSSIBLE_HARNESSES = [
 // Harnesses whose sessions should be shown in lists/search.
 // T3 Code is disabled by default because it aggregates other harnesses'
 // sessions (causing duplicates); every other harness is enabled by default.
-function getEnabledHarnesses () {
+function getEnabledHarnesses (): string[] {
   const all = ALL_POSSIBLE_HARNESSES
   const settings = config.harnessSettings || {}
   return all.filter(name => {
@@ -90,10 +100,10 @@ const engine = new IndexingEngine(INDEX_DB_PATH, {
   excludedPaths: config.excludedPaths
 })
 
-let mainWindow = null
-let brainVaultWindow = null
+let mainWindow: BrowserWindow | null = null
+let brainVaultWindow: BrowserWindow | null = null
 
-function createWindow () {
+function createWindow (): void {
   console.log('Creating window...')
   const windowIcon = path.join(__dirname, 'assets', 'icon.png')
 
@@ -105,7 +115,7 @@ function createWindow () {
     icon: windowIcon,
     frame: false, // custom title bar; window controls handled via SynWindow IPC
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.ts'),
       contextIsolation: true,
       nodeIntegration: false
     },
@@ -137,7 +147,7 @@ function createWindow () {
 }
 
 // ── Brain Vault window (separate draggable/resizable BrowserWindow) ─────
-function createBrainVaultWindow () {
+function createBrainVaultWindow (): void {
   const windowIcon = path.join(__dirname, 'assets', 'icon.png')
 
   // Spawn filling the middle column (after Sessions sidebar, before Terminal)
@@ -155,7 +165,7 @@ function createBrainVaultWindow () {
     frame: false, // custom title bar; window controls handled via IPC
     resizable: true,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.ts'),
       contextIsolation: true,
       nodeIntegration: false
     },
@@ -164,40 +174,47 @@ function createBrainVaultWindow () {
     show: false // don't show until loaded
   })
 
-  brainVaultWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+  const bw = brainVaultWindow!
+  bw.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
     console.error('Brain Vault failed to load:', errorCode, errorDescription, validatedURL)
   })
 
-  brainVaultWindow.webContents.on('render-process-gone', (event, details) => {
+  bw.webContents.on('render-process-gone', (event, details) => {
     console.error('Brain Vault render process gone:', details)
   })
 
-  brainVaultWindow.loadFile(path.join(__dirname, 'renderer', 'brain-vault.html')).then(() => {
-    brainVaultWindow.show()
+  bw.loadFile(path.join(__dirname, 'renderer', 'brain-vault.html')).then(() => {
+    bw.show()
     // Notify renderer that window is visible so it can size the graph canvas correctly
-    brainVaultWindow.webContents.send('bv:window-shown')
+    bw.webContents.send('bv:window-shown')
   }).catch(e => {
     console.error('Failed to load brain-vault.html:', e)
   })
 
-  brainVaultWindow.on('closed', () => {
+  bw.on('closed', () => {
     brainVaultWindow = null
   })
 
   // Notify renderer on fullscreen state changes so the graph can recenter
-  brainVaultWindow.on('enter-fullscreen', () => {
-    brainVaultWindow.webContents.send('bv:enter-fullscreen')
-  })
-  brainVaultWindow.on('leave-fullscreen', () => {
-    brainVaultWindow.webContents.send('bv:leave-fullscreen')
-  })
+  const bw2 = brainVaultWindow
+  if (bw2) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    bw2.on('enter-fullscreen' as any, () => {
+      bw2.webContents.send('bv:enter-fullscreen')
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    bw2.on('leave-fullscreen' as any, () => {
+      bw2.webContents.send('bv:leave-fullscreen')
+    })
+  }
 }
 
 // Open or focus the brain vault window
-function openBrainVaultWindow () {
-  if (brainVaultWindow) {
-    if (brainVaultWindow.isMinimized()) brainVaultWindow.restore()
-    brainVaultWindow.focus()
+function openBrainVaultWindow (): void {
+  const bw = brainVaultWindow
+  if (bw) {
+    if (bw.isMinimized()) bw.restore()
+    bw.focus()
     return
   }
   createBrainVaultWindow()
@@ -208,19 +225,19 @@ function openBrainVaultWindow () {
 // synAPI.getBrainIndex() so the renderer can present the vault at launch.
 let brainIndexMd = ''
 
-function injectBrainIndex () {
+function injectBrainIndex (): void {
   try {
     brainIndexMd = brainmaxxing.readIndexMd()
     console.log(`[syn] Brain index injected at session start (${brainIndexMd.length} chars)`)
   } catch (e) {
-    console.error('[syn] Failed to read brain index:', e.message)
+    console.error('[syn] Failed to read brain index:', (e as Error).message)
     brainIndexMd = ''
   }
 }
 
 // ── Auto-index hook: rebuild brain/index.md when brain/ files change ─────
-let rebuildIndexTimer = null
-function watchBrainIndex () {
+let rebuildIndexTimer: NodeJS.Timeout | null = null
+function watchBrainIndex (): void {
   const brainDir = brainmaxxing.BRAIN_DIR
   if (!fs.existsSync(brainDir)) return
   try {
@@ -236,13 +253,13 @@ function watchBrainIndex () {
           brainmaxxing.rebuildIndex()
           console.log(`[syn] Auto-indexed brain/ (${eventType}): ${filename}`)
         } catch (e) {
-          console.error('[syn] Auto-index failed:', e.message)
+          console.error('[syn] Auto-index failed:', (e as Error).message)
         }
         rebuildIndexTimer = null
       }, 300)
     })
   } catch (e) {
-    console.error('[syn] Failed to watch brain/:', e.message)
+    console.error('[syn] Failed to watch brain/:', (e as Error).message)
   }
 }
 
@@ -275,7 +292,7 @@ app.whenReady().then(async () => {
       }
     }
   } catch (e) {
-    console.error('[syn] Failed to auto-register brain/ vault:', e.message)
+    console.error('[syn] Failed to auto-register brain/ vault:', (e as Error).message)
   }
 
   createWindow()
@@ -318,7 +335,7 @@ ipcMain.handle('db:health', async () => {
 })
 
 // IPC: Rebuild index database from source archives (Gate G7)
-ipcMain.handle('db:rebuild', async (event, preserveCorrupt = true) => {
+ipcMain.handle('db:rebuild', async (_event, preserveCorrupt = true) => {
   if (engine.dbHealth === 'healthy') {
     return { status: 'no-rebuild-needed', health: engine.dbHealth }
   }
@@ -327,14 +344,14 @@ ipcMain.handle('db:rebuild', async (event, preserveCorrupt = true) => {
 })
 
 // IPC: Update configuration
-ipcMain.handle('config:set', async (event, updates) => {
+ipcMain.handle('config:set', async (_event, updates: Partial<SynConfig>) => {
   config = { ...config, ...updates }
   saveConfig()
   return config
 })
 
 // IPC: Add a harness directory (register as indexing source)
-ipcMain.handle('harness:add', async (event, dirPath, harness) => {
+ipcMain.handle('harness:add', async (_event, dirPath: string, harness?: string) => {
   try {
     const normalized = path.resolve(dirPath)
     if (!fs.existsSync(normalized)) {
@@ -352,13 +369,13 @@ ipcMain.handle('harness:add', async (event, dirPath, harness) => {
     }
     return { sourceId, path: normalized, harnesses: config.harnessDirectories }
   } catch (e) {
-    console.error('Failed to add harness:', e.message)
+    console.error('Failed to add harness:', (e as Error).message)
     throw e
   }
 })
 
 // IPC: Remove a harness directory
-ipcMain.handle('harness:remove', async (event, dirPath) => {
+ipcMain.handle('harness:remove', async (_event, dirPath: string) => {
   try {
     const normalized = path.resolve(dirPath)
     engine.removeSource(normalized)
@@ -366,7 +383,7 @@ ipcMain.handle('harness:remove', async (event, dirPath) => {
     saveConfig()
     return config.harnessDirectories
   } catch (e) {
-    console.error('Failed to remove harness:', e.message)
+    console.error('Failed to remove harness:', (e as Error).message)
     throw e
   }
 })
@@ -386,7 +403,7 @@ ipcMain.handle('harness:list', async () => {
   }))
 })
 
-// IPC: Get all known harnesses with their enabled state
+// IPC: Get all available harnesses with their enabled state
 ipcMain.handle('harness:settings:get', async () => {
   try {
     const settings = config.harnessSettings || {}
@@ -396,26 +413,26 @@ ipcMain.handle('harness:settings:get', async () => {
       enabled: name in settings ? !!settings[name] : name !== 'T3 Code'
     }))
   } catch (e) {
-    console.error('Failed to get harness settings:', e.message)
+    console.error('Failed to get harness settings:', (e as Error).message)
     return []
   }
 })
 
 // IPC: Set enabled state for a single harness
-ipcMain.handle('harness:settings:set', async (event, name, enabled) => {
+ipcMain.handle('harness:settings:set', async (_event, name: string, enabled: boolean) => {
   try {
     config.harnessSettings = { ...config.harnessSettings, [name]: !!enabled }
     saveConfig()
     return config.harnessSettings
   } catch (e) {
-    console.error('Failed to set harness setting:', e.message)
+    console.error('Failed to set harness setting:', (e as Error).message)
     throw e
   }
 })
 
 // IPC: Open folder picker dialog
 ipcMain.handle('dialog:openFolder', async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
+  const result = await dialog.showOpenDialog(mainWindow!, {
     properties: ['openDirectory', 'createDirectory'],
     title: 'Select harness folder to scan'
   })
@@ -426,10 +443,10 @@ ipcMain.handle('dialog:openFolder', async () => {
 })
 
 // IPC: List sessions (optionally filtered by source path)
-ipcMain.handle('session:list', async (event, sourcePath) => {
+ipcMain.handle('session:list', async (_event, sourcePath?: string) => {
   try {
     const enabled = getEnabledHarnesses()
-    let sessions
+    let sessions: { session_id: string; title: string; harness: string; source_path: string; file_path: string; created_at: string; indexed_at: string }[]
     if (sourcePath) {
       const normalized = path.resolve(sourcePath)
       const all = engine.listSessions({ enabledHarnesses: enabled })
@@ -448,7 +465,7 @@ ipcMain.handle('session:list', async (event, sourcePath) => {
       indexed_at: s.indexed_at
     }))
   } catch (e) {
-    console.error('Failed to list sessions:', e.message)
+    console.error('Failed to list sessions:', (e as Error).message)
     return []
   }
 })
@@ -468,13 +485,13 @@ ipcMain.handle('session:listAll', async () => {
       indexed_at: s.indexed_at
     }))
   } catch (e) {
-    console.error('Failed to list all sessions:', e.message)
+    console.error('Failed to list all sessions:', (e as Error).message)
     return []
   }
 })
 
 // IPC: Read a single session by session ID
-ipcMain.handle('session:read', async (event, sessionId) => {
+ipcMain.handle('session:read', async (_event, sessionId: string) => {
   try {
     const session = engine.getSession(sessionId)
     if (!session) {
@@ -491,23 +508,21 @@ ipcMain.handle('session:read', async (event, sessionId) => {
       messages: session.messages || []
     }
   } catch (e) {
-    throw new Error(`Failed to read session ${sessionId}: ${e.message}`)
+    throw new Error(`Failed to read session ${sessionId}: ${(e as Error).message}`)
   }
 })
 
 // Get all available drive roots on Windows (C: through Z:)
-function getDriveRoots () {
-  const roots = []
+function getDriveRoots (): string[] {
+  const roots: string[] = []
   for (let code = 67; code <= 90; code++) { // C-Z
     const drive = String.fromCharCode(code) + ':\\'
     try {
-      if (fsExtra.existsSync(drive)) roots.push(drive)
+      if (fs.existsSync(drive)) roots.push(drive)
     } catch (e) {}
   }
   return roots
 }
-
-const fsExtra = require('fs')
 
 // IPC: Autodetect harness directories across all drives
 ipcMain.handle('harness:autodetect', async () => {
@@ -517,24 +532,24 @@ ipcMain.handle('harness:autodetect', async () => {
     '.roo', '.aider', '.devin'
   ]
 
-  const detected = []
+  const detected: string[] = []
   const driveRoots = getDriveRoots()
 
   // Delay helper to yield to UI thread between drive scans
-  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+  const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms))
 
   for (const root of driveRoots) {
     const usersDir = path.join(root, 'Users')
     try {
-      if (!fsExtra.existsSync(usersDir)) continue
+      if (!fs.existsSync(usersDir)) continue
 
-      const entries = fsExtra.readdirSync(usersDir, { withFileTypes: true })
+      const entries = fs.readdirSync(usersDir, { withFileTypes: true })
       for (const entry of entries) {
         if (!entry.isDirectory()) continue
         const userDir = path.join(usersDir, entry.name)
 
         try {
-          const subEntries = fsExtra.readdirSync(userDir, { withFileTypes: true })
+          const subEntries = fs.readdirSync(userDir, { withFileTypes: true })
           for (const sub of subEntries) {
             if (!sub.isDirectory()) continue
             const lower = sub.name.toLowerCase()
@@ -558,39 +573,39 @@ ipcMain.handle('harness:autodetect', async () => {
 })
 
 // IPC: Index a source explicitly
-ipcMain.handle('source:index', async (event, sourceId) => {
+ipcMain.handle('source:index', async (_event, sourceId: number) => {
   try {
-    const result = engine.indexSource(sourceId)
+    const result = await engine.indexSource(sourceId)
     return result
   } catch (e) {
-    console.error('Failed to index source:', e.message)
+    console.error('Failed to index source:', (e as Error).message)
     throw e
   }
 })
 
 // IPC: Index all sources
-ipcMain.handle('source:indexAll', async (event, options = {}) => {
+ipcMain.handle('source:indexAll', async (_event, options: { batchSize?: number } = {}) => {
   try {
-    return engine.indexAllSources(options)
+    return await engine.indexAllSources(options)
   } catch (e) {
-    console.error('Failed to index all sources:', e.message)
+    console.error('Failed to index all sources:', (e as Error).message)
     throw e
   }
 })
 
 // IPC: Incremental indexing (check for new/modified/deleted)
-ipcMain.handle('source:incrementalIndex', async (event, options = {}) => {
+ipcMain.handle('source:incrementalIndex', async (_event, options: { batchSize?: number } = {}) => {
   try {
-    return engine.incrementalIndex(options)
+    return await engine.incrementalIndex(options)
   } catch (e) {
-    console.error('Failed incremental indexing:', e.message)
+    console.error('Failed incremental indexing:', (e as Error).message)
     throw e
   }
 })
 
 // IPC: Search across all sessions (FTS5 via IndexingEngine)
 // Synchronous search — no worker needed since FTS5 queries are fast.
-ipcMain.handle('session:search', async (event, query, options = {}) => {
+ipcMain.handle('session:search', async (_event, query: string, options: Record<string, unknown> = {}) => {
   try {
     // Coerce and validate search filter types before handing to the engine.
     const limit = Number.isFinite(Number(options.limit)) ? Number(options.limit) : 50
@@ -629,34 +644,34 @@ ipcMain.handle('session:search', async (event, query, options = {}) => {
       excerpt: r.excerpt
     }))
   } catch (e) {
-    console.error('Search failed:', e.message)
+    console.error('Search failed:', (e as Error).message)
     throw e
   }
 })
 
 // IPC: Get context around a message
-ipcMain.handle('session:getContext', async (event, sessionId, messageIndex, before = 5, after = 5) => {
+ipcMain.handle('session:getContext', async (_event, sessionId: string, messageIndex: number, before = 5, after = 5) => {
   try {
     return engine.getContext(sessionId, messageIndex, before, after)
   } catch (e) {
-    throw new Error(`Failed to get context: ${e.message}`)
+    throw new Error(`Failed to get context: ${(e as Error).message}`)
   }
 })
 
 // IPC: Remove a session from the index (undoable via refresh/re-index)
-ipcMain.handle('session:delete', async (event, sessionId) => {
+ipcMain.handle('session:delete', async (_event, sessionId: string) => {
   try {
     engine.removeSession(sessionId)
     return { success: true }
   } catch (e) {
-    throw new Error(`Failed to delete session: ${e.message}`)
+    throw new Error(`Failed to delete session: ${(e as Error).message}`)
   }
 })
 
 // IPC: Archive deletion is disabled by default (G2 — preserve source archives).
 // Returns an unsupported error; no filesystem deletion is performed.
 // Keep index-only `session:delete` for reversible removal from the search index.
-ipcMain.handle('session:deleteFile', async (event, sessionId) => {
+ipcMain.handle('session:deleteFile', async (_event, sessionId: string) => {
   throw new Error(`Archive deletion is not supported: session:deleteFile is disabled (session ${sessionId}). Use session:delete for index-only removal.`)
 })
 
@@ -667,23 +682,23 @@ ipcMain.handle('brain:getIndex', async () => {
 })
 
 // IPC: Rebuild brain index on demand
-ipcMain.handle('brain:index', async (event) => {
+ipcMain.handle('brain:index', async () => {
   try {
     return brainmaxxing.rebuildIndex()
   } catch (e) {
-    throw new Error(`Brain index failed: ${e.message}`)
+    throw new Error(`Brain index failed: ${(e as Error).message}`)
   }
 })
 
-ipcMain.handle('brain:read', async (event, relativePath) => {
+ipcMain.handle('brain:read', async (_event, relativePath: string) => {
   try {
     return brainmaxxing.brainRead(relativePath)
   } catch (e) {
-    throw new Error(`Brain read failed: ${e.message}`)
+    throw new Error(`Brain read failed: ${(e as Error).message}`)
   }
 })
 
-ipcMain.handle('brain:write', async (event, relativePath, content) => {
+ipcMain.handle('brain:write', async (_event, relativePath: string, content: string) => {
   try {
     const result = await brainmaxxing.brainWrite(relativePath, content)
     // Keep the in-memory brainIndexMd cache in sync when index.md is written,
@@ -693,63 +708,63 @@ ipcMain.handle('brain:write', async (event, relativePath, content) => {
     }
     return result
   } catch (e) {
-    throw new Error(`Brain write failed: ${e.message}`)
+    throw new Error(`Brain write failed: ${(e as Error).message}`)
   }
 })
 
-ipcMain.handle('brain:list', async (event) => {
+ipcMain.handle('brain:list', async () => {
   try {
     return brainmaxxing.brainList()
   } catch (e) {
-    throw new Error(`Brain list failed: ${e.message}`)
+    throw new Error(`Brain list failed: ${(e as Error).message}`)
   }
 })
 // IPC: Get next serial number tag (#000000-#999999) for vault notes
-ipcMain.handle('brain:nextSerial', async (event) => {
+ipcMain.handle('brain:nextSerial', async () => {
   try {
     return brainmaxxing.brainNextSerial()
   } catch (e) {
-    throw new Error(`Brain nextSerial failed: ${e.message}`)
+    throw new Error(`Brain nextSerial failed: ${(e as Error).message}`)
   }
 })
 
-ipcMain.handle('brain:reflect', async (event, sessionId) => {
+ipcMain.handle('brain:reflect', async (_event, sessionId: string) => {
   try {
     return brainmaxxing.reflect(sessionId, engine)
   } catch (e) {
-    throw new Error(`Reflect failed: ${e.message}`)
+    throw new Error(`Reflect failed: ${(e as Error).message}`)
   }
 })
 
-ipcMain.handle('brain:meditate', async (event) => {
+ipcMain.handle('brain:meditate', async () => {
   try {
     return brainmaxxing.meditate(engine)
   } catch (e) {
-    throw new Error(`Meditate failed: ${e.message}`)
+    throw new Error(`Meditate failed: ${(e as Error).message}`)
   }
 })
 
-ipcMain.handle('brain:ruminate', async (event) => {
+ipcMain.handle('brain:ruminate', async () => {
   try {
     return brainmaxxing.ruminate(engine)
   } catch (e) {
-    throw new Error(`Ruminate failed: ${e.message}`)
+    throw new Error(`Ruminate failed: ${(e as Error).message}`)
   }
 })
 
-ipcMain.handle('brain:plan', async (event, task) => {
+ipcMain.handle('brain:plan', async (_event, task: string) => {
   try {
     return brainmaxxing.plan(task, engine)
   } catch (e) {
-    throw new Error(`Plan failed: ${e.message}`)
+    throw new Error(`Plan failed: ${(e as Error).message}`)
   }
 })
 
-ipcMain.handle('brain:review', async (event, content) => {
+ipcMain.handle('brain:review', async (_event, content: string) => {
   try {
     return brainmaxxing.review(content, engine)
   } catch (e) {
-    throw new Error(`Review failed: ${e.message}`)
+    throw new Error(`Review failed: ${(e as Error).message}`)
   }
 })
 
@@ -781,13 +796,13 @@ ipcMain.handle('brainVaultWindow:close', async () => {
   return { ok: true }
 })
 
-ipcMain.handle('brainVaultWindow:setBounds', async (event, bounds) => {
+ipcMain.handle('brainVaultWindow:setBounds', async (_event, bounds: Electron.Rectangle) => {
   if (brainVaultWindow) {
     try {
       await brainVaultWindow.setBounds(bounds)
       return { ok: true }
     } catch (e) {
-      throw new Error(`Failed to set bounds: ${e.message}`)
+      throw new Error(`Failed to set bounds: ${(e as Error).message}`)
     }
   }
   return { ok: false }
@@ -798,47 +813,47 @@ ipcMain.handle('brainVaultWindow:getBounds', async () => {
     try {
       return brainVaultWindow.getBounds()
     } catch (e) {
-      throw new Error(`Failed to get bounds: ${e.message}`)
+      throw new Error(`Failed to get bounds: ${(e as Error).message}`)
     }
   }
   return null
 })
 
-ipcMain.handle('brain:rename', async (event, oldPath, newPath) => {
+ipcMain.handle('brain:rename', async (_event, oldPath: string, newPath: string) => {
   try {
     return brainmaxxing.brainRename(oldPath, newPath)
   } catch (e) {
-    throw new Error(`Brain rename failed: ${e.message}`)
+    throw new Error(`Brain rename failed: ${(e as Error).message}`)
   }
 })
 
-ipcMain.handle('brain:delete', async (event, relativePath) => {
+ipcMain.handle('brain:delete', async (_event, relativePath: string) => {
   try {
     return brainmaxxing.brainDelete(relativePath)
   } catch (e) {
-    throw new Error(`Brain delete failed: ${e.message}`)
+    throw new Error(`Brain delete failed: ${(e as Error).message}`)
   }
 })
 
-ipcMain.handle('brain:import', async (event, sourcePath) => {
+ipcMain.handle('brain:import', async (_event, sourcePath: string) => {
   try {
     return brainmaxxing.brainImport(sourcePath)
   } catch (e) {
-    throw new Error(`Brain import failed: ${e.message}`)
+    throw new Error(`Brain import failed: ${(e as Error).message}`)
   }
 })
 
-ipcMain.handle('brain:setDir', async (event, newDir) => {
+ipcMain.handle('brain:setDir', async (_event, newDir: string) => {
   try {
     brainmaxxing.setBrainDir(newDir)
     return { ok: true, path: brainmaxxing.BRAIN_DIR }
   } catch (e) {
-    return { ok: false, error: e.message }
+    return { ok: false, error: (e as Error).message }
   }
 })
 
 ipcMain.handle('dialog:openFile', async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
+  const result = await dialog.showOpenDialog(mainWindow!, {
     properties: ['openFile', 'multiSelections'],
     filters: [{ name: 'Markdown files', extensions: ['md'] }],
     title: 'Select .md file(s) to import into Brain Vault'
@@ -849,8 +864,7 @@ ipcMain.handle('dialog:openFile', async () => {
   return null
 })
 
-ipcMain.handle('shell:showItemInFolder', async (event, fullPath) => {
-  const { shell } = require('electron')
-  await shell.showItemInFolder(fullPath)
+ipcMain.handle('shell:showItemInFolder', async (_event, fullPath: string) => {
+  await electronShell.showItemInFolder(fullPath)
   return { ok: true }
 })
