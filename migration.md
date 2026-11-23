@@ -203,7 +203,7 @@ Type strictness: start with `strict: true` but allow `noImplicitAny` violations 
 
 | **P5** ✅ COMPLETED | Convert `main.js` + `reindex.js` + `check_codex_sessions.js` + `bootstrap.js` + `wrapper.js` → `main.ts` + `reindex.ts` + `check_codex_sessions.ts` + `bootstrap.ts` + `wrapper.ts` | `tsc --noEmit` clean; ESLint 0 warnings; IPC handlers intact; old `.js` deleted via `git rm`. Committed as `19416e5`. |
 
-| **P6** | Convert `renderer/app.js` + `renderer/brain-vault.js` | Renderer type-checks; ESLint clean; UI behavior unchanged |
+| **P6** ✅ COMPLETED | Convert `renderer/app.js` + `renderer/brain-vault.js` | Renderer type-checks; ESLint clean; UI behavior unchanged. Old `.js` deleted via `git rm`. Committed as `ce46f51`. |
 
 | **P7** | Convert `test/*.js` to `test/*.ts` | Full `npm test` passes (identical results) |
 
