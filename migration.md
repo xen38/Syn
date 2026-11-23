@@ -1,26 +1,12 @@
-**#Syn: 100% Native TypeScript Migration Guide !! Be Updating This Document to show the State of the Development**
+**#Syn: 100% Native TypeScript Migration Guide !! Be Updating This Document to show the State of the Development**  
+**Before each change comit the changes and look at the github repo to delete the old not-migrated version of the comited files on the repo to prevent duplicates **  
+
 
 **Project:** xen38/Syn (locally at `K:\Repos\locate`)
 
 **Goal:** Migrate Syn from 100% plain JavaScript (CommonJS) to a 100% native TypeScript application.
 
 **Audience:** Agents and human reviewers executing and reviewing the migration. Nothing gets lost.
-
----
-
-**## Commit Rule (MANDATORY — read before every commit)**
-
-Before committing any changes during this migration, follow this procedure exactly:
-
-1. **`git status`** — review all modified, deleted, and untracked files. Confirm only migration-related files are included.
-2. **`git diff --stat`** — review the scope of changes. Ensure no unrelated files are being committed.
-3. **`git add`** — stage only the files intentionally changed by this migration step (converted `.ts` files, updated configs, deleted `.js` files being replaced, migration.md itself).
-4. **Run validation before commit:** `npx tsc --noEmit` must pass with 0 errors, and `npx eslint <changed-files> --ext .ts --max-warnings 0` must pass with 0 warnings on all changed TypeScript files.
-5. **`git commit`** — commit with a descriptive message in the format: `migration: <phase> <description>` (e.g., `migration: P2 index.ts — convert to TypeScript, fix all tsc errors`).
-6. **`git log --oneline -3`** — verify the commit landed correctly on `main`.
-7. **Update migration.md** — mark the completed phase as done and update the state summary at the top of this document.
-
-Do NOT commit unrelated changes, debug scripts, temporary files, or build output (`dist/`, `node_modules/`). If validation fails, fix before committing.
 
 ---
 
@@ -31,13 +17,9 @@ Syn is an Electron desktop app (main process + preload bridge + renderer UI), an
 This guide converts every `.js` source file to `.ts`, configures `tsc`, adapts `package.json` scripts, adds type declarations where modules lack them, and preserves all runtime behavior so that:
 
 - `npm test` passes identically before and after migration (same assertions, same fixtures).
-
 - `npm run lint` (ESLint) passes on `.ts` files.
-
 - `electron .` launches and behaves identically.
-
 - `node mcp-server.js` (or its TS equivalent) starts and lists the same 16 tools.
-
 - No feature, command, IPC channel, MCP tool, or test is dropped.
 
 Out of scope for this migration: changing runtime behavior, adding new features, or switching test runners. This is a behavior-preserving port to TypeScript.
@@ -174,17 +156,12 @@ Out of scope for this migration: changing runtime behavior, adding new features,
 
 The migration is done file-by-file with these rules:
 
-1. **Rename `.js` -> `.ts`** and convert syntax to TypeScript.
-
+1. **Rename** `.js` **->** `.ts` and convert syntax to TypeScript.
 2. **Add explicit types** for function params, returns, class fields, and module exports using JSDoc-style inline types or TS interfaces/types.
-
-3. **Preserve CommonJS `requiremodule.exports`** where the runtime needs it (Electron main, preload, MCP server, adapters). TS compiles CommonJS by default with `module: commonjs`.
-
+3. **Preserve CommonJS** `requiremodule.exports` where the runtime needs it (Electron main, preload, MCP server, adapters). TS compiles CommonJS by default with `module: commonjs`.
 4. **Do not change runtime behavior** — same IPC channel names, same MCP tool names/schemas, same search ranking, same test assertions.
-
-5. **Every converted file must pass `node --check` equivalent `tsc --noEmit`) and ESLint.**
-
-6. **Tests run against compiled output or via `ts-nodetsx`** — decide in Phase 0; recommended: keep tests as `.ts` and run with `tsx` so `npm test` stays `node test/*.js` equivalent via a test runner wrapper. Simplest drop-in: convert tests to `.ts` and execute with `tsx test/<name>.ts`, or keep `package.json` `test` script invoking `tsx`.
+5. **Every converted file must pass** `node --check` **equivalent** `tsc --noEmit`**) and ESLint.**
+6. **Tests run against compiled output or via** `ts-nodetsx` — decide in Phase 0; recommended: keep tests as `.ts` and run with `tsx` so `npm test` stays `node test/*.js` equivalent via a test runner wrapper. Simplest drop-in: convert tests to `.ts` and execute with `tsx test/<name>.ts`, or keep `package.json` `test` script invoking `tsx`.
 
 Type strictness: start with `strict: true` but allow `noImplicitAny` violations to be fixed per-file; do not weaken `strictNullChecks` or `strictFunctionTypes`.
 
@@ -222,7 +199,7 @@ Type strictness: start with `strict: true` but allow `noImplicitAny` violations 
 
 | **P3** | Convert `packages/core/brainmaxxing.js` | `brainmaxxing` tests pass; containment (G1) preserved |
 
-| **P4** | Convert `preload.js` + `mcp-server.js` | MCP server lists 16 tools; preload exposes synAPI |
+| **P4** ✅ COMPLETED | Convert `preload.js` + `mcp-server.js` → `preload.ts` + `mcp-server.ts` | MCP server lists 16 tools; preload exposes synAPI; `src/types/electron-preload.d.ts` added; `packages/core/index.ts` exports `SecretPattern` + `indexed_at` on `listSessions`. Committed as `cfa537b`. |
 
 | **P5** | Convert `main.js` + `reindex.js` + `check_codex_sessions.js` + `bootstrap.js` + `wrapper.js` | `electron .` launches; IPC handlers intact |
 
@@ -241,21 +218,13 @@ Tests are converted last (P7) so they can assert against the now-TS source via `
 - [] File renamed `.js` -> `.ts`.
 
 - [ ] All `require()` calls updated to TS import or kept as `require` with types.
-
 - [ ] `module.exports` replaced with `export =` or `export {}` matching consumers.
-
 - [ ] Function params/returns have explicit types (no implicit `any`).
-
 - [ ] Class fields initialized or marked `readonlyoptional`.
-
 - [ ] `strictNullChecks` respected (null checks before property access).
-
 - [ ] Runtime behavior unchanged (same IPC names, same MCP schemas, same logic).
-
 - [ ] `tsc --noEmit` reports no errors for the file.
-
 - [ ] ESLint reports 0 errors / 0 warnings on the file.
-
 - [ ] Related test suite still passes.
 
 ---
@@ -263,13 +232,9 @@ Tests are converted last (P7) so they can assert against the now-TS source via `
 **## 7. How an Agent Uses This Guide**
 
 1. Pick the lowest unfinished phase (P0 -> P8).
-
 2. For each file in the phase, convert `.js` -> `.ts` per Section 3.
-
 3. Run the phase's exit-criteria commands (see each phase detail below).
-
 4. Mark the file complete only when type-check + lint + related tests pass.
-
 5. Update this guide's phase status as work completes; an agent or reviewer can resume at any phase by reading the status table.
 
 Next: Part 2 — Phase P0 setup details (tsconfig, package.json, type declarations).  
@@ -366,11 +331,8 @@ Continues from Part 1. Append this content after Part 1 in the same file.
 Notes:
 
 - `module: commonjs` keeps `requiremodule.exports` runtime compatible with Electron and the existing tests.
-
 - `strict: true` enables `noImplicitAny`, `strictNullChecks`, etc. Fix violations per-file; do not downgrade `strictNullChecks`.
-
 - `skipLibCheck: true` avoids noise from third-party `.d.ts` files.
-
 - `noUnusedLocalsnoUnusedParameters` set to `false` initially to reduce churn during conversion; enable them in P8 for final hygiene.
 
 **### P0.2 Update** `package.json`
@@ -594,9 +556,7 @@ npx eslint . --ext .js --max-warnings 0  # baseline: 0 errors, 0 warnings on exi
 Exit criteria for P0:
 
 - `tsc --noEmit` runs without crashing.
-
 - `npm install` succeeds.
-
 - ESLint baseline passes on existing `.js` files.
 
 Next: Part 3 — Phase P1 (adapters).
@@ -616,21 +576,13 @@ Continues from Part 2. Append after Part 2.
 **### P1.1 Conversion order (least to most dependent)**
 
 1. `packages/adapters/base.ts` — `BaseAdapter` class (no internal deps)
-
 2. `packages/adapters/text.ts` — `TextAdapter` (depends on base)
-
 3. `packages/adapters/json.ts` — `JsonAdapter` (depends on base; conditionally requires jsonl)
-
 4. `packages/adapters/jsonl.ts` — `JsonlAdapter` (depends on base)
-
 5. `packages/adapters/sqlite.ts` — `SQLiteAdapter` (depends on base + sql.js)
-
 6. `packages/adapters/codex.ts` — `CodexAdapter` (depends on base + sql.js)
-
 7. `packages/adapters/opencode.ts` — `OpencodeAdapter` (depends on base + better-sqlite3)
-
 8. `packages/adapters/claude-code.ts` — `ClaudeCodeAdapter` (depends on base)
-
 9. `packages/adapters/registry.ts` — `AdapterRegistry` (depends on all adapters above) — convert LAST in this phase
 
 **### P1.2 Conversion patterns to apply (per file)**
@@ -739,13 +691,13 @@ export interface SessionData {
 
 ```
 
-*`parseAllSessions`:** Return `Promise<SessionData[]>`.
+`parseAllSessions`*:** Return `Promise<SessionData[]>`.
 
-*`_readFile` helper:** keep returning `string`.
+`_readFile` *helper:** keep returning `string`.
 
 **Static regex helpers** `extractTextFromJsonValue` in sqlite.ts, `splitConcatJson` in jsonl.ts): type params as `any` or `Record<string, unknown>` and return `string`.
 
-*`module.exports`:** Replace with `export { ... }` named exports matching what consumers import.
+`module.exports`*:** Replace with `export { ... }` named exports matching what consumers import.
 
 **### P1.3 File-by-file notes**
 
@@ -839,22 +791,16 @@ The returned object shape `{ all, get, run }` plus the original `exectransaction
 The file is ~1740 lines. Convert in this order within the file:
 
 1. **Imports** at top: `path`, `fs`, `crypto`, `initSqlJs`, `wrapDb`, `AdapterRegistry`.
-
 2. **Module-level constants**: `SUPPORTED_EXTS`, `DEFAULT_SECRET_PATTERNS`, `NON_SESSION_NAMES`.
-
 3. **Module-level functions**: `redactSecrets`, `sleep`, `isNonSessionFile`.
-
 4. *`sqlPromise` / `SQL`**: module-level `let SQL: any = null` and the `initSqlJs` promise.
-
 5. **Interfaces** (from existing JSDoc): `SessionResult`, `IndexOptions`, `Message`.
-
-6. *`IndexingEngine` class**: constructor, `open`, `rebuild`, `_createSchema`, `close`, `_fingerprint`, `_isExcluded`, `_normalizePath`, static text-extraction methods, `parseMessages`, `collectSessionFiles`, source management `addSource`, `listSources`, `removeSource`, `removeSession`), `_detectHarness`, `_analyzeDirectory`, indexing `indexSource`, `indexAllSources`, `incrementalIndex`, `_incrementalIndexSource`), session extraction `_getFileSessions`, `_uniqueSessionId`), search `search`, `searchMessages`), retrieval `getSession`, `getContext`, `listSessions`, `getAllHarnesses`, `countSessions`), helpers `_getSessionContent`, `_bm25Score`, `_countOccurrences`, `_snippet`, `_excerpt`), static weights.
-
-7. *`module.exports = { IndexingEngine, SUPPORTED_EXTS }`** -> `export { IndexingEngine, SUPPORTED_EXTS }`.
+6. `IndexingEngine` *class**: constructor, `open`, `rebuild`, `_createSchema`, `close`, `_fingerprint`, `_isExcluded`, `_normalizePath`, static text-extraction methods, `parseMessages`, `collectSessionFiles`, source management `addSource`, `listSources`, `removeSource`, `removeSession`), `_detectHarness`, `_analyzeDirectory`, indexing `indexSource`, `indexAllSources`, `incrementalIndex`, `_incrementalIndexSource`), session extraction `_getFileSessions`, `_uniqueSessionId`), search `search`, `searchMessages`), retrieval `getSession`, `getContext`, `listSessions`, `getAllHarnesses`, `countSessions`), helpers `_getSessionContent`, `_bm25Score`, `_countOccurrences`, `_snippet`, `_excerpt`), static weights.
+7. `module.exports = { IndexingEngine, SUPPORTED_EXTS }`* -> `export { IndexingEngine, SUPPORTED_EXTS }`.
 
 **### P2.3 Key typing decisions**
 
-*`DEFAULT_SECRET_PATTERNS`:**
+`DEFAULT_SECRET_PATTERNS`*:**
 
 ```ts
 
@@ -872,7 +818,7 @@ const DEFAULT_SECRET_PATTERNS: SecretPattern[] = [ ... ]
 
 ```
 
-*`redactSecrets(content: string, patterns: SecretPattern[]): string`**
+`redactSecrets(content: string, patterns: SecretPattern[]): string`*
 
 **Constructor options:**
 
@@ -894,43 +840,43 @@ constructor(dbPath: string, options: EngineOptions = {}) { ... }
 
 **Class fields:** `db: SqlJsDatabase | null = null`, `initialized = false`, `registry: AdapterRegistry`, `redactSecrets: boolean`, `secretPatterns: SecretPattern[]`, `excludedPaths: string[]`, `dbHealth: 'healthy' | 'corrupt' | 'rebuilding' | null = null`.
 
-*`dbHealth` type:** define `type DbHealth = 'healthy' | 'corrupt' | 'rebuilding' | null`.
+`dbHealth` *type:** define `type DbHealth = 'healthy' | 'corrupt' | 'rebuilding' | null`.
 
-*`open()`:** returns `Promise<IndexingEngine>` (i.e., `Promise<this>`). Uses `fs.readFileSync`, `fs.existsSync`, `fs.mkdirSync`, `fs.writeFileSync`, `fs.copyFileSync`, `fs.unlinkSync` — all typed by `@types/node`.
+`open()`*:** returns `Promise<IndexingEngine>` (i.e., `Promise<this>`). Uses `fs.readFileSync`, `fs.existsSync`, `fs.mkdirSync`, `fs.writeFileSync`, `fs.copyFileSync`, `fs.unlinkSync` — all typed by `@types/node`.
 
-*`_createSchema()`:** `this.db.exec(...)`. Since `this.db` may be `null`, guard: `if (!this.db) throw new Error('Database not open')` at the start of methods that need it, or use non-null assertion after verifying `open()` was called. Cleaner: add a private `requireOpen()` helper that throws if `!this.db`.
+`_createSchema()`*:** `this.db.exec(...)`. Since `this.db` may be `null`, guard: `if (!this.db) throw new Error('Database not open')` at the start of methods that need it, or use non-null assertion after verifying `open()` was called. Cleaner: add a private `requireOpen()` helper that throws if `!this.db`.
 
 **Transaction:** `const tx = this.db.transaction(() => { ... })` — sql.js `transaction` returns a function via db-compat wrapper. Type as `() => void`; call `tx()`.
 
-*`search()` returns `SessionResult[]`.** Define `SessionResult` interface matching existing JSDoc.
+`search()` *returns* `SessionResult[]`*.** Define `SessionResult` interface matching existing JSDoc.
 
 **Static methods** `readTextFile`, `extractTextFromJsonl`, `extractTextFromJsonValue`, `extractTextFromJsonFile`, `extractTextFromSqlite`, `readSessionFileContent`, `parseMessages`, `collectSessionFiles`, `_uniqueSessionId`, `readSessionFileContent`): mark `static` with types. `extractTextFromSqlite` is `async`.
 
-*`parseMessages(filePath: string, sessionId: string): Promise<Message[]>`** — large method; preserve all extension branches (.jsonl, .json, .md/.txt, .db/.sqlite) exactly.
+`parseMessages(filePath: string, sessionId: string): Promise<Message[]>`* — large method; preserve all extension branches (.jsonl, .json, .md/.txt, .db/.sqlite) exactly.
 
-*`_getFileSessions(filePath: string): Promise<{ sessionId; title; createdAt; messages; content; filePath; harness }[]>[]`** — define an inline interface or reuse `SessionData` from adapters. Since index imports `AdapterRegistry` (already converted in P1), it can import `SessionData` from `../adapters/base` or define a local `FileSession` interface. Recommend defining local interface `ParsedSession` to avoid coupling, or import from adapters base. Importing from adapters base is cleaner (single source of truth).
+`_getFileSessions(filePath: string): Promise<{ sessionId; title; createdAt; messages; content; filePath; harness }[]>[]`* — define an inline interface or reuse `SessionData` from adapters. Since index imports `AdapterRegistry` (already converted in P1), it can import `SessionData` from `../adapters/base` or define a local `FileSession` interface. Recommend defining local interface `ParsedSession` to avoid coupling, or import from adapters base. Importing from adapters base is cleaner (single source of truth).
 
-*`indexSource(sourceId, options)`:** `batchSize` default 10; returns `{ sourceId, sourcePath, indexed, skipped, total, sessionCount, durationMs }`. Define `IndexSourceResult` interface.
+`indexSource(sourceId, options)`*:** `batchSize` default 10; returns `{ sourceId, sourcePath, indexed, skipped, total, sessionCount, durationMs }`. Define `IndexSourceResult` interface.
 
-*`indexAllSources(options)` / `incrementalIndex(options)` / `_incrementalIndexSource(sourceId, options)`:** similar result types.
+`indexAllSources(options)` */* `incrementalIndex(options)` */* `_incrementalIndexSource(sourceId, options)`*:** similar result types.
 
-*`search(query, options)`:** complex method with filter parsing, IDF, SQL building, BM25 scoring, snippets. Preserve logic exactly; add types to locals `limit`, `harness`, `project`, `dateFrom`, `dateTo`, `brain`, `role`, `enabledHarnesses`, `excerptLength`, `filteredTerms`, `idfWeights`, `termClauses`, `params`, `rows`, `results`).
+`search(query, options)`*:** complex method with filter parsing, IDF, SQL building, BM25 scoring, snippets. Preserve logic exactly; add types to locals `limit`, `harness`, `project`, `dateFrom`, `dateTo`, `brain`, `role`, `enabledHarnesses`, `excerptLength`, `filteredTerms`, `idfWeights`, `termClauses`, `params`, `rows`, `results`).
 
-*`searchMessages(query, options)`:** returns message-result array; define `MessageResult` interface.
+`searchMessages(query, options)`*:** returns message-result array; define `MessageResult` interface.
 
-*`getSession(sessionId): SessionWithMessages | null`** — define `SessionWithMessages` = session row + `messages: Message[]`.
+`getSession(sessionId): SessionWithMessages | null`* — define `SessionWithMessages` = session row + `messages: Message[]`.
 
-*`getContext(sessionId, messageIndex, before, after)`:** returns `{ session, messages, centerIndex } | null`.
+`getContext(sessionId, messageIndex, before, after)`*:** returns `{ session, messages, centerIndex } | null`.
 
-*`listSessions(options)`:** returns session rows array; define `SessionRow` interface (subset of fields).
+`listSessions(options)`*:** returns session rows array; define `SessionRow` interface (subset of fields).
 
-*`_bm25Score(terms, title, content, idfWeights)`:** returns `number`.
+`_bm25Score(terms, title, content, idfWeights)`*:** returns `number`.
 
-*`_snippet(text, terms, maxLength)`:** returns `string`; builds regex from terms — type `RegExp`.
+`_snippet(text, terms, maxLength)`*:** returns `string`; builds regex from terms — type `RegExp`.
 
-*`TITLE_WEIGHT = 5`, `CONTENT_WEIGHT = 1`, `TITLE_PRESENCE_BONUS = 10`** as `static` readonly numbers.
+`TITLE_WEIGHT = 5`*,* `CONTENT_WEIGHT = 1`*,* `TITLE_PRESENCE_BONUS = 10`* as `static` readonly numbers.
 
-*`SUPPORTED_EXTS: Set<string>`** exported const.
+`SUPPORTED_EXTS: Set<string>`* exported const.
 
 **### P2.4** `any` **usage allowance**
 
@@ -973,7 +919,7 @@ Continues from Part 4. Append after Part 4.
 
 **### P3.1 Conversion patterns**
 
-**Module-level `BRAIN_DIR`:**
+**Module-level** `BRAIN_DIR`**:**
 
 ```ts
 
@@ -993,21 +939,21 @@ export function setBrainDir(newDir: string): void {
 
 ```
 
-*`containBrainPath(relativePath: string): string`** — keep all validation: reject non-string/empty, absolute paths, mixed separators, `..` segments, resolved target outside `BRAIN_DIR`, symlink escapes via `fs.realpathSync`. Return `resolved` absolute path. Throw `Error` on violation.
+`containBrainPath(relativePath: string): string`* — keep all validation: reject non-string/empty, absolute paths, mixed separators, `..` segments, resolved target outside `BRAIN_DIR`, symlink escapes via `fs.realpathSync`. Return `resolved` absolute path. Throw `Error` on violation.
 
-*`brainRead(relativePath): { ok: boolean; path?: string; content?: string; error?: string }`** — define `BrainReadResult` interface. Use `containBrainPath`, `fs.existsSync`, `fs.readFileSync`.
+`brainRead(relativePath): { ok: boolean; path?: string; content?: string; error?: string }`* — define `BrainReadResult` interface. Use `containBrainPath`, `fs.existsSync`, `fs.readFileSync`.
 
-*`brainWrite(relativePath, content): { ok: boolean; path?: string; error?: string }`** — define `BrainWriteResult`. `ensureDir`, `fs.mkdirSync(path.dirname(...), { recursive: true })`, `fs.writeFileSync`.
+`brainWrite(relativePath, content): { ok: boolean; path?: string; error?: string }`* — define `BrainWriteResult`. `ensureDir`, `fs.mkdirSync(path.dirname(...), { recursive: true })`, `fs.writeFileSync`.
 
-*`brainList(): string[]`** — recursive walk with `fs.readdirSync(dir, { withFileTypes: true })`, skip symlinked dirs, collect `.md` files relative to `BRAIN_DIR`, sort.
+`brainList(): string[]`* — recursive walk with `fs.readdirSync(dir, { withFileTypes: true })`, skip symlinked dirs, collect `.md` files relative to `BRAIN_DIR`, sort.
 
-*`brainNextSerial(): { ok: boolean; serial?: number; tag?: string; error?: string }`** — scan all vault files for `Serial:\s*#(\d{6})`, return next padded tag.
+`brainNextSerial(): { ok: boolean; serial?: number; tag?: string; error?: string }`* — scan all vault files for `Serial:\s*#(\d{6})`, return next padded tag.
 
-*`brainRename(oldPath, newPath)`**, *`brainDelete(relativePath)`**, *`brainImport(sourcePath)`** — define result interfaces; preserve copy logic and symlink-skip in `walkDir`.
+`brainRename(oldPath, newPath)`***,* `brainDelete(relativePath)`, ***`brainImport(sourcePath)` — define result interfaces; preserve copy logic and symlink-skip in `walkDir`.
 
-*`rebuildIndex(): { ok: boolean; files: number }`** — builds `brain/index.md` content, calls `brainWrite('index.md', content)`.
+`rebuildIndex(): { ok: boolean; files: number }`* — builds `brain/index.md` content, calls `brainWrite('index.md', content)`.
 
-*`readIndexMd(): string`** — returns `brainRead('index.md').content || ''`.
+`readIndexMd(): string`* — returns `brainRead('index.md').content || ''`.
 
 **### P3.2 Command functions**
 
@@ -1027,21 +973,21 @@ interface EngineLike {
 
 Import `Message` type from adapters base or define locally. Import `IndexingEngine` type only as a type `import type { IndexingEngine } from './index'`) to avoid runtime circular require.
 
-*`extractLearnings(content: string): string[]`** — keyword scan, dedup, slice(0,20).
+`extractLearnings(content: string): string[]`* — keyword scan, dedup, slice(0,20).
 
-*`reflect(sessionId, engine)`** — `async`, returns reflect result with `path, title, learningsCount, learnings`. Calls `engine.getSession(sessionId)`.
+`reflect(sessionId, engine)`* — `async`, returns reflect result with `path, title, learningsCount, learnings`. Calls `engine.getSession(sessionId)`.
 
-*`meditate(engine)`** — audits brain files, extracts principle keywords, detects stale notes (<40 chars), writes `principles/meditate-<date>.md`, rebuilds index.
+`meditate(engine)`* — audits brain files, extracts principle keywords, detects stale notes (<40 chars), writes `principles/meditate-<date>.md`, rebuilds index.
 
-*`ruminate(engine)`** — scans up to 50 sessions via `engine.listSessions()engine.getSession()`, keyword hits, writes `sessions/ruminate-<date>.md`.
+`ruminate(engine)`* — scans up to 50 sessions via `engine.listSessions()engine.getSession()`, keyword hits, writes `sessions/ruminate-<date>.md`.
 
-*`plan(task, engine)`** — writes `plans/plan-<date>-<slug>.md`.
+`plan(task, engine)`* — writes `plans/plan-<date>-<slug>.md`.
 
-*`review(content, engine)`** — issues array, writes `plans/review-<date>-<slug>.md`.
+`review(content, engine)`* — issues array, writes `plans/review-<date>-<slug>.md`.
 
-*`slugify(text: string): string`** — lowercase, hyphenate, trim, slice(0,80).
+`slugify(text: string): string`* — lowercase, hyphenate, trim, slice(0,80).
 
-*`module.exports`** -> `export { BRAIN_DIR, containBrainPath, setBrainDir, brainRead, brainWrite, brainRename, brainDelete, brainList, brainNextSerial, brainImport, rebuildIndex, readIndexMd, reflect, meditate, ruminate, plan, review }`.
+`module.exports`* -> `export { BRAIN_DIR, containBrainPath, setBrainDir, brainRead, brainWrite, brainRename, brainDelete, brainList, brainNextSerial, brainImport, rebuildIndex, readIndexMd, reflect, meditate, ruminate, plan, review }`.
 
 **### P3.3 Type details**
 
@@ -1070,13 +1016,15 @@ tsx test/brainmaxxing.ts   # 89 passed, 0 failed
 Security spot-check (G1): `brainWrite("../../../escape.txt","x")` -> `{ok:false,error}`; no file created outside `brain/`. The existing test/brainmaxxing.ts covers this.
 
 Next: Part 6 — Phase P4 (preload + MCP server).  
-**# [migration.md](http://migration.md) — Syn: 100% Native TypeScript Migration Guide (Part 6: Phase P4 Preload + MCP Server)**
+**# [migration.md](http://migration.md) — Syn: 100% Native TypeScript Migration Guide (Part 6: Phase P4 Preload + MCP Server)** ✅ COMPLETED
 
 Continues from Part 5. Append after Part 5.
 
 ---
 
-**## Phase P4 — Convert** `preload.ts` **+** `mcp-server.ts`
+**## Phase P4 — Convert** `preload.ts` **+** `mcp-server.ts` ✅ DONE
+
+**Status:** Completed and committed as `cfa537b`. `preload.js` → `preload.ts`, `mcp-server.js` → `mcp-server.ts`, new `src/types/electron-preload.d.ts`, `packages/core/index.ts` updated (exported `SecretPattern`, added `indexed_at` to `listSessions`). All `.js` originals deleted from repo.
 
 **Goal:** Convert the Electron preload bridge `synAPI`) and the stdio MCP server (16 `syn_`* tools).
 
@@ -1292,29 +1240,26 @@ const server = new Server(
 
 ```
 
-*`ListToolsRequestSchema` handler:** return the same 16 tools with identical `inputSchema` definitions. Type the `tools` array as `any[]` or define a `Tool` interface matching the schema. Simplest: `return { tools: [...] as any }` to avoid fighting the SDK's strict tool schema types. Keep descriptions identical.
+`ListToolsRequestSchema` *handler:** return the same 16 tools with identical `inputSchema` definitions. Type the `tools` array as `any[]` or define a `Tool` interface matching the schema. Simplest: `return { tools: [...] as any }` to avoid fighting the SDK's strict tool schema types. Keep descriptions identical.
 
-*`CallToolRequestSchema` handler:** `async (request) => { const { name, arguments: args } = request.params; switch (name) { ... } }`. Type `request` as `any` or use the SDK's `CallToolRequest` type. The `args` object is `Record<string, any> | undefined`.
+`CallToolRequestSchema` *handler:** `async (request) => { const { name, arguments: args } = request.params; switch (name) { ... } }`. Type `request` as `any` or use the SDK's `CallToolRequest` type. The `args` object is `Record<string, any> | undefined`.
 
 Each case preserves the existing logic exactly:
 
 - `syn_search`: `engine.search(args.query, {...})` with coercion (same as main.js session:search). Return JSON text content.
-
 - `syn_get_session`, `syn_get_context`, `syn_list_sessions`, `syn_list_harnesses`, `syn_add_harness`, `syn_index_source`, `syn_index_all`, `syn_status`.
-
 - `syn_read_brain`, `syn_write_brain` via `bm.brainReadbm.brainWrite`.
-
 - `syn_reflect`, `syn_meditate`, `syn_ruminate`, `syn_plan`, `syn_review` via `bm.*`.
 
 Preserve the `isError: true` error-return shape and the default `throw new Error(\`Unknown tool: ${name}`)`.
 
-*`engine` instantiation:** `const engine = new IndexingEngine(INDEX_DB_PATH, {...})` then `await engine.open()`. Import `IndexingEngine` from `./packages/core/index` and `bm` from `./packages/core/brainmaxxing`.
+`engine` *instantiation:** `const engine = new IndexingEngine(INDEX_DB_PATH, {...})` then `await engine.open()`. Import `IndexingEngine` from `./packages/core/index` and `bm` from `./packages/core/brainmaxxing`.
 
 **Config paths:** Keep `CONFIG_FILE` and `INDEX_DB_PATH` using `process.env.APPDATA || process.env.HOME || os.homedir()` + `syn/` — identical to current `mcp-server.js`.
 
 **Startup:** `async function main() { const transport = new StdioServerTransport(); await server.connect(transport); console.error('[syn-mcp] Syn MCP server running on stdio') }` then `main().catch(...)`.
 
-*`module.exports`** -> none needed; `mcp-server.ts` is a script (no exports). It's executed directly.
+`module.exports`* -> none needed; `mcp-server.ts` is a script (no exports). It's executed directly.
 
 **### P4.3 Validation loop**
 
@@ -1401,9 +1346,9 @@ let config: SynConfig = { ... DEFAULT_CONFIG }
 
 ```
 
-*`loadConfig()` / `saveConfig()`:** identical logic, `JSON.parseJSON.stringify`.
+`loadConfig()` */* `saveConfig()`*:** identical logic, `JSON.parseJSON.stringify`.
 
-*`ALL_POSSIBLE_HARNESSES: string[]`** and `getEnabledHarnesses(): string[]` — identical.
+`ALL_POSSIBLE_HARNESSES: string[]`* and `getEnabledHarnesses(): string[]` — identical.
 
 **Engine:**
 
@@ -1423,70 +1368,57 @@ const engine = new IndexingEngine(INDEX_DB_PATH, {
 
 **Windows:** `let mainWindow: BrowserWindow | null = null`, `let brainVaultWindow: BrowserWindow | null = null`.
 
-*`createWindow()`:** identical options `frame: false`, `contextIsolation: true`, `nodeIntegration: false`, preload path, icon, title 'Syn', backgroundColor). Load `renderer/index.html`. `Menu.setApplicationMenu(null)`. Resize handler saves `config.windowBounds`.
+`createWindow()`*:** identical options `frame: false`, `contextIsolation: true`, `nodeIntegration: false`, preload path, icon, title 'Syn', backgroundColor). Load `renderer/index.html`. `Menu.setApplicationMenu(null)`. Resize handler saves `config.windowBounds`.
 
-*`createBrainVaultWindow()`:** identical spawn (x=300, y=80, width=1003, height=933), loads `renderer/brain-vault.html`, `bv:window-shownenter-fullscreenleave-fullscreen` forwarding.
+`createBrainVaultWindow()`*:** identical spawn (x=300, y=80, width=1003, height=933), loads `renderer/brain-vault.html`, `bv:window-shownenter-fullscreenleave-fullscreen` forwarding.
 
 *`openBrainVaultWindow()`**: focus-or-create.
 
-*`injectBrainIndex()` / `watchBrainIndex()`:** `brainIndexMd: string = ''`; `fs.watch(brainDir, { recursive: true })` with debounce timer. `brainmaxxing.readIndexMd()` / `rebuildIndex()`.
+`injectBrainIndex()` */* `watchBrainIndex()`*:** `brainIndexMd: string = ''`; `fs.watch(brainDir, { recursive: true })` with debounce timer. `brainmaxxing.readIndexMd()` / `rebuildIndex()`.
 
 **Auto-register brain/ vault** in `app.whenReady()`.
 
-*`app.whenReady()` sequence:** `await engine.open()`, log health, `injectBrainIndex()`, `watchBrainIndex()`, auto-register brain, `createWindow()`, `app.on('activate')`.
+`app.whenReady()` *sequence:** `await engine.open()`, log health, `injectBrainIndex()`, `watchBrainIndex()`, auto-register brain, `createWindow()`, `app.on('activate')`.
 
-*`app.on('window-all-closed')`:** quit unless darwin.
+`app.on('window-all-closed')`*:** quit unless darwin.
 
 **IPC handlers** — convert each `ipcMain.handle('channel', async (event, ...) => { ... })` identically. Type event as `Electron.IpcMainInvokeEvent` or `any`. Return types preserved. Key handlers:
 
 - `SynWindow:minimize/maximize/close`
-
 - `config:get`, `config:set`
-
 - `db:health` -> `{ health, dbPath, initialized }`
-
 - `db:rebuild` -> `{ status, health, ...result }`
-
 - `harness:add/remove/list`, `harness:settings:get/set`, `dialog:openFolder`
-
 - `session:list/listAll/read/delete/deleteFile/getContext`
-
 - `source:index/indexAll/incrementalIndex`
-
 - `session:search` — filter coercion identical to current (limit, excerptLength, harness, role, project, brain, dateFrom, dateTo, enabledHarnesses).
-
 - `brain:getIndex/index/read/write/list/nextSerial/reflect/meditate/ruminate/plan/review`
-
 - `brainVault:open`, `brain:dir`, `brainVaultWindow:minimize/maximize/close/setBounds/getBounds`, `brain:rename/delete/import/setDir`
-
 - `dialog:openFile`, `shell:showItemInFolder`
-
 - `harness:autodetect` — `getDriveRoots()` helper scanning C:–Z: for `Users/*/<knownHarnessDirs>`.
 
-*`getDriveRoots()`:** uses `fsExtra.existsSync` in current code `const fsExtra = require('fs')` — redundant alias). In TS, just use `fs.existsSync`; preserve the drive scan logic (C-Z), `Users` dir enumeration, known harness dirs list, `await sleep(30)` between drives.
+`getDriveRoots()`*:** uses `fsExtra.existsSync` in current code `const fsExtra = require('fs')` — redundant alias). In TS, just use `fs.existsSync`; preserve the drive scan logic (C-Z), `Users` dir enumeration, known harness dirs list, `await sleep(30)` between drives.
 
-*`session:deleteFile`:** throws "Archive deletion is not supported" (G2) — preserve exactly.
+`session:deleteFile`*:** throws "Archive deletion is not supported" (G2) — preserve exactly.
 
-*`session:delete`:** index-only `engine.removeSession(sessionId)`.
+`session:delete`*:** index-only `engine.removeSession(sessionId)`.
 
-*`module.exports`** -> none; `main.ts` is a script executed by Electron.
+`module.exports`* -> none; `main.ts` is a script executed by Electron.
 
 **### P5.2 Convert scripts**
 
-*`reindex.ts`:** standalone CLI. Hardcoded `C:\Users\luizy\...` paths — preserve exactly as-is (they're non-runtime, user-specific; [nextphase.md](http://nextphase.md) portable-paths audit confirms hardcoded K:\ paths only in non-runtime files). Convert to TS with types; `INDEX_DB_PATH: string`, `harnessDirs: string[]`, `main()` async.
+`reindex.ts`*:** standalone CLI. Hardcoded `C:\Users\luizy\...` paths — preserve exactly as-is (they're non-runtime, user-specific; [nextphase.md](http://nextphase.md) portable-paths audit confirms hardcoded K:\ paths only in non-runtime files). Convert to TS with types; `INDEX_DB_PATH: string`, `harnessDirs: string[]`, `main()` async.
 
-*`check_codex_sessions.ts`:** uses `better-sqlite3` directly. Import `Database from 'better-sqlite3'`, type `db`, `cols`, `rows`.
+`check_codex_sessions.ts`*:** uses `better-sqlite3` directly. Import `Database from 'better-sqlite3'`, type `db`, `cols`, `rows`.
 
-*`bootstrap.ts` / `wrapper.ts`:** Electron module-patching hacks that manipulate `Module._loadModule._resolveFilename`. Convert to TS: `import { Module } from 'module'` (or `require('module')`), patch functions with types `(request: string, parent: any, isMain: boolean) => any`. These are runtime hacks; type loosely `any`) to avoid fighting Node's internal module types. Preserve behavior exactly.
+`bootstrap.ts` */* `wrapper.ts`*:** Electron module-patching hacks that manipulate `Module._loadModule._resolveFilename`. Convert to TS: `import { Module } from 'module'` (or `require('module')`), patch functions with types `(request: string, parent: any, isMain: boolean) => any`. These are runtime hacks; type loosely `any`) to avoid fighting Node's internal module types. Preserve behavior exactly.
 
 **### P5.3** `electron` **entry point**
 
 Update `package.json` `"main": "main.ts"`? Electron's `main` field must point to a JS file that Electron can run. Electron does not run TypeScript directly. Options:
 
 1. Keep `"main": "main.js"` where `main.js` is a tiny shim that `require('./dist/main.js')` after `tsc` build — adds a build step.
-
 2. Use `tsxts-node` to run `main.ts` directly via `"main": "main.ts"` with a loader — Electron won't natively handle `.ts`.
-
 3. Keep `main.js` as-is (unconverted) and only convert for type-checking via `tsc --noEmit` — but then main.js drifts from main.ts.
 
 Recommended approach for an Electron app: compile to `dist/` with `tsc` (emit), and set `"main": "dist/main.js"`, plus a `prebuildbuild` script. However `preload.js` is referenced by `webPreferences.preload` — also must be compiled to `dist/preload.js`, and renderer paths `renderer/index.html`) stay relative to the compiled main.
@@ -1494,9 +1426,7 @@ Recommended approach for an Electron app: compile to `dist/` with `tsc` (emit), 
 Given the goal is "100% native TypeScript app," the cleanest end state:
 
 - `tsc` emits `dist/main.js`, `dist/preload.js`, `dist/mcp-server.js`, `dist/packages/**/*.js`, `dist/scripts/**/*.js`.
-
 - `package.json` `"main": "dist/main.js"`.
-
 - `preload` path in `main.ts`: `path.join(__dirname, '..', 'dist', 'preload.js')` — but `__dirname` after compile is `dist/`, so preload is `path.join(__dirname, 'preload.js')`. Adjust paths in `main.ts` to reference `dist/` layout OR keep source-relative paths and compile with `rootDir` preserving structure so `dist/packages/core/index.js` requires `dist/packages/core/db-compat.js` correctly (CommonJS require resolves relative to the compiled file — works automatically).
 
 Simplest minimal-change approach that still satisfies "100% TypeScript source":
@@ -1508,9 +1438,7 @@ Decision documented here: compile with `tsc` (emit to `dist/`), set `"main": "di
 For the migration guide, specify:
 
 - `tsc` emits to `dist/` (rootDir preserves `packages/`, `scripts/`, `renderer/` referenced via absolute paths in HTML).
-
 - `"main": "dist/main.js"`.
-
 - In `main.ts`, `preload: path.join(__dirname, 'preload.js')` (compiled alongside main), `mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'))` — renderer stays at repo root `renderer/` (HTML/CSS not compiled), OR compile renderer too. Simplest: keep `renderer/` at repo root and load from source location; `__dirname` = `dist`, so `path.join(__dirname, '..', 'renderer', 'index.html')`.
 
 The guide should note: `npm start` requires `tsc` to have run at least once (or use `tsx` for dev). Add script `"prestart": "tsc"` or document `tsc && electron .`.
@@ -1577,7 +1505,6 @@ Renderer files import the `SynAPI` type from `../preload` (type-only import to a
 Since renderer uses classic `<script src="app.js">` (no bundler, no ESM imports in HTML), TypeScript modules in renderer need care. Options:
 
 1. Keep renderer as classic scripts compiled by `tsc` to `dist/renderer/app.js`, referenced via `<script src="app.js">`. `tsc` with `module: commonjs` emits `require()` calls — but renderer has `nodeIntegration: false`, so `require` is NOT available in the renderer! Current `renderer/app.js` uses NO `require` — it only touches `window.synAPI` and DOM. Good: keep it that way. Compiled `app.js` from TS will not contain `requireimport` if we don't use imports. So renderer TS files must be **standalone scripts** (no import/export statements), compiled by tsc to plain JS, loaded via `<script src>`.
-
 2. Declare types via `/// <reference path="..." />` or a global `.d.ts` included in `tsconfig include`.
 
 Approach: renderer `.ts` files contain no `importexport` — they're global scripts. Types come from `src/types/*.d.ts` (global `declare global`). `window.synAPI: SynAPI` declared globally. Compile with `tsc` (emit) to `dist/renderer/app.js` etc. HTML `<script src="app.js">` still works if we keep HTML at repo root referencing `renderer/app.js` — but compiled output goes to `dist/renderer/app.js`. Either update HTML to `dist/renderer/app.js`, or keep source-relative by not emitting renderer to dist. 
@@ -1587,11 +1514,8 @@ Simplest consistent story: `tsc` emits everything to `dist/` preserving structur
 To keep the migration scope manageable, the guide will specify:
 
 - `tsc` emits JS to `dist/` preserving `packages/`, `scripts/`, `renderer/`.
-
 - A `copy-assets` step (or electron-builder `extraResourcesfiles`) copies `renderer/*.html`, `renderer/style.css`, `assets/` to `dist/`.
-
 - `main.ts` loads `path.join(__dirname, 'renderer', 'index.html')` (works since `__dirname` = `dist` and `dist/renderer/index.html` exists).
-
 - `preload: path.join(__dirname, 'preload.js')`.
 
 This is an implementation detail; the critical contract is type-checking + identical runtime behavior.
@@ -1601,7 +1525,6 @@ This is an implementation detail; the critical contract is type-checking + ident
 No imports (global script). Types:
 
 - `declare const synAPI: SynAPI` — via global `window.synAPI`. Access as `window.synAPI` or `const synAPI = window.synAPI` (current code does `const synAPI = window.synAPI`).
-
 - DOM element types: `HTMLInputElement`, `HTMLDivElement`, `HTMLButtonElement`, etc., via `document.getElementById('x') as HTMLInputElement | null`. Current code uses `document.getElementById(...)` without null checks — in TS with `strictNullChecks`, add `!` non-null assertions or null guards. Preserve behavior: assume elements exist (they do in index.html).
 
 **State variables:** type them:
@@ -1636,17 +1559,17 @@ let searchQuery: string = ''
 
 **Terminal command parsing:** `executeTerminalCommand(raw: string)` — the `switch (cmd)` with cases `/locate`, `/reflect`, etc. Preserve exactly. `parseSearchFilters(raw: string): { query: string; options: Record<string, any> }` — same logic.
 
-*`performSearch()`:** calls `synAPI.searchSessions(query, { batchSize, ...options })` and `searchBrainVault(raw)`.
+`performSearch()`*:** calls `synAPI.searchSessions(query, { batchSize, ...options })` and `searchBrainVault(raw)`.
 
-*`searchBrainVault(query: string): Promise<any[]>`** — reads vault files via `synAPI.brainList()synAPI.brainRead()`, scores, returns results. Preserve.
+`searchBrainVault(query: string): Promise<any[]>`* — reads vault files via `synAPI.brainList()synAPI.brainRead()`, scores, returns results. Preserve.
 
 **Rendering functions:** `renderSearchResultsList(results, query)`, `renderSessionList(sessions)`, `loadSessionContent(session)`, `loadVaultContent(result)`, `renderMessages(messages)`, `renderSearchResults(results)`, `appendTerminalLine(text, type)`, `highlightText(html, query)`, `escapeHtml(text)`, `updateModeUI()`, `switchMode(newMode)`, `checkDbHealth()`, `updateTogglePosition()`, resize handlers `startResizeendResizedoResize`), `init()`, `loadSessions()`, `scanAndAutodetectHarnesses()`, `renderHarnesses()loadHarnesses()`, `renderHarnessSettings()`, `showBrainResult(title, result)`, `showConfirmhideConfirm`, `closeSession()`.
 
 **Event listeners:** terminalInput keydown, searchInput keydown, button clicks, contextmenu, Escape keydown, arrow navigation, mousemove/mouseup for resizers, `document.readyStateDOMContentLoaded`.
 
-**Type `session` objects:** `{ id, session_id, title, harness, source_path, file_path, created_at, indexed_at, rank?, snippet?, excerpt?, source?, path?, matchScore? }` — type as `Record<string, any>` or a `SessionRecord` interface to keep it simple.
+**Type** `session` **objects:** `{ id, session_id, title, harness, source_path, file_path, created_at, indexed_at, rank?, snippet?, excerpt?, source?, path?, matchScore? }` — type as `Record<string, any>` or a `SessionRecord` interface to keep it simple.
 
-*`setStatusLoadingsetStatusIdle`:** `statusIndicatorImg.src = '../assets/idle.gif'` — relative path works at runtime from `renderer/`; after compile to `dist/renderer/app.js`, the relative `../assets/` resolves to `dist/assets/` — ensure assets copied to `dist/assets/`. Or change to absolute via `path` — not available in renderer. Keep `../assets/idle.gif` and copy assets to dist.
+`setStatusLoadingsetStatusIdle`*:** `statusIndicatorImg.src = '../assets/idle.gif'` — relative path works at runtime from `renderer/`; after compile to `dist/renderer/app.js`, the relative `../assets/` resolves to `dist/assets/` — ensure assets copied to `dist/assets/`. Or change to absolute via `path` — not available in renderer. Keep `../assets/idle.gif` and copy assets to dist.
 
 **### P6.3 Convert** `renderer/brain-vault.ts`
 
@@ -1660,7 +1583,7 @@ No imports (global script). Uses `window.synAPI` (current code does `const _synA
 
 **Event listeners:** canvas mousedown/mousemove/mouseup/wheel, button clicks, overlays, `beforeunload`, `window loadresize`.
 
-*`loadBrainVault` idempotency guard** and `brainVaultInitialized` flag — preserve.
+`loadBrainVault` *idempotency guard** and `brainVaultInitialized` flag — preserve.
 
 **### P6.4 HTML script references**
 
@@ -1718,25 +1641,15 @@ Continues from Part 8. Append after Part 8.
 **Exit criteria:** Full `npm test` passes with identical counts to the pre-migration baseline:
 
 - search.test.js: 13/13 (verify exact count in file)
-
 - search-quality.test.js: 24/24
-
 - validator-precision.test.js: 65/65
-
 - fixture-tests.js: 47/47
-
 - indexing.test.js: all pass
-
 - security.test.js: all pass
-
 - brainmaxxing.test.js: 89/89
-
 - session-delete.test.js: 10/10
-
 - g3-filter-forwarding.test.js: 30/30
-
 - mcp.test.js: all pass
-
 - real-world-integration.test.js: explicit skips when data absent (env-dependent)
 
 **### P7.1 Conversion approach per test file**
@@ -1744,27 +1657,18 @@ Continues from Part 8. Append after Part 8.
 Tests are Node CommonJS scripts using `assert`-style counters `passedfailed`, `console.log PASS/FAIL`). Convert to `.ts`:
 
 1. Rename `.js` -> `.ts`.
-
 2. Add `importrequire` at top. Since `tsx` runs TypeScript and supports ESM/CJS, use `import { IndexingEngine } from '../packages/core/index'` — with `module: commonjs` this compiles to `require`. Alternatively keep `const { IndexingEngine } = require('../packages/core/index')` to minimize diff; `tsx` handles both.
-
 3. Type test locals `let passed = 0`, `let failed = 0`, temp dirs as `string`, DB paths as `string`).
-
 4. `strictNullChecks`: guard `fs.existsSync`, `fs.statSync` results; use `!` where current JS assumed existence.
-
 5. Assert helper: `function assert(condition: boolean, message: string): void { ... }`.
-
 6. Async `main()` functions typed `async function main(): Promise<void>`.
 
 **Specific notes per file:**
 
 - `test/fixture-tests.ts`: imports `../packages/core/index` and `../packages/adapters/registry` — both converted by P1/P2. Uses `os.tmpdir()`, `fs.copyFileSync`, `fs.mkdtempSync`. Type all paths.
-
 - `test/security.ts`: constructs `new IndexingEngine(dbPath, { redactSecrets, secretPatterns, excludedPaths })`. Match P2 constructor signature.
-
 - `test/brainmaxxing.ts`: imports `../packages/core/brainmaxxing` — P3 converted.
-
 - `test/mcp.ts`: starts MCP server on stdio, sends ListTools/CallTool requests. Imports `mcp-server.ts`? That runs `main()` on import (connects stdio). Instead the test likely spawns `node mcp-server.js` as a child process or imports with care. Preserve whatever mechanism the JS test uses; type child-process handles.
-
 - `test/real-world-integration.ts`: uses real `C:\Users\luizy\...` paths. Keep `test.skip`-style explicit skips when paths absent.
 
 **### P7.2 Update** `package.json` **test script**
@@ -1838,11 +1742,8 @@ npm start             # Electron launches (optional, needs tsc emit + assets cop
 Before marking P8 complete, an agent or reviewer should record:
 
 1. Pre-migration baseline test counts (from `npm test` on the JS version) — from [nextphase.md](http://nextphase.md) Phase 12: search 13/13, search-quality 24/24, validator-precision 65/65, fixture-tests 47/47, security 34/34 (phase 8 said 14+ expanded), brainmaxxing 89/89, session-delete 10/10, g3-filter-forwarding 30/30, indexing 25/25.
-
 2. Post-migration `npm test` counts — must match.
-
 3. `npx tsc --noEmit` output — clean.
-
 4. `npx eslint . --ext .js,.ts --max-warnings 0` — 0 errors, 0 warnings.
 
 **### P8.3 "Nothing lost" verification matrix**
