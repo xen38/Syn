@@ -237,6 +237,23 @@ Tests are converted last (P7) so they can assert against the now-TS source via `
 4. Mark the file complete only when type-check + lint + related tests pass.
 5. Update this guide's phase status as work completes; an agent or reviewer can resume at any phase by reading the status table.
 
+---
+
+**## 8. Commit Rule (MANDATORY — read before every commit)**
+
+Before committing any changes during this migration, follow this procedure exactly:
+
+1. **`git status`** — review all modified, deleted, and untracked files. Confirm only migration-related files are included.
+2. **`git diff --stat`** — review the scope of changes. Ensure no unrelated files are being committed.
+3. **Delete duplicate `.js` files** — for every `.js` file that has been converted to `.ts` and committed, delete the old `.js` from the repo with `git rm <file.js>`. This prevents duplicate source files (a `.js` and `.ts` with the same logic coexisting).
+4. **`git add`** — stage only the files intentionally changed by this migration step (converted `.ts` files, updated configs, deleted `.js` files being replaced, migration.md itself).
+5. **Run validation before commit:** `npx tsc --noEmit` must pass with 0 errors, and `npx eslint <changed-files> --ext .ts --max-warnings 0` must pass with 0 warnings on all changed TypeScript files.
+6. **`git commit`** — commit with a descriptive message in the format: `migration: <phase> <description>` (e.g., `migration: P2 index.ts — convert to TypeScript, fix all tsc errors`).
+7. **`git log --oneline -3`** — verify the commit landed correctly on `main`.
+8. **Push** — after committing, push to remote so the `.js` deletions propagate.
+
+Do NOT commit unrelated changes, debug scripts, temporary files, or build output (`dist/`, `node_modules/`). If validation fails, fix before committing.
+
 Next: Part 2 — Phase P0 setup details (tsconfig, package.json, type declarations).  
 **# [migration.md](http://migration.md) — Syn: 100% Native TypeScript Migration Guide (Part 2: Phase P0 Setup)**
 
