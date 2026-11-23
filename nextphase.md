@@ -1246,7 +1246,8 @@ Update `skills/locate/skill.md` to reflect Syn naming and the terminal-based int
 
 - Add JSDoc types to `packages/core/` (parsers benefit from typed message shapes).
 
-- Or migrate to TypeScript gradually.
+
+- ✅ Migrated Syn from 100% JavaScript (CommonJS) to 100% native TypeScript per migration.md (P0-P8 complete). All `.js` source converted to `.ts`; old `.js` duplicates deleted via `git rm` in the same commits (Commit Rule Section 8). `tsc --noEmit` 0 errors; ESLint 0 errors/warnings; `npm test` 11 suites / 407 tests all pass. Committed as `59377d8` and pushed to origin/main.
 
 
 
