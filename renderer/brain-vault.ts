@@ -280,6 +280,20 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
 // === Initialize ===
 let loadBrainVaultRunning = false
 
+// Timeout for IPC calls (ms) — prevents hanging forever if main process
+// doesn't respond (e.g. brainList() never resolves).
+const IPC_TIMEOUT_MS = 10000
+
+function withTimeout <T> (promise: Promise<T>, ms: number): Promise<T> {
+  let timer: NodeJS.Timeout | null = null
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`IPC timeout after ${ms}ms`)), ms)
+  })
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer)
+  })
+}
+
 async function init () {
   try {
     await loadBrainVault()
@@ -290,6 +304,14 @@ async function init () {
       bvGraphEmpty.style.display = 'block'
     }
   }
+}
+
+// Prominent startup diagnostic if synAPI bridge is not available.
+// This helps distinguish "preload not loaded" from "brainList() failed".
+if (!synAPI) {
+  showDiagnostic('Brain Vault: synAPI bridge not available (contextBridge may not be exposed in this window). ' +
+    'Check that preload.js is loaded and contextBridge.exposeInMainWorld("synAPI", ...) is called.')
+  if (bvStatusText) bvStatusText.textContent = 'synAPI bridge not available'
 }
 
 // Re-run loadBrainVault once the BrowserWindow is actually shown so the graph
@@ -311,7 +333,7 @@ window.addEventListener('resize', () => { resizeCanvas(); recenterGraph() })
 
 // Only wire up the window-shown trigger if synAPI is available.
 // If synAPI is undefined (contextBridge not exposed), init() will still
-// attempt loadBrainVault() on its own.
+// attempt loadBrainVault() on its own (but will show the diagnostic above).
 if (synAPI && typeof synAPI.onBvWindowShown === 'function') {
   synAPI.onBvWindowShown(() => {
     try {
@@ -357,14 +379,16 @@ async function loadBrainVault () {
 
     if (!bvGraphCanvas || !bvGraphContainer || !bvGraphEmpty) {
       showDiagnostic('Brain Vault: required DOM elements missing.')
+      loadBrainVaultRunning = false
       return
     }
 
     let files: string[]
     try {
-      files = await synAPI.brainList() as string[]
+      files = await withTimeout(synAPI.brainList() as Promise<string[]>, IPC_TIMEOUT_MS)
     } catch (e) {
       showDiagnostic('Brain Vault: brainList() failed - ' + escapeHtmlBv((e as Error).message))
+      loadBrainVaultRunning = false
       return
     }
     brainFiles = files || []
@@ -374,6 +398,7 @@ async function loadBrainVault () {
       showDiagnostic('Brain Vault: brainList() returned 0 files. Check that brain/ directory exists at ' + (synAPI.brainDir ? (await synAPI.brainDir() as { path: string }).path : 'unknown'))
       if (bvGraphCanvas) bvGraphCanvas.style.display = 'none'
       if (bvGraphEmpty) bvGraphEmpty.style.display = 'block'
+      loadBrainVaultRunning = false
       return
     }
     ctx = bvGraphCanvas.getContext('2d')
