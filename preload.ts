@@ -157,6 +157,6 @@ try {
 } catch (e) {
   console.error('[preload] Failed to expose synAPI via contextBridge:', e)
   // Fallback: attempt direct assignment (works only without contextIsolation)
-  ;(window as any).synAPI = synAPI
-  ;(window as any).locateAPI = synAPI
+  ;(window as unknown as Record<string, unknown>).synAPI = synAPI
+  ;(window as unknown as Record<string, unknown>).locateAPI = synAPI
 }
