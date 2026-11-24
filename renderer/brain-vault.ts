@@ -1,5 +1,3 @@
-import type { SynAPI } from '../preload'
-
 /**
  * Brain Vault window - standalone draggable/resizable BrowserWindow.
  *
@@ -35,7 +33,7 @@ window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => 
 })
 
 // synAPI is exposed via contextBridge by preload.ts; read it from window
-const synAPI: SynAPI = window.synAPI
+const synAPI = window.synAPI
 
 // === Startup diagnostic: show synAPI status on screen ===
 function showDiagnostic (msg: string) {
@@ -236,7 +234,7 @@ if (bvBtnClose) {
         await synAPI.brainVaultWindowClose()
       }
     } catch (err) {
-      showDiagnostic('Close failed: ' + escapeHtml((err as Error).message || String(err)))
+      showDiagnostic('Close failed: ' + escapeHtmlBv((err as Error).message || String(err)))
     }
   })
 }
@@ -244,7 +242,7 @@ if (bvBtnClose) {
 if (bvBtnMinimize) {
   bvBtnMinimize.addEventListener('click', () => {
     try { synAPI.brainVaultWindowMinimize() } catch (err) {
-      showDiagnostic('Minimize failed: ' + escapeHtml((err as Error).message || String(err)))
+      showDiagnostic('Minimize failed: ' + escapeHtmlBv((err as Error).message || String(err)))
     }
   })
 }
@@ -252,7 +250,7 @@ if (bvBtnMinimize) {
 if (bvBtnMaximize) {
   bvBtnMaximize.addEventListener('click', () => {
     try { synAPI.brainVaultWindowMaximize() } catch (err) {
-      showDiagnostic('Maximize failed: ' + escapeHtml((err as Error).message || String(err)))
+      showDiagnostic('Maximize failed: ' + escapeHtmlBv((err as Error).message || String(err)))
     }
     try { resizeCanvas(); centerGraph() } catch (e) { console.error('bv:maximize error:', e) }
   })
@@ -288,7 +286,7 @@ async function init () {
   } catch (e) {
     console.error('Failed to init brain vault:', e)
     if (bvGraphEmpty) {
-      bvGraphEmpty.textContent = 'Failed to load brain vault: ' + escapeHtml((e as Error).message)
+      bvGraphEmpty.textContent = 'Failed to load brain vault: ' + escapeHtmlBv((e as Error).message)
       bvGraphEmpty.style.display = 'block'
     }
   }
@@ -366,7 +364,7 @@ async function loadBrainVault () {
     try {
       files = await synAPI.brainList() as string[]
     } catch (e) {
-      showDiagnostic('Brain Vault: brainList() failed - ' + escapeHtml((e as Error).message))
+      showDiagnostic('Brain Vault: brainList() failed - ' + escapeHtmlBv((e as Error).message))
       return
     }
     brainFiles = files || []
@@ -850,10 +848,10 @@ function render () {
 
 // === Render note content ===
 function renderNoteContent (file: string, content: string) {
-  let html = escapeHtml(content)
+  let html = escapeHtmlBv(content)
   html = html.replace(/\[\[([^\]]+)\]\]/g, (match, link) => {
     const label = link.replace(/\.md$/, '')
-    return '<span class="wiki-link" data-link="' + escapeHtml(label) + '">' + escapeHtml(label) + '</span>'
+    return '<span class="wiki-link" data-link="' + escapeHtmlBv(label) + '">' + escapeHtmlBv(label) + '</span>'
   })
   html = html.replace(/\n/g, '<br>')
   return html
@@ -908,7 +906,7 @@ function createBvTab (tabId: string, label: string, html: string, file: string, 
   tabBtn.className = 'brain-vault-tab active'
   tabBtn.dataset.tab = tabId
   tabBtn.innerHTML =
-    '<span class="bv-tab-label">' + escapeHtml(label) + '</span>' +
+    '<span class="bv-tab-label">' + escapeHtmlBv(label) + '</span>' +
     ' <button class="bv-edit-btn" data-tab="' + tabId + '" title="Edit this note">e</button>' +
     ' <span class="tab-close" data-tab="' + tabId + '">&#215;</span>'
 
@@ -1309,7 +1307,7 @@ if (bvSettingsCtxMenu) {
           }
         }
       } catch (err) {
-        alert('Failed to change directory: ' + escapeHtml((err as Error).message))
+        alert('Failed to change directory: ' + escapeHtmlBv((err as Error).message))
       }
     })
   }
@@ -1323,7 +1321,7 @@ if (bvSettingsCtxMenu) {
         alert('Brain index rebuilt: ' + (result.files || 0) + ' files')
         await loadBrainVault()
       } catch (err) {
-        alert('Failed to rebuild index: ' + escapeHtml((err as Error).message))
+        alert('Failed to rebuild index: ' + escapeHtmlBv((err as Error).message))
       }
     })
   }
@@ -1343,7 +1341,7 @@ if (bvSettingsCtxMenu) {
           alert('Brain index tab opened but edit button not found.')
         }
       } catch (err) {
-        alert('Failed to edit brain index: ' + escapeHtml((err as Error).message))
+        alert('Failed to edit brain index: ' + escapeHtmlBv((err as Error).message))
       }
     })
   }
@@ -1410,7 +1408,7 @@ if (ctxOpenFolder) {
         await synAPI.showItemInFolder(brainPath)
       }
     } catch (err) {
-      alert('Could not open Brain folder: ' + escapeHtml((err as Error).message))
+      alert('Could not open Brain folder: ' + escapeHtmlBv((err as Error).message))
     }
   })
 }
@@ -1639,7 +1637,7 @@ window.addEventListener('beforeunload', (e: BeforeUnloadEvent) => {
 })
 
 // === Helpers ===
-function escapeHtml (text: string) {
+function escapeHtmlBv (text: string) {
   const div = document.createElement('div')
   div.textContent = text
   return div.innerHTML
