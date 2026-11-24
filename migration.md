@@ -1862,6 +1862,29 @@ Manual verification checklist:
 
 After committing any converted `.ts` file, delete the old `.js` original from the repo with `git rm <file.js>` so no `.js`/`.ts` duplicate pair coexists. Check `git ls-files '*.js'` returns empty for source files before pushing. This rule is enforced in Section 8 (Commit Rule).
 
+### R14 — `__dirname`-relative paths must resolve correctly after `tsc` compiles to `dist/`
+
+TypeScript compilation relocates source files into `dist/`, so `__dirname` changes (e.g. `packages/core/` → `dist/packages/core/`). Any `path.join(__dirname, ...)` that references repo-root resources (like `brain/`) will break because the number of `..` segments is wrong.
+
+**Fix:** resolve the repo root dynamically instead of hard-coding `..` segments:
+
+```ts
+function findRepoRoot (startDir: string): string {
+  let dir = startDir
+  while (true) {
+    if (fs.existsSync(path.join(dir, 'package.json')) return dir
+    const parent = path.dirname(dir)
+    if (parent === dir) break
+    dir = parent
+  }
+  return startDir
+}
+
+let BRAIN_DIR = path.join(findRepoRoot(__dirname), 'brain')
+```
+
+This works whether running from source via `tsx` (`__dirname = packages/core/`) or from compiled `dist/` (`__dirname = dist/packages/core/`). Verify after any change: `require('./dist/packages/core/brainmaxxing.js').BRAIN_DIR` must equal `<repo root>/brain`, and `brainList()` must return the real vault files (not 0).
+
 ---
 
 **End of [migration.md](http://migration.md).**  

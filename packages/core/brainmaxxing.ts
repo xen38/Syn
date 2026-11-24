@@ -26,7 +26,21 @@ import { SessionWithMessages, Message } from './index'
 
 // Brain vault lives at the repo root: <repo>/brain
 // Can be overridden at runtime via setBrainDir() (used by settings menu)
-let BRAIN_DIR = path.join(__dirname, '..', '..', 'brain')
+// Resolve the repo root dynamically so BRAIN_DIR is correct whether running
+// from source via tsx (__dirname = packages/core/) or from compiled dist/
+// (__dirname = dist/packages/core/).
+function findRepoRoot (startDir: string): string {
+  let dir = startDir
+  while (true) {
+    if (fs.existsSync(path.join(dir, 'package.json'))) return dir
+    const parent = path.dirname(dir)
+    if (parent === dir) break
+    dir = parent
+  }
+  return startDir
+}
+
+let BRAIN_DIR = path.join(findRepoRoot(__dirname), 'brain')
 
 /**
  * Override the Brain Vault directory at runtime.
