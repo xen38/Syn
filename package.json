@@ -4,8 +4,8 @@
   "description": "Syn — a unified agent memory environment: search sessions + Memory Vault via the /locate engine and brainmaxxing console",
   "main": "dist/main.js",
   "scripts": {
-    "start": "npx tsc && electron .",
-    "dev": "npx tsc && electron .",
+    "start": "npx tsc && node scripts/copy-assets.mjs && electron .",
+    "dev": "npx tsc && node scripts/copy-assets.mjs && electron .",
     "build": "electron-builder",
     "tsc": "tsc --noEmit",
     "lint": "eslint . --ext .js,.ts --max-warnings 0",
