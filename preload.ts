@@ -150,5 +150,13 @@ const synAPI: SynAPI = {
 }
 
 // Expose as synAPI, with locateAPI alias for backward compatibility.
-contextBridge.exposeInMainWorld('synAPI', synAPI)
-contextBridge.exposeInMainWorld('locateAPI', synAPI)
+try {
+  contextBridge.exposeInMainWorld('synAPI', synAPI)
+  contextBridge.exposeInMainWorld('locateAPI', synAPI)
+  console.log('[preload] synAPI exposed via contextBridge')
+} catch (e) {
+  console.error('[preload] Failed to expose synAPI via contextBridge:', e)
+  // Fallback: attempt direct assignment (works only without contextIsolation)
+  ;(window as any).synAPI = synAPI
+  ;(window as any).locateAPI = synAPI
+}

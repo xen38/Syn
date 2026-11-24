@@ -641,7 +641,7 @@ a { color: #ffffff; }
   padding: 16px;
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.5;
   color: #cccccc;
   background: #0a0a0a;
 }
@@ -849,7 +849,7 @@ a { color: #ffffff; }
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 13px;
   color: #e0e0e0;
-  line-height: 1.6;
+  line-height: 1.5;
   white-space: pre-wrap;
   word-wrap: break-word;
   background: #0a0a0a;
@@ -1853,7 +1853,7 @@ a { color: #ffffff; }
   padding: 16px;
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.5;
   color: #cccccc;
   background: #0a0a0a;
 }
@@ -1865,7 +1865,7 @@ a { color: #ffffff; }
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 13px;
   color: #e0e0e0;
-  line-height: 1.6;
+  line-height: 1.5;
   white-space: pre-wrap;
   word-wrap: break-word;
   background: #0a0a0a;
@@ -1900,7 +1900,7 @@ a { color: #ffffff; }
   min-height: 400px;
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.5;
   background: #0a0a0a;
   color: #cccccc;
   border: none;
