@@ -287,7 +287,7 @@ const IPC_TIMEOUT_MS = 10000
 
 function withTimeout <T> (promise: Promise<T>, ms: number): Promise<T> {
   let timer: NodeJS.Timeout | null = null
-  const timeout = new Promise<never>((_, reject) => {
+  const timeout = new Promise<never>((_resolve, reject) => {
     timer = setTimeout(() => reject(new Error(`IPC timeout after ${ms}ms`)), ms)
   })
   return Promise.race([promise, timeout]).finally(() => {
@@ -311,8 +311,8 @@ async function init () {
 // This helps distinguish "preload not loaded" from "brainList() failed".
 if (!bvSynAPI) {
   showDiagnostic('Brain Vault: synAPI bridge not available (contextBridge may not be exposed in this window). ' +
-      'Check that preload.js is loaded and contextBridge.exposeInMainWorld("synAPI", ...) is called.')
-    if (bvStatusText) bvStatusText.textContent = 'synAPI bridge not available'
+    'Check that preload.js is loaded and contextBridge.exposeInMainWorld("synAPI", ...) is called.')
+  if (bvStatusText) bvStatusText.textContent = 'synAPI bridge not available'
 }
 
 // Re-run loadBrainVault once the BrowserWindow is actually shown so the graph
@@ -1674,4 +1674,3 @@ function escapeCssId (id: string) {
 }
 
 // === Start ===
-
