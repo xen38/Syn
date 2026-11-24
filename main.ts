@@ -115,7 +115,7 @@ function createWindow (): void {
     icon: windowIcon,
     frame: false, // custom title bar; window controls handled via SynWindow IPC
     webPreferences: {
-      preload: path.join(__dirname, 'preload.ts'),
+      preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false
     },
@@ -165,7 +165,7 @@ function createBrainVaultWindow (): void {
     frame: false, // custom title bar; window controls handled via IPC
     resizable: true,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.ts'),
+      preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false
     },
