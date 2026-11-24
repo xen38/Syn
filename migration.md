@@ -1795,4 +1795,73 @@ When all P8 criteria are met, the migration is complete: Syn is a 100% native Ty
 
 ---
 
+---
+
+**## Post-Migration Runtime Validation (MANDATORY — read before declaring the migration "done")**
+
+After P8 passes (`tsc --noEmit`, `npm run lint`, `npm test` all green), the app must still launch and run correctly under Electron. The following runtime issues were found and fixed during post-migration validation. Add them to every post-migration release checklist so they do not recur:
+
+### R9 — Preload path must point to compiled `.js`, never `.ts`
+
+`main.ts` creates `BrowserWindow`s with `webPreferences.preload`. Electron loads the preload script at runtime, so it must reference the **compiled** JavaScript file, not the TypeScript source:
+
+```ts
+// WRONG — Electron cannot load .ts directly; contextBridge synAPI is never exposed
+preload: path.join(__dirname, 'preload.ts')
+
+// CORRECT — compiled output alongside main.js in dist/
+preload: path.join(__dirname, 'preload.js')
+```
+
+Apply to both `createWindow()` (main window) and `createBrainVaultWindow()` (brain vault window). If preload is wrong, `window.synAPI` is `undefined` in the renderer and every `synAPI.*` call fails silently — scan, title-bar minimize/maximize/close, and brain vault all break.
+
+### R10 — `copy-assets.mjs` must copy all runtime assets to `dist/`
+
+`tsc` emits only `.js`/`.map` files. Static assets that Electron/runtime needs at launch must be copied to `dist/` explicitly:
+
+- `renderer/index.html`, `renderer/brain-vault.html`, `renderer/style.css` → `dist/renderer/`
+- `assets/**` → `dist/assets/`
+- `node_modules/sql.js/dist/sql-wasm.wasm` → `dist/node_modules/sql.js/dist/sql-wasm.wasm` (required by sql.js to open the index database)
+
+Without `sql-wasm.wasm`, `engine.open()` fails and scan/indexing breaks. Verify `scripts/copy-assets.mjs` includes every asset above before running `npm start`.
+
+### R11 — Start script must compile + copy assets before launching Electron
+
+`package.json` start/dev scripts must run `tsc` (emit) and `copy-assets.mjs` before `electron .`, because `dist/` does not exist on a fresh checkout:
+
+```json
+"start": "npx tsc && node scripts/copy-assets.mjs && electron .",
+"dev": "npx tsc && node scripts/copy-assets.mjs && electron ."
+```
+
+`dist/` is gitignored (regenerated on each start) — do not commit it.
+
+### R12 — Post-migration launch checklist
+
+Before declaring the migration complete, run:
+
+```bash
+npx tsc --noEmit          # 0 type errors
+npm run lint              # 0 errors, 0 warnings
+npm test                  # all suites pass at baseline counts
+npx tsc                   # emit to dist/ (verify dist/main.js, dist/preload.js produced)
+node scripts/copy-assets.mjs
+npm start                 # Electron launches; verify:
+```
+
+Manual verification checklist:
+
+- [ ] App window opens (not black), title bar shows 'Syn'
+- [ ] Custom Minimize / Maximize / Close buttons work
+- [ ] Scan/indexing runs without `autodetectHarnesses` undefined errors
+- [ ] Brain Vault button opens the vault window; graph renders
+- [ ] `db:health` reports `healthy`; `Index engine opened successfully` logged
+- [ ] `window.synAPI` is defined in renderer (no `undefined` IPC calls)
+
+### R13 — Duplicate `.js` deletion rule (per commit)
+
+After committing any converted `.ts` file, delete the old `.js` original from the repo with `git rm <file.js>` so no `.js`/`.ts` duplicate pair coexists. Check `git ls-files '*.js'` returns empty for source files before pushing. This rule is enforced in Section 8 (Commit Rule).
+
+---
+
 **End of [migration.md](http://migration.md).**  
